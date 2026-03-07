@@ -1,0 +1,20 @@
+import { Component, OnInit, inject } from '@angular/core';
+import { CommonModule } from '@angular/common';
+import { SeoService } from '../../../core/services/seo/seo.service';
+import { DataService } from '../../../core/services/data_general/data.service';
+
+@Component({
+  selector: 'app-transparencia',
+  standalone: true,
+  imports: [CommonModule],
+  templateUrl: './transparencia.component.html',
+  styleUrl: './transparencia.component.css'
+})
+export class TransparenciaComponent implements OnInit {
+  private readonly seoService = inject(SeoService);
+  private readonly dataService = inject(DataService);
+  readonly documents = this.dataService.transparencyDocs;
+  ngOnInit(): void { this.seoService.updateTitle('Transparencia - CERMAT SCHOOL'); }
+  formatDate(d: string): string { return new Date(d).toLocaleDateString('es-PE', { year: 'numeric', month: 'long', day: 'numeric' }); }
+
+}
