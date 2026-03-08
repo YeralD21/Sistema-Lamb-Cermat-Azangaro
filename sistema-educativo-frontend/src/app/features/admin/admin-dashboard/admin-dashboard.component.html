@@ -1,0 +1,31 @@
+<div class="space-y-6 animate-slide-up flex flex-col items-center justify-center min-h-[calc(100vh-100px)]">
+  
+  <div class="w-full max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 mt-4 mb-12">
+    <!-- Grid of Modules -->
+    <div class="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-6 relative z-10">
+      
+      <a *ngFor="let module of modules; let i = index" 
+         [routerLink]="module.path"
+         class="group relative flex flex-col items-center justify-center p-8 h-[220px] rounded-2xl border border-transparent hover:border-blue-400/30 transition-all duration-300 cursor-pointer bg-[#242b3d] shadow-lg hover:shadow-2xl hover:-translate-y-1 animate-slide-up"
+         [style.animation-delay]="(i * 0.05) + 's'"
+         style="animation-fill-mode: forwards; opacity: 0;">
+         
+        <!-- Subtle Glow Effect on Hover -->
+        <div class="absolute inset-0 bg-blue-500/0 group-hover:bg-blue-500/5 transition-colors duration-300 rounded-2xl"></div>
+        
+        <!-- Icon Container -->
+        <div class="relative z-10 mb-5 p-4 rounded-[1.25rem] border border-slate-500/40 text-white group-hover:scale-110 group-hover:border-blue-400/50 group-hover:text-blue-300 transition-all duration-300">
+           <!-- Render SVG safely -->
+           <div class="w-10 h-10 flex items-center justify-center [&>svg]:w-full [&>svg]:h-full [&>svg]:stroke-[1.5]" [innerHTML]="sanitizeSvg(module.icon)"></div>
+        </div>
+        
+        <!-- Title -->
+        <h3 class="relative z-10 text-[13px] font-bold text-slate-100 tracking-[0.15em] text-center uppercase group-hover:text-white transition-colors duration-300">
+          {{ module.title }}
+        </h3>
+        
+      </a>
+
+    </div>
+  </div>
+</div>

@@ -13,8 +13,8 @@ export const PRIVATE_ROUTES: Routes = [
       },
       {
         path: 'dashboard',
-        loadComponent: () => import('./features/dashboard/dashboard.component').then(m => m.DashboardComponent),
-        title: 'CERMAT Portal - Dashboard'
+        loadComponent: () => import('./features/admin/admin-dashboard/admin-dashboard.component').then(m => m.AdminDashboardComponent),
+        title: 'CERMAT Portal - Panel de Administración'
       }
       // Add more lazy loaded routes here using roleGuard as needed
     ]
