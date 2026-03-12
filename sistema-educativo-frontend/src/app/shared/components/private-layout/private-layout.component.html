@@ -1,8 +1,4 @@
-<div
-  class="min-h-screen bg-[#616262] bg-cover bg-center bg-no-repeat flex flex-col font-sans relative"
-  [style.background-image]="'url(assets/images/fondo-dashboards-colegio.jpg)'">
-  <!-- Subtle dark overlay to ensure readability if the image is too bright -->
-  <div class="absolute inset-0 bg-black/30 pointer-events-none z-0"></div>
+<div class="min-h-screen bg-slate-50 flex flex-col font-sans">
 
   <!-- TOPBAR EXACTAMENTE COMO LA IMAGEN -->
   <header
@@ -58,8 +54,7 @@
   </header>
 
   <!-- Main Content Area -->
-  <main class="flex-1 w-full overflow-y-auto relative z-10">
-    <!-- Router Outlet for Dashboard Grids -->
+  <main class="flex-1 w-full overflow-y-auto bg-slate-50">
     <div class="h-full">
       <router-outlet></router-outlet>
     </div>
