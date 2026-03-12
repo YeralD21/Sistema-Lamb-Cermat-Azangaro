@@ -124,6 +124,81 @@ export const PRIVATE_ROUTES: Routes = [
         path: 'finance/reports',
         loadComponent: () => import('./features/finance/reports/finance-reports.component').then(m => m.FinanceReportsComponent),
         title: 'CERMAT - Reportes Financieros'
+      },
+
+      // ── Mensajería y Comunicados ──────────────────────────
+      {
+        path: 'messages/teacher',
+        loadComponent: () => import('./features/messaging/messaging-inbox.component').then(m => m.MessagingInboxComponent),
+        title: 'CERMAT - Bandeja de Entrada'
+      },
+      {
+        path: 'communications/teacher',
+        loadComponent: () => import('./features/communications/communications-management.component').then(m => m.CommunicationsManagementComponent),
+        title: 'CERMAT - Gestionar Comunicados'
+      },
+      {
+        path: 'communications/review',
+        loadComponent: () => import('./features/communications/communications-approval.component').then(m => m.CommunicationsApprovalComponent),
+        title: 'CERMAT - Aprobar Comunicados'
+      },
+
+      // ── Configuración / Ajustes ──────────────────────────
+      {
+        path: 'settings/academic-years',
+        loadComponent: () => import('./features/settings/academic-years.component').then(m => m.AcademicYearsComponent),
+        title: 'CERMAT - Años Académicos'
+      },
+      {
+        path: 'settings/periods',
+        loadComponent: () => import('./features/settings/periods.component').then(m => m.PeriodsComponent),
+        title: 'CERMAT - Periodos'
+      },
+      {
+        path: 'settings/grades',
+        loadComponent: () => import('./features/settings/grades-levels.component').then(m => m.GradesLevelsComponent),
+        title: 'CERMAT - Grados y Niveles'
+      },
+      {
+        path: 'settings/sections',
+        loadComponent: () => import('./features/settings/sections.component').then(m => m.SectionsComponent),
+        title: 'CERMAT - Secciones'
+      },
+      {
+        path: 'settings/courses',
+        loadComponent: () => import('./features/settings/courses.component').then(m => m.CoursesComponent),
+        title: 'CERMAT - Cursos'
+      },
+      {
+        path: 'settings/competencies',
+        loadComponent: () => import('./features/settings/competencies.component').then(m => m.CompetenciesComponent),
+        title: 'CERMAT - Competencias'
+      },
+      {
+        path: 'settings/teacher-assignments',
+        loadComponent: () => import('./features/settings/teacher-assignments.component').then(m => m.TeacherAssignmentsComponent),
+        title: 'CERMAT - Asignación Docente'
+      },
+      {
+        path: 'settings/users',
+        loadComponent: () => import('./features/settings/admin-users.component').then(m => m.AdminUsersComponent),
+        title: 'CERMAT - Usuarios'
+      },
+      {
+        path: 'settings/students',
+        loadComponent: () => import('./features/settings/students.component').then(m => m.StudentsComponent),
+        title: 'CERMAT - Estudiantes'
+      },
+      {
+        path: 'settings/enrollments',
+        loadComponent: () => import('./features/settings/enrollment-config.component').then(m => m.EnrollmentConfigComponent),
+        title: 'CERMAT - Configuración Matrículas'
+      },
+      // ── Sitio Web ───────────────────────────────────────
+      {
+        path: 'settings/news',
+        loadComponent: () => import('./features/website/news-management.component').then(m => m.NewsManagementComponent),
+        title: 'CERMAT - Gestión de Noticias y Eventos'
       }
     ]
   }
