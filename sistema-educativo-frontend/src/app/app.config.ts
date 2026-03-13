@@ -1,4 +1,4 @@
-import { ApplicationConfig, importProvidersFrom } from '@angular/core';
+import { ApplicationConfig } from '@angular/core';
 import { provideRouter, withInMemoryScrolling, withViewTransitions } from '@angular/router';
 import { provideHttpClient, withFetch, withInterceptors } from '@angular/common/http';
 import { provideClientHydration } from '@angular/platform-browser';

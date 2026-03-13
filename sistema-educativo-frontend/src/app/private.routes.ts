@@ -23,6 +23,18 @@ export const PRIVATE_ROUTES: Routes = [
         loadComponent: () => import('./features/student/student-dashboard/student-dashboard.component').then(m => m.StudentDashboardComponent),
         title: 'CERMAT - Portal del Estudiante'
       },
+      // ── Teacher Dashboard ──────────────────────────────────
+      {
+        path: 'dashboard/teacher',
+        loadComponent: () => import('./features/teacher/dashboard/dashboard.component').then(m => m.DashboardComponent),
+        title: 'CERMAT - Portal del Docente'
+      },
+      // ── Apoderado Dashboard ──────────────────────────────────
+      {
+        path: 'dashboard/apoderado',
+        loadComponent: () => import('./features/apoderado/dashboard/dashboard.component').then(m => m.DashboardComponent),
+        title: 'CERMAT - Portal de Apoderado'
+      },
       // ── Módulos del Estudiante ───────────────────────────
       {
         path: 'attendance/student',
@@ -53,6 +65,90 @@ export const PRIVATE_ROUTES: Routes = [
         path: 'schedule/my',
         loadComponent: () => import('./features/student/schedule/student-schedule.component').then(m => m.ScheduleStudentComponent),
         title: 'CERMAT - Mi Horario'
+      },
+
+      // ── Módulos del Apoderado ───────────────────────────
+      {
+        path: 'attendance/apoderado',
+        loadComponent: () => import('./features/apoderado/attendance/apoderado-attendance/apoderado-attendance.component').then(m => m.ApoderadoAttendanceComponent),
+        title: 'CERMAT - Asistencia'
+      },
+      {
+        path: 'evaluation/apoderado',
+        loadComponent: () => import('./features/apoderado/evaluation/apoderado-evaluation/apoderado-evaluation.component').then(m => m.ApoderadoEvaluationComponent),
+        title: 'CERMAT - Notas'
+      },
+      {
+        path: 'finance/apoderado',
+        loadComponent: () => import('./features/apoderado/finance/apoderado-finance/apoderado-finance.component').then(m => m.ApoderadoFinanceComponent),
+        title: 'CERMAT - Pagos'
+      },
+      {
+        path: 'tasks/apoderado',
+        loadComponent: () => import('./features/apoderado/tasks/apoderado-tasks/apoderado-tasks.component').then(m => m.ApoderadoTasksComponent),
+        title: 'CERMAT - Tareas'
+      },
+      {
+        path: 'communications/apoderado',
+        loadComponent: () => import('./features/apoderado/communications/apoderado-communications/apoderado-communications.component').then(m => m.ApoderadoCommunicationsComponent),
+        title: 'CERMAT - Comunicados'
+      },
+      {
+        path: 'messages/apoderado',
+        loadComponent: () => import('./features/apoderado/messages/apoderado-messages/apoderado-messages.component').then(m => m.ApoderadoMessagesComponent),
+        title: 'CERMAT - Mensajería'
+      },
+      {
+        path: 'dashboard/metrics/apoderado',
+        loadComponent: () => import('./features/apoderado/metrics/apoderado-metrics/apoderado-metrics.component').then(m => m.ApoderadoMetricsComponent),
+        title: 'CERMAT - Reporte'
+      },
+      {
+        path: 'schedule/apoderado',
+        loadComponent: () => import('./features/apoderado/schedule/apoderado-schedule/apoderado-schedule.component').then(m => m.ApoderadoScheduleComponent),
+        title: 'CERMAT - Horario'
+      },
+
+      // ── Módulos del Docente ───────────────────────────
+      {
+        path: 'attendance/teacher',
+        loadComponent: () => import('./features/teacher/attendance/teacher-attendance/teacher-attendance.component').then(m => m.TeacherAttendanceComponent),
+        title: 'CERMAT - Asistencia Docente'
+      },
+      {
+        path: 'evaluation/teacher',
+        loadComponent: () => import('./features/teacher/evaluation/teacher-evaluation/teacher-evaluation.component').then(m => m.TeacherEvaluationComponent),
+        title: 'CERMAT - Evaluación'
+      },
+      {
+        path: 'tasks/teacher',
+        loadComponent: () => import('./features/teacher/tasks/teacher-tasks/teacher-tasks.component').then(m => m.TeacherTasksComponent),
+        title: 'CERMAT - Mis Tareas'
+      },
+      {
+        path: 'tasks/grading/teacher',
+        loadComponent: () => import('./features/teacher/tasks/teacher-grading/teacher-grading.component').then(m => m.TeacherGradingComponent),
+        title: 'CERMAT - Calificar'
+      },
+      {
+        path: 'communications/teacher',
+        loadComponent: () => import('./features/teacher/communications/teacher-communications/teacher-communications.component').then(m => m.TeacherCommunicationsComponent),
+        title: 'CERMAT - Comunicados'
+      },
+      {
+        path: 'messages/teacher',
+        loadComponent: () => import('./features/teacher/messages/teacher-messages/teacher-messages.component').then(m => m.TeacherMessagesComponent),
+        title: 'CERMAT - Mensajería'
+      },
+      {
+        path: 'dashboard/metrics/teacher',
+        loadComponent: () => import('./features/teacher/metrics/teacher-metrics/teacher-metrics.component').then(m => m.TeacherMetricsComponent),
+        title: 'CERMAT - Resumen'
+      },
+      {
+        path: 'schedule/teacher',
+        loadComponent: () => import('./features/teacher/schedule/teacher-schedule/teacher-schedule.component').then(m => m.TeacherScheduleComponent),
+        title: 'CERMAT - Mi Horario (Docente)'
       },
 
       // ── Matrículas ───────────────────────────────────────
