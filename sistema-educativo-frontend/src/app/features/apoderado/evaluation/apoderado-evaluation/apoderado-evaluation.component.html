@@ -1,0 +1,75 @@
+<div class="space-y-8 max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8 animate-slide-up">
+  <!-- Header Section -->
+  <div class="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 bg-white p-6 rounded-2xl shadow-sm border border-slate-200/60 relative overflow-hidden">
+    <div class="absolute -right-10 -top-10 w-40 h-40 bg-cermat-blue-500/10 rounded-full blur-3xl pointer-events-none"></div>
+
+    <div class="relative z-10">
+      <h1 class="text-3xl font-extrabold text-slate-900 tracking-tight">Notas y Calificaciones</h1>
+      <p class="text-slate-500 mt-1 font-medium">Seguimiento académico detallado por competencias y bimestres</p>
+    </div>
+    <button (click)="downloadBoletin()" [disabled]="isDownloading" class="relative z-10 inline-flex items-center gap-2 px-6 py-2.5 bg-white text-cermat-blue-800 border-2 border-cermat-blue-100 hover:border-cermat-blue-300 hover:bg-cermat-blue-50/50 rounded-xl transition-all duration-300 shadow-sm font-bold disabled:opacity-50 disabled:cursor-wait">
+      <i *ngIf="!isDownloading" data-lucide="download" class="w-5 h-5"></i>
+      <i *ngIf="isDownloading" data-lucide="loader-2" class="w-5 h-5 animate-spin"></i>
+      {{ isDownloading ? 'Descargando...' : 'Descargar Boletín' }}
+    </button>
+  </div>
+
+  <!-- Content Section -->
+  <div class="bg-white rounded-2xl shadow-sm border border-slate-200/60 overflow-hidden">
+    <div class="p-6 border-b border-slate-100 bg-slate-50/50">
+      <h2 class="text-lg font-bold text-slate-800">Calificaciones Activas</h2>
+    </div>
+    <div class="overflow-x-auto w-full">
+      <table class="w-full text-left border-collapse whitespace-nowrap">
+        <thead>
+          <tr class="bg-white border-b border-slate-100">
+            <th class="py-4 px-6 font-bold text-slate-500 text-xs uppercase tracking-wider">Periodo</th>
+            <th class="py-4 px-6 font-bold text-slate-500 text-xs uppercase tracking-wider">Materia</th>
+            <th class="py-4 px-6 font-bold text-slate-500 text-xs uppercase tracking-wider">Competencia Evaluada</th>
+            <th class="py-4 px-6 font-bold text-slate-500 text-xs uppercase tracking-wider text-center">Calificación</th>
+          </tr>
+        </thead>
+        <tbody class="divide-y divide-slate-100">
+          <tr *ngFor="let ev of evaluations" class="hover:bg-slate-50/80 transition-colors group">
+            <td class="py-4 px-6">
+              <span class="inline-flex items-center gap-2 bg-slate-100 px-3 py-1.5 rounded-lg text-sm font-bold text-slate-600 border border-slate-200/60">
+                <i data-lucide="clock" class="w-3.5 h-3.5"></i> {{ ev.period }}
+              </span>
+            </td>
+            <td class="py-4 px-6">
+              <div class="flex items-center gap-3">
+                <div class="w-10 h-10 rounded-lg bg-indigo-50 flex items-center justify-center text-indigo-600 group-hover:scale-110 transition-transform">
+                  <i data-lucide="book-open" class="w-5 h-5"></i>
+                </div>
+                <span class="font-bold text-slate-900">{{ ev.subject }}</span>
+              </div>
+            </td>
+            <td class="py-4 px-6 font-medium text-slate-600 truncate max-w-[250px]">{{ ev.competence }}</td>
+            <td class="py-4 px-6 text-center">
+              <span class="inline-flex items-center justify-center w-12 h-12 rounded-xl text-lg font-black shadow-sm tracking-widest transform group-hover:scale-110 transition-all duration-300"
+                [ngClass]="{
+                  'bg-gradient-to-br from-emerald-400 to-emerald-600 text-white shadow-emerald-500/30': ev.grade === 'AD',
+                  'bg-gradient-to-br from-blue-400 to-blue-600 text-white shadow-blue-500/30': ev.grade === 'A',
+                  'bg-gradient-to-br from-amber-400 to-amber-600 text-white shadow-amber-500/30': ev.grade === 'B',
+                  'bg-gradient-to-br from-rose-400 to-rose-600 text-white shadow-rose-500/30': ev.grade === 'C'
+                }">
+                {{ ev.grade }}
+              </span>
+            </td>
+          </tr>
+          <!-- Empty state -->
+          <tr *ngIf="evaluations.length === 0">
+            <td colspan="4" class="py-12 text-center text-slate-500">
+              <div class="flex flex-col items-center justify-center space-y-3">
+                <div class="w-16 h-16 bg-slate-50 rounded-full flex items-center justify-center">
+                  <i data-lucide="graduation-cap" class="w-8 h-8 text-slate-400"></i>
+                </div>
+                <p class="font-medium text-slate-600">Aún no hay calificaciones para este periodo.</p>
+              </div>
+            </td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+  </div>
+</div>

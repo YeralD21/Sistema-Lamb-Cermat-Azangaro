@@ -24,6 +24,14 @@ export class PrivateLayoutComponent implements OnInit {
           (this.router.url === '/app' || this.router.url === '/app/dashboard')) {
         this.router.navigate(['/app/dashboard/student']);
       }
+      if (user && user.role === 'teacher' && 
+          (this.router.url === '/app' || this.router.url === '/app/dashboard')) {
+        this.router.navigate(['/app/dashboard/teacher']);
+      }
+      if (user && user.role === 'apoderado' && 
+          (this.router.url === '/app' || this.router.url === '/app/dashboard')) {
+        this.router.navigate(['/app/dashboard/apoderado']);
+      }
     });
   }
 
@@ -38,6 +46,8 @@ export class PrivateLayoutComponent implements OnInit {
   get dashboardRoute(): string {
     const role = this.authService.getRole();
     if (role === 'student') return '/app/dashboard/student';
+    if (role === 'teacher') return '/app/dashboard/teacher';
+    if (role === 'apoderado') return '/app/dashboard/apoderado';
     return '/app/dashboard';
   }
 }

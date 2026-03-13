@@ -1,0 +1,111 @@
+<div class="space-y-8 max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8 animate-slide-up">
+  <!-- Header Section -->
+  <div class="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 bg-white p-6 rounded-2xl shadow-sm border border-slate-200/60 relative overflow-hidden">
+    <div class="absolute -right-10 -top-10 w-40 h-40 bg-cermat-blue-500/10 rounded-full blur-3xl pointer-events-none"></div>
+
+    <div class="relative z-10">
+      <h1 class="text-3xl font-extrabold text-slate-900 tracking-tight">Caja de Mensajes</h1>
+      <p class="text-slate-500 mt-1 font-medium">Buzón de conversación directa con profesores y tutores</p>
+    </div>
+    <button (click)="openCompose()" class="relative z-10 inline-flex items-center gap-2 px-6 py-2.5 bg-gradient-to-r from-cermat-blue-600 to-cermat-blue-800 hover:from-cermat-blue-700 hover:to-cermat-blue-900 text-white rounded-xl transition-all duration-300 shadow-lg shadow-cermat-blue-500/30 font-bold hover:shadow-cermat-blue-500/50 hover:-translate-y-0.5">
+      <i data-lucide="edit" class="w-5 h-5"></i> Redactar al docente
+    </button>
+  </div>
+
+  <!-- Content Section -->
+  <div class="bg-white rounded-2xl shadow-sm border border-slate-200/60 overflow-hidden">
+    <div class="p-6 border-b border-slate-100 bg-slate-50/50">
+      <h2 class="text-lg font-bold text-slate-800 flex items-center gap-2">
+        <i data-lucide="inbox" class="w-5 h-5 text-slate-400"></i> Bandeja de Entrada
+      </h2>
+    </div>
+    <div class="w-full">
+      <div *ngFor="let m of messages" class="group flex flex-col sm:flex-row items-start sm:items-center justify-between p-4 sm:p-6 border-b border-slate-100 hover:bg-slate-50/80 cursor-pointer transition-colors" [ngClass]="{'bg-blue-50/30': m.unread}">
+        <!-- Sender info -->
+        <div class="flex items-center gap-4 w-full sm:w-1/4 shrink-0">
+          <div class="w-12 h-12 rounded-full bg-indigo-100 flex items-center justify-center text-indigo-700 shrink-0 font-extrabold shadow-sm border border-indigo-200">
+            {{ m.sender.charAt(0) }}
+          </div>
+          <div>
+            <div class="flex items-center gap-2">
+              <span *ngIf="m.unread" class="w-2.5 h-2.5 rounded-full bg-blue-600 animate-pulse shadow-sm shadow-blue-500/50"></span>
+              <span class="font-bold text-slate-900 truncate max-w-[150px] inline-block">{{ m.sender }}</span>
+            </div>
+            <p class="text-xs font-semibold uppercase tracking-wider text-slate-400 mt-0.5" *ngIf="m.unread">Mensaje Nuevo</p>
+          </div>
+        </div>
+        
+        <!-- Preview snippet -->
+        <div class="flex-1 w-full sm:w-auto mt-3 sm:mt-0 pl-0 sm:pl-6 sm:border-l sm:border-slate-200 text-sm font-medium" [ngClass]="m.unread ? 'text-slate-800 font-semibold' : 'text-slate-500'">
+          {{ m.preview }}
+        </div>
+        
+        <!-- Time & Actions -->
+        <div class="flex items-center justify-between sm:justify-end gap-6 w-full sm:w-auto shrink-0 mt-4 sm:mt-0">
+          <span class="text-xs font-bold text-slate-400 px-3 py-1 bg-white border border-slate-200 rounded-lg shadow-sm whitespace-nowrap">{{ m.time }}</span>
+          
+          <button class="w-10 h-10 rounded-full flex items-center justify-center bg-transparent text-slate-300 group-hover:bg-cermat-blue-50 group-hover:text-cermat-blue-600 hover:scale-110 transition-all duration-300 outline-none">
+            <i data-lucide="corner-up-right" class="w-5 h-5"></i>
+          </button>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- Modal Redactar Mensaje -->
+<div *ngIf="isComposeOpen" class="fixed inset-0 z-[100] flex items-center justify-center p-4">
+  <div class="fixed inset-0 bg-slate-900/60 backdrop-blur-sm transition-opacity" (click)="closeCompose()"></div>
+  <div class="relative bg-white rounded-2xl shadow-2xl w-full max-w-lg overflow-hidden animate-slide-up">
+    <!-- Modal Header -->
+    <div class="bg-cermat-blue-50 border-b border-cermat-blue-100 px-6 py-4 flex items-center justify-between">
+      <h3 class="text-xl font-bold text-cermat-blue-900 flex items-center gap-2">
+        <i data-lucide="edit-3" class="w-5 h-5 text-cermat-blue-600"></i>
+        Nuevo Mensaje
+      </h3>
+      <button (click)="closeCompose()" class="text-cermat-blue-400 hover:text-cermat-blue-700 transition-colors">
+        <i data-lucide="x" class="w-5 h-5"></i>
+      </button>
+    </div>
+    
+    <!-- Modal Body -->
+    <div class="p-6">
+      <form (ngSubmit)="sendMessage()" #composeForm="ngForm">
+        <div class="space-y-4">
+          
+          <div>
+            <label class="block text-sm font-semibold text-slate-700 mb-1">Para (Docente/Área)</label>
+            <select [(ngModel)]="newMessage.to" name="to" required
+                    class="w-full px-4 py-2 border border-slate-200 rounded-xl focus:ring-2 focus:ring-cermat-blue-500 focus:border-cermat-blue-500 transition-all outline-none text-slate-700 bg-slate-50 focus:bg-white font-medium">
+              <option value="" disabled selected>Seleccione el destinatario</option>
+              <option *ngFor="let t of teachers" [value]="t">{{ t }}</option>
+            </select>
+          </div>
+
+          <div>
+            <label class="block text-sm font-semibold text-slate-700 mb-1">Asunto</label>
+            <input type="text" [(ngModel)]="newMessage.subject" name="subject" required placeholder="Ej: Consulta sobre la tarea..."
+                   class="w-full px-4 py-2 border border-slate-200 rounded-xl focus:ring-2 focus:ring-cermat-blue-500 focus:border-cermat-blue-500 transition-all outline-none text-slate-700 bg-slate-50 focus:bg-white">
+          </div>
+            
+          <div>
+            <label class="block text-sm font-semibold text-slate-700 mb-1">Cuerpo del Mensaje</label>
+            <textarea [(ngModel)]="newMessage.body" name="body" rows="4" required placeholder="Escriba aquí su mensaje..."
+                      class="w-full px-4 py-2 border border-slate-200 rounded-xl focus:ring-2 focus:ring-cermat-blue-500 focus:border-cermat-blue-500 transition-all outline-none resize-none text-slate-700 bg-slate-50 focus:bg-white"></textarea>
+          </div>
+          
+        </div>
+
+        <!-- Modal Footer -->
+        <div class="mt-8 flex gap-3">
+          <button type="button" (click)="closeCompose()" class="flex-1 px-5 py-2.5 bg-slate-100 text-slate-600 hover:bg-slate-200 font-bold rounded-xl transition-colors">
+            Descartar
+          </button>
+          <button type="submit" [disabled]="!composeForm.valid" class="flex-1 px-5 py-2.5 bg-cermat-blue-600 text-white hover:bg-cermat-blue-700 font-bold rounded-xl transition-colors disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2">
+            <i data-lucide="send" class="w-4 h-4"></i> Enviar Mensaje
+          </button>
+        </div>
+      </form>
+    </div>
+  </div>
+</div>

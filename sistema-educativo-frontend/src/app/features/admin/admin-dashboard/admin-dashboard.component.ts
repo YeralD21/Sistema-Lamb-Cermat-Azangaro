@@ -19,7 +19,7 @@ export class AdminDashboardComponent implements OnInit {
     private sanitizer: DomSanitizer,
     private authService: AuthService,
     private router: Router
-  ) {}
+  ) { }
 
   ngOnInit() {
     const role = this.authService.getRole();
