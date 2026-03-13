@@ -7,12 +7,12 @@ export const PUBLIC_ROUTES: Routes = [
     children: [
       {
         path: '',
-        loadComponent: () => import('./features/landing/landing.component').then(m => m.HomeComponent),
+        loadComponent: () => import('./features/public/landing/landing.component').then(m => m.HomeComponent),
         title: 'CERMAT SCHOOL - Inicio | Colegio Privado en Azángaro',
       },
       {
         path: 'admision',
-        loadComponent: () => import('./features/admision/admision/admision.component').then(m => m.AdmisionComponent),
+        loadComponent: () => import('./features/public/admision/admision/admision.component').then(m => m.AdmisionComponent),
         title: 'Proceso de Admisión 2026 - CERMAT SCHOOL',
       },
       {
@@ -25,24 +25,24 @@ export const PUBLIC_ROUTES: Routes = [
           },
           {
             path: 'inicial',
-            loadComponent: () => import('./features/niveles/inicial/inicial.component').then(m => m.InicialComponent),
+            loadComponent: () => import('./features/public/niveles/inicial/inicial.component').then(m => m.InicialComponent),
             title: 'Nivel Inicial - CERMAT SCHOOL',
           },
           {
             path: 'primaria',
-            loadComponent: () => import('./features/niveles/primaria/primaria.component').then(m => m.PrimariaComponent),
+            loadComponent: () => import('./features/public/niveles/primaria/primaria.component').then(m => m.PrimariaComponent),
             title: 'Nivel Primaria - CERMAT SCHOOL',
           },
           {
             path: 'secundaria',
-            loadComponent: () => import('./features/niveles/secundaria/secundaria.component').then(m => m.SecundariaComponent),
+            loadComponent: () => import('./features/public/niveles/secundaria/secundaria.component').then(m => m.SecundariaComponent),
             title: 'Nivel Secundaria - CERMAT SCHOOL',
           }
         ]
       },
       {
         path: 'docentes',
-        loadComponent: () => import('./features/docente/docente/docente.component').then(m => m.DocenteComponent),
+        loadComponent: () => import('./features/public/docente/docente/docente.component').then(m => m.DocenteComponent),
         title: 'Plana Docente - CERMAT SCHOOL',
       },
       {
@@ -50,24 +50,24 @@ export const PUBLIC_ROUTES: Routes = [
         children: [
           {
             path: '', // This path is for the news list
-            loadComponent: () => import('./features/noticias/noticias-list/noticias-list.component').then(m => m.NoticiasListComponent),
+            loadComponent: () => import('./features/public/noticias/noticias-list/noticias-list.component').then(m => m.NoticiasListComponent),
             title: 'Noticias y Eventos - CERMAT SCHOOL',
           },
           {
             path: ':id',
-            loadComponent: () => import('./features/noticias/noticias-detail/noticias-detail.component').then(m => m.NoticiasDetailComponent),
+            loadComponent: () => import('./features/public/noticias/noticias-detail/noticias-detail.component').then(m => m.NoticiasDetailComponent),
             title: 'Noticia - CERMAT SCHOOL'
           }
         ]
       },
       {
         path: 'transparencia',
-        loadComponent: () => import('./features/transparencia/transparencia/transparencia.component').then(m => m.TransparenciaComponent),
+        loadComponent: () => import('./features/public/transparencia/transparencia/transparencia.component').then(m => m.TransparenciaComponent),
         title: 'Transparencia - CERMAT SCHOOL',
       },
       {
         path: 'contacto',
-        loadComponent: () => import('./features/contacto/contacto/contacto.component').then(m => m.ContactoComponent),
+        loadComponent: () => import('./features/public/contacto/contacto/contacto.component').then(m => m.ContactoComponent),
         title: 'Contacto - CERMAT SCHOOL',
       }
     ]
