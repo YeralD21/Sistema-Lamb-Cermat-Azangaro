@@ -1,0 +1,103 @@
+<div class="space-y-8 max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8 animate-slide-up">
+  <!-- Header Section -->
+  <div class="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 bg-white p-6 rounded-2xl shadow-sm border border-slate-200/60 relative overflow-hidden">
+    <!-- Decorative background -->
+    <div class="absolute -right-10 -top-10 w-40 h-40 bg-cermat-blue-500/10 rounded-full blur-3xl pointer-events-none"></div>
+
+    <div class="relative z-10 flex items-center gap-4">
+      <div class="w-14 h-14 bg-cermat-blue-50 rounded-2xl flex items-center justify-center border border-cermat-blue-100 shadow-sm shrink-0">
+        <i data-lucide="calendar-days" class="w-7 h-7 text-cermat-blue-600"></i>
+      </div>
+      <div>
+        <h1 class="text-3xl font-extrabold text-slate-900 tracking-tight">Mi Horario</h1>
+        <p class="text-slate-500 mt-1 font-medium">Cronograma oficial de clases asignadas</p>
+      </div>
+    </div>
+    
+    <button (click)="printSchedule()" class="relative z-10 inline-flex items-center gap-2 px-6 py-2.5 bg-cermat-blue-800 hover:bg-cermat-blue-900 text-white rounded-xl transition-all duration-300 shadow-lg shadow-cermat-blue-500/30 hover:-translate-y-0.5 font-bold mt-4 sm:mt-0 w-full sm:w-auto justify-center">
+      <i data-lucide="printer" class="w-5 h-5"></i> Imprimir
+    </button>
+  </div>
+
+  <!-- Content Section -->
+  <div class="bg-white rounded-2xl shadow-lg shadow-slate-200/50 border border-slate-200/80 p-6 relative overflow-hidden">
+    <!-- Decors -->
+    <div class="absolute -left-20 top-20 w-64 h-64 bg-slate-100 rounded-full blur-3xl opacity-50 pointer-events-none"></div>
+
+    <div class="overflow-x-auto relative z-10 scrollbar-thin scrollbar-thumb-slate-300 scrollbar-track-transparent pb-4">
+      <table class="w-full text-center border-separate border-spacing-x-2 border-spacing-y-3">
+        <thead>
+          <tr>
+            <th class="py-4 px-4 text-slate-400 font-extrabold text-xs uppercase tracking-wider w-32 bg-slate-50 rounded-xl shadow-sm border border-slate-100">
+              <div class="flex flex-col items-center gap-1">
+                 <i data-lucide="clock" class="w-4 h-4"></i> Hora Bloque
+              </div>
+            </th>
+            <th *ngFor="let day of days" class="py-4 px-4 min-w-[160px] bg-slate-50 text-slate-800 font-bold tracking-wide rounded-xl shadow-sm border border-slate-100">
+               {{ day }}
+            </th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr *ngFor="let block of blocks">
+            <!-- Hora col -->
+            <td class="py-4 px-4 font-extrabold text-slate-500 bg-white rounded-xl shadow-[0_2px_10px_rgba(0,0,0,0.03)] border border-slate-100 hover:text-cermat-blue-600 transition-colors tooltip cursor-default" title="Periodo académico">
+              {{ block.time }}
+            </td>
+
+            <!-- Si es Recreo -->
+            <ng-container *ngIf="block.monday === 'RECREO'; else classesRow">
+              <td colspan="5" class="py-4 px-4 rounded-xl shadow-inner font-extrabold uppercase tracking-[0.3em] text-center bg-[repeating-linear-gradient(45deg,#fdf6e3,#fdf6e3_10px,#fff_10px,#fff_20px)] text-amber-600 border border-amber-100 relative overflow-hidden group">
+                 <div class="absolute inset-0 bg-amber-500/5 group-hover:bg-amber-500/10 transition-colors"></div>
+                 <span class="relative z-10 flex items-center justify-center gap-3">
+                    <i data-lucide="coffee" class="w-5 h-5"></i>
+                    R E C R E O
+                    <i data-lucide="coffee" class="w-5 h-5"></i>
+                 </span>
+              </td>
+            </ng-container>
+
+            <!-- Si son clases normales -->
+            <ng-template #classesRow>
+              <td class="py-4 px-3 rounded-xl transition-all duration-300 border font-bold text-sm h-full"
+                  [ngClass]="block.monday ? 'bg-indigo-50/50 border-indigo-100 text-indigo-800 hover:shadow-md hover:shadow-indigo-500/10 hover:-translate-y-0.5 cursor-pointer hover:bg-white' : 'bg-slate-50 border-dashed border-slate-200 text-slate-400 font-medium'">
+                <div class="flex flex-col items-center justify-center gap-1 h-full min-h-[3rem]">
+                   <span *ngIf="block.monday">{{ block.monday }}</span>
+                   <span *ngIf="!block.monday" class="text-xs">Libre</span>
+                </div>
+              </td>
+              <td class="py-4 px-3 rounded-xl transition-all duration-300 border font-bold text-sm h-full"
+                  [ngClass]="block.tuesday ? 'bg-indigo-50/50 border-indigo-100 text-indigo-800 hover:shadow-md hover:shadow-indigo-500/10 hover:-translate-y-0.5 cursor-pointer hover:bg-white' : 'bg-slate-50 border-dashed border-slate-200 text-slate-400 font-medium'">
+                 <div class="flex flex-col items-center justify-center gap-1 h-full min-h-[3rem]">
+                   <span *ngIf="block.tuesday">{{ block.tuesday }}</span>
+                   <span *ngIf="!block.tuesday" class="text-xs">Libre</span>
+                </div>
+              </td>
+              <td class="py-4 px-3 rounded-xl transition-all duration-300 border font-bold text-sm h-full"
+                  [ngClass]="block.wednesday ? 'bg-indigo-50/50 border-indigo-100 text-indigo-800 hover:shadow-md hover:shadow-indigo-500/10 hover:-translate-y-0.5 cursor-pointer hover:bg-white' : 'bg-slate-50 border-dashed border-slate-200 text-slate-400 font-medium'">
+                 <div class="flex flex-col items-center justify-center gap-1 h-full min-h-[3rem]">
+                   <span *ngIf="block.wednesday">{{ block.wednesday }}</span>
+                   <span *ngIf="!block.wednesday" class="text-xs">Libre</span>
+                </div>
+              </td>
+              <td class="py-4 px-3 rounded-xl transition-all duration-300 border font-bold text-sm h-full"
+                  [ngClass]="block.thursday ? 'bg-indigo-50/50 border-indigo-100 text-indigo-800 hover:shadow-md hover:shadow-indigo-500/10 hover:-translate-y-0.5 cursor-pointer hover:bg-white' : 'bg-slate-50 border-dashed border-slate-200 text-slate-400 font-medium'">
+                 <div class="flex flex-col items-center justify-center gap-1 h-full min-h-[3rem]">
+                   <span *ngIf="block.thursday">{{ block.thursday }}</span>
+                   <span *ngIf="!block.thursday" class="text-xs">Libre</span>
+                </div>
+              </td>
+              <td class="py-4 px-3 rounded-xl transition-all duration-300 border font-bold text-sm h-full"
+                  [ngClass]="block.friday ? 'bg-indigo-50/50 border-indigo-100 text-indigo-800 hover:shadow-md hover:shadow-indigo-500/10 hover:-translate-y-0.5 cursor-pointer hover:bg-white' : 'bg-slate-50 border-dashed border-slate-200 text-slate-400 font-medium'">
+                 <div class="flex flex-col items-center justify-center gap-1 h-full min-h-[3rem]">
+                   <span *ngIf="block.friday">{{ block.friday }}</span>
+                   <span *ngIf="!block.friday" class="text-xs">Libre</span>
+                </div>
+              </td>
+            </ng-template>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+  </div>
+</div>
