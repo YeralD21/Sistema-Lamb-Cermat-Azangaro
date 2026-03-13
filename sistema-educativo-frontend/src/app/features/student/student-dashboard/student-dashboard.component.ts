@@ -20,11 +20,11 @@ import { STUDENT_MODULES_LIST, StudentModuleEntry } from '@core/constants/studen
       <div class="relative z-10 flex flex-col items-center justify-center min-h-[calc(100vh-80px)] py-12">
         <div class="w-full max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <!-- Grid optimized for 4 top / 2 center-bottom layout -->
-          <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-8">
+          <div class="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-6">
 
             <a *ngFor="let module of modules; let i = index"
                [routerLink]="module.path"
-               class="group relative flex flex-col items-center justify-center p-8 h-64 w-full bg-[#0f172a]/80 backdrop-blur-md border border-white/10 rounded-3xl hover:bg-[#1e3a8a]/90 hover:scale-[1.02] hover:border-blue-400/50 transition-all duration-300 shadow-2xl overflow-hidden cursor-pointer animate-slide-up"
+               class="group relative flex flex-col items-center justify-center p-8 h-64 w-full bg-slate-900/80 backdrop-blur-md border border-white/10 rounded-xl hover:bg-blue-900/90 hover:scale-[1.02] hover:border-blue-400/50 transition-all duration-300 shadow-xl overflow-hidden cursor-pointer animate-slide-up"
                [style.animation-delay]="(i * 0.05) + 's'"
                [class.lg:col-start-2]="i === 4"
                [class.lg:col-start-3]="i === 5"
@@ -33,14 +33,14 @@ import { STUDENT_MODULES_LIST, StudentModuleEntry } from '@core/constants/studen
               <div class="absolute top-0 right-0 w-32 h-32 bg-white/5 rounded-full blur-3xl -mr-16 -mt-16 pointer-events-none group-hover:bg-blue-400/20 transition-colors"></div>
 
               <div class="flex flex-col items-center text-center z-10 space-y-6 w-full">
-                <div class="p-5 rounded-3xl border-2 border-white/10 group-hover:border-blue-400/80 bg-transparent transition-colors duration-300 text-white shadow-inner">
-                  <div class="w-12 h-12 flex items-center justify-center [&>svg]:w-full [&>svg]:h-full [&>svg]:stroke-[1.2]" [innerHTML]="sanitizeSvg(module.icon)"></div>
+                <div class="p-4 rounded-2xl border-2 border-white/20 group-hover:border-blue-400/80 bg-transparent transition-colors duration-300 text-white">
+                  <div class="w-[3.5rem] h-[3.5rem] flex items-center justify-center [&>svg]:w-full [&>svg]:h-full [&>svg]:stroke-[1.3]" [innerHTML]="sanitizeSvg(module.icon)"></div>
                 </div>
                 <div class="space-y-1 w-full">
-                  <h3 class="text-base font-black text-white tracking-[0.2em] uppercase group-hover:text-blue-100 transition-colors italic">
+                  <h3 class="text-[0.95rem] font-bold text-white tracking-widest uppercase group-hover:text-blue-100 transition-colors">
                     {{ module.title }}
                   </h3>
-                  <p class="text-[0.65rem] text-slate-300/80 uppercase tracking-wider font-bold opacity-0 group-hover:opacity-100 transition-opacity duration-300 absolute bottom-6 left-0 right-0 mx-auto px-4 line-clamp-1">
+                  <p class="text-[0.65rem] text-slate-300/80 uppercase tracking-wider font-medium max-w-[200px] opacity-0 group-hover:opacity-100 transition-opacity duration-300 absolute bottom-4 left-0 right-0 mx-auto">
                     {{ module.description }}
                   </p>
                 </div>
