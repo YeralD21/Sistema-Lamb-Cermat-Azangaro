@@ -41,8 +41,8 @@ export class AuthService {
         } else if (email.includes('student') || email.includes('alumno')) {
           role = 'student';
           name = 'Alumno Pedro';
-        } else if (email.includes('guardian') || email.includes('apoderado')) {
-          role = 'guardian';
+        } else if (email.includes('apoderado') || email.includes('apoderado')) {
+          role = 'apoderado';
           name = 'Apoderado Maria';
         } else if (email.includes('cashier') || email.includes('caja')) {
           role = 'cashier';
