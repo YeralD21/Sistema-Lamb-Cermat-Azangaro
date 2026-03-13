@@ -23,6 +23,37 @@ export const PRIVATE_ROUTES: Routes = [
         loadComponent: () => import('./features/student/student-dashboard/student-dashboard.component').then(m => m.StudentDashboardComponent),
         title: 'CERMAT - Portal del Estudiante'
       },
+      // ── Módulos del Estudiante ───────────────────────────
+      {
+        path: 'attendance/student',
+        loadComponent: () => import('./features/student/attendance/student-attendance.component').then(m => m.AttendanceStudentComponent),
+        title: 'CERMAT - Mi Asistencia'
+      },
+      {
+        path: 'evaluation/student',
+        loadComponent: () => import('./features/student/evaluation/student-grades.component').then(m => m.GradesStudentComponent),
+        title: 'CERMAT - Mis Notas'
+      },
+      {
+        path: 'tasks/student',
+        loadComponent: () => import('./features/student/tasks/student-tasks.component').then(m => m.TasksStudentComponent),
+        title: 'CERMAT - Mis Tareas'
+      },
+      {
+        path: 'communications/student',
+        loadComponent: () => import('./features/student/communications/student-communications.component').then(m => m.CommunicationsStudentComponent),
+        title: 'CERMAT - Mis Comunicados'
+      },
+      {
+        path: 'dashboard/metrics/student',
+        loadComponent: () => import('./features/student/metrics/student-metrics.component').then(m => m.MetricsStudentComponent),
+        title: 'CERMAT - Mi Progreso'
+      },
+      {
+        path: 'schedule/my',
+        loadComponent: () => import('./features/student/schedule/student-schedule.component').then(m => m.ScheduleStudentComponent),
+        title: 'CERMAT - Mi Horario'
+      },
 
       // ── Matrículas ───────────────────────────────────────
       {

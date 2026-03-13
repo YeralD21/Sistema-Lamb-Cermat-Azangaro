@@ -1,6 +1,6 @@
 import { Component, inject } from '@angular/core';
 import { CommonModule } from '@angular/common';
-import { DataService } from '../../../core/services/data_general/data.service';
+import { DataService } from '@core/services/data_general/data.service';
 
 @Component({
   selector: 'app-map-section',

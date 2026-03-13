@@ -20,7 +20,7 @@
         <h1 class="text-lg sm:text-xl font-bold tracking-tight leading-tight">Colegio CMAT</h1>
 
         <!-- Back to Menu button -->
-        <button routerLink="/app"
+        <button [routerLink]="dashboardRoute"
           class="flex items-center gap-1.5 text-xs text-blue-200 hover:text-white transition-colors mt-0.5 group">
           <svg class="w-3 h-3 group-hover:-translate-x-0.5 transition-transform" fill="none" stroke="currentColor"
             viewBox="0 0 24 24">
@@ -34,11 +34,11 @@
     <!-- Right side: Role & Logout -->
     <div class="flex items-center gap-6">
       <div class="flex flex-col items-end">
-        <span class="text-sm font-bold tracking-wide">Director General</span>
+        <span class="text-sm font-bold tracking-wide">{{ currentUser?.name || 'Usuario' }}</span>
         <!-- Role Badge -->
         <span
           class="px-2.5 py-0.5 rounded-full bg-white/20 text-[10px] font-semibold uppercase tracking-widest mt-0.5 border border-white/10">
-          {{ currentUser?.role || 'Admin' }}
+          {{ currentUser?.role || 'Visitante' }}
         </span>
       </div>
 

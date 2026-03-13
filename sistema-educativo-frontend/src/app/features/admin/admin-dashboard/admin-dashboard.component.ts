@@ -1,8 +1,9 @@
 import { Component, OnInit } from '@angular/core';
 import { CommonModule } from '@angular/common';
-import { RouterModule } from '@angular/router';
+import { RouterModule, Router } from '@angular/router';
 import { DomSanitizer, SafeHtml } from '@angular/platform-browser';
-import { ADMIN_MODULES_LIST, AdminModuleEntry, SubModuleSection } from '../../../core/constants/admin-modules';
+import { AuthService } from '@core/services/auth.service';
+import { ADMIN_MODULES_LIST, AdminModuleEntry, SubModuleSection } from '@core/constants/admin-modules';
 
 @Component({
   selector: 'app-admin-dashboard',
@@ -14,9 +15,18 @@ export class AdminDashboardComponent implements OnInit {
   modules: AdminModuleEntry[] = ADMIN_MODULES_LIST;
   activeModule: AdminModuleEntry | null = null;
 
-  constructor(private sanitizer: DomSanitizer) {}
+  constructor(
+    private sanitizer: DomSanitizer,
+    private authService: AuthService,
+    private router: Router
+  ) {}
 
-  ngOnInit() {}
+  ngOnInit() {
+    const role = this.authService.getRole();
+    if (role === 'student') {
+      this.router.navigate(['/app/dashboard/student']);
+    }
+  }
 
   sanitizeSvg(svg: string): SafeHtml {
     return this.sanitizer.bypassSecurityTrustHtml(svg);

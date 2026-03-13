@@ -1,7 +1,7 @@
 import { Component, OnInit, inject } from '@angular/core';
 import { CommonModule } from '@angular/common';
-import { SeoService } from '../../../../core/services/seo/seo.service';
-import { DataService } from '../../../../core/services/data_general/data.service';
+import { SeoService } from '@core/services/seo/seo.service';
+import { DataService } from '@core/services/data_general/data.service';
 @Component({
   selector: 'app-docente',
   standalone: true,

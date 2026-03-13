@@ -1,8 +1,8 @@
 import { Component, OnInit, inject } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { RouterLink } from '@angular/router';
-import { SeoService } from '../../../core/services/seo/seo.service';
-import { DataService } from '../../../core/services/data_general/data.service';
+import { SeoService } from '@core/services/seo/seo.service';
+import { DataService } from '@core/services/data_general/data.service';
 import { HeroSectionComponent } from './hero-section/hero-section.component';
 import { AboutSectionComponent } from './about-section/about-section.component';
 import { LevelsSectionComponent } from './levels-section/levels-section.component';

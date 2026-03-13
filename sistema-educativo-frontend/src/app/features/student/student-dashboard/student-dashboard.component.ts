@@ -2,7 +2,7 @@ import { Component, OnInit } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { RouterModule } from '@angular/router';
 import { DomSanitizer, SafeHtml } from '@angular/platform-browser';
-import { STUDENT_MODULES_LIST, StudentModuleEntry } from '../../../core/constants/student-modules';
+import { STUDENT_MODULES_LIST, StudentModuleEntry } from '@core/constants/student-modules';
 
 @Component({
   selector: 'app-student-dashboard',
@@ -19,14 +19,15 @@ import { STUDENT_MODULES_LIST, StudentModuleEntry } from '../../../core/constant
       <!-- MAIN MODULE GRID -->
       <div class="relative z-10 flex flex-col items-center justify-center min-h-[calc(100vh-80px)] py-12">
         <div class="w-full max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          <!-- Multi-row grid to accommodate visual layout needs -->
+          <!-- Grid optimized for 4 top / 2 center-bottom layout -->
           <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-8">
 
             <a *ngFor="let module of modules; let i = index"
                [routerLink]="module.path"
-               class="group relative flex flex-col items-center justify-center p-8 h-64 w-full bg-slate-900/80 backdrop-blur-md border border-white/10 rounded-3xl hover:bg-[#1e3a8a]/90 hover:scale-[1.02] hover:border-blue-400/50 transition-all duration-300 shadow-2xl overflow-hidden cursor-pointer animate-slide-up"
+               class="group relative flex flex-col items-center justify-center p-8 h-64 w-full bg-[#0f172a]/80 backdrop-blur-md border border-white/10 rounded-3xl hover:bg-[#1e3a8a]/90 hover:scale-[1.02] hover:border-blue-400/50 transition-all duration-300 shadow-2xl overflow-hidden cursor-pointer animate-slide-up"
                [style.animation-delay]="(i * 0.05) + 's'"
                [class.lg:col-start-2]="i === 4"
+               [class.lg:col-start-3]="i === 5"
                style="animation-fill-mode: forwards; opacity: 0;">
 
               <div class="absolute top-0 right-0 w-32 h-32 bg-white/5 rounded-full blur-3xl -mr-16 -mt-16 pointer-events-none group-hover:bg-blue-400/20 transition-colors"></div>

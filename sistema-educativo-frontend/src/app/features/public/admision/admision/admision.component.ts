@@ -1,8 +1,8 @@
 import { Component, OnInit, signal, inject } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormBuilder, FormGroup, Validators, ReactiveFormsModule } from '@angular/forms';
-import { SeoService } from '../../../../core/services/seo/seo.service';
-import { DataService } from '../../../../core/services/data_general/data.service';
+import { SeoService } from '@core/services/seo/seo.service';
+import { DataService } from '@core/services/data_general/data.service';
 @Component({
   selector: 'app-admision',
   standalone: true,
