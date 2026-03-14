@@ -172,12 +172,6 @@ export const PRIVATE_ROUTES: Routes = [
         title: 'CERMAT - Reportes Académicos'
       },
 
-      // ── Usuarios ─────────────────────────────────────────
-      {
-        path: 'settings/users',
-        loadComponent: () => import('./features/admin/users/admin-users/admin-users.component').then(m => m.AdminUsersComponent),
-        title: 'CERMAT - Gestión de Usuarios'
-      },
 
       // ── Métricas ─────────────────────────────────────────
       {

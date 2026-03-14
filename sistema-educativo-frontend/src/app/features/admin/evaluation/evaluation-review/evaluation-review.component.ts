@@ -1,23 +1,23 @@
-import { Component } from '@angular/core';
+import { Component, OnInit, inject } from '@angular/core';
 import { CommonModule } from '@angular/common';
+import { BackButtonComponent } from '@shared/components/back-button/back-button.component';
+import { AcademicService, Period } from '@core/services/academic.service';
+import { EvaluationService } from '@core/services/evaluation.service';
+import { FormsModule } from '@angular/forms';
 
 @Component({
   selector: 'app-evaluation-review',
   standalone: true,
-  imports: [CommonModule],
+  imports: [CommonModule, BackButtonComponent, FormsModule],
   template: `
-    <div class="min-h-[calc(100vh-80px)] p-6 sm:p-10 max-w-7xl mx-auto space-y-8">
+    <div class="min-h-[calc(100vh-80px)] p-6 sm:p-10 max-w-7xl mx-auto space-y-8 text-slate-700">
       
-      <!-- Back Link -->
-      <div class="flex items-center gap-2 text-blue-900 font-medium text-sm cursor-pointer hover:underline">
-        <svg class="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M19 12H5"/><polyline points="12 19 5 12 12 5"/></svg>
-        Volver al Panel
-      </div>
+      <app-back-button></app-back-button>
 
       <!-- Header Section -->
       <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-6">
         <div>
-          <h1 class="text-3xl font-semibold text-blue-900 tracking-tight">Gestión de Evaluaciones</h1>
+          <h1 class="text-3xl font-semibold text-slate-900 tracking-tight">Gestión de Evaluaciones</h1>
           <p class="text-slate-500 text-sm mt-1 font-medium">Revisa el avance y cierra periodos académicos</p>
         </div>
       </div>
@@ -27,13 +27,20 @@ import { CommonModule } from '@angular/common';
         <div class="flex flex-col md:flex-row md:items-end gap-6">
           <div class="flex-1 space-y-2">
             <label class="text-[10px] font-bold text-slate-400 uppercase tracking-widest pl-1">Periodo académico</label>
-            <select class="w-full bg-slate-50 border border-slate-200 text-slate-700 rounded-xl px-4 py-3 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500/10 focus:border-blue-500 transition-all font-medium">
-              <option>Bimestre 1 (2025-12-08 - 2026-01-01)</option>
+            <select [(ngModel)]="selectedPeriodId" (change)="onPeriodChange()" class="w-full bg-slate-50 border border-slate-200 text-slate-700 rounded-xl px-4 py-3 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500/10 focus:border-blue-500 transition-all font-medium">
+              <option value="">Seleccionar Periodo</option>
+              <option *ngFor="let p of periods" [value]="p.id">{{ p.name }} ({{ p.start_date | date:'dd/MM/yyyy' }} - {{ p.end_date | date:'dd/MM/yyyy' }})</option>
             </select>
           </div>
-          <div class="flex items-center gap-2 px-4 py-2 bg-green-50 text-green-600 rounded-xl border border-green-100 h-[50px]">
-            <svg class="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><rect width="18" height="11" x="3" y="11" rx="2" ry="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg>
-            <span class="text-xs font-bold uppercase tracking-tight">Periodo Abierto</span>
+          <div *ngIf="selectedPeriod" class="flex items-center gap-2 px-4 py-2 rounded-xl border h-[50px]"
+               [class]="selectedPeriod.is_closed ? 'bg-red-50 text-red-600 border-red-100' : 'bg-green-50 text-green-600 border-green-100'">
+            <svg class="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
+              <rect *ngIf="!selectedPeriod.is_closed" width="18" height="11" x="3" y="11" rx="2" ry="2"/>
+              <path *ngIf="!selectedPeriod.is_closed" d="M7 11V7a5 5 0 0 1 10 0v4"/>
+              <rect *ngIf="selectedPeriod.is_closed" width="18" height="11" x="3" y="11" rx="2" ry="2"/>
+              <path *ngIf="selectedPeriod.is_closed" d="M7 11V7a5 5 0 0 1 10 0v4"/>
+            </svg>
+            <span class="text-xs font-bold uppercase tracking-tight">Periodo {{ selectedPeriod.is_closed ? 'Cerrado' : 'Abierto' }}</span>
           </div>
         </div>
 
@@ -51,8 +58,10 @@ import { CommonModule } from '@angular/common';
         </div>
 
         <!-- Close Period Action -->
-        <div class="pt-6 border-t border-slate-100">
-          <button class="flex items-center gap-2 px-6 py-3 bg-slate-50 text-slate-400 rounded-xl font-bold text-xs uppercase tracking-widest cursor-not-allowed">
+        <div class="pt-6 border-t border-slate-100" *ngIf="selectedPeriod && !selectedPeriod.is_closed">
+          <button (click)="closePeriod()" [disabled]="pendingEvaluations > 0" 
+                  [class]="pendingEvaluations > 0 ? 'bg-slate-50 text-slate-400 cursor-not-allowed' : 'bg-red-600 text-white hover:bg-red-700'"
+                  class="flex items-center gap-2 px-6 py-3 rounded-xl font-bold text-xs uppercase tracking-widest transition-all shadow-sm">
             <svg class="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><rect width="18" height="11" x="3" y="11" rx="2" ry="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg>
             Cerrar Periodo
           </button>
@@ -60,13 +69,13 @@ import { CommonModule } from '@angular/common';
       </div>
 
       <!-- Warning Banner -->
-      <div class="bg-red-50 border border-red-100 rounded-3xl p-8 flex items-start gap-5">
+      <div *ngIf="pendingEvaluations > 0" class="bg-red-50 border border-red-100 rounded-3xl p-8 flex items-start gap-5">
         <div class="p-3 bg-white rounded-full text-red-600 shadow-sm shrink-0">
           <svg class="w-6 h-6" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg>
         </div>
         <div class="space-y-1">
           <h4 class="text-red-900 font-bold text-lg tracking-tight">No se puede cerrar el periodo</h4>
-          <p class="text-red-700/70 text-sm font-medium leading-relaxed">Aún hay 2 curso(s) con evaluaciones pendientes de publicación. Todos los cursos deben tener sus calificaciones publicadas antes de cerrar el periodo.</p>
+          <p class="text-red-700/70 text-sm font-medium leading-relaxed">Aún hay {{ pendingEvaluations }} evaluacion(es) pendientes de publicación. Todos los cursos deben tener sus calificaciones publicadas antes de cerrar el periodo.</p>
         </div>
       </div>
 
@@ -76,11 +85,76 @@ import { CommonModule } from '@angular/common';
     :host { display: block; }
   `]
 })
-export class EvaluationReviewComponent {
+export class EvaluationReviewComponent implements OnInit {
+  private academicService = inject(AcademicService);
+  private evaluationService = inject(EvaluationService);
+
+  periods: Period[] = [];
+  selectedPeriodId = '';
+  selectedPeriod: Period | null = null;
+  pendingEvaluations = 0;
+  
   kpis = [
-    { label: 'Total de Cursos', value: '2', icon: '<path d="M3 3v18h18"/><path d="M7 16v-4"/><path d="M11 16V9"/><path d="M15 16V5"/><path d="M19 16v-7"/>' },
-    { label: 'Cursos Completados', value: '0', icon: '<path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"/><polyline points="22 4 12 14.01 9 11.01"/>' },
-    { label: 'Cursos Pendientes', value: '2', icon: '<circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/>' },
+    { label: 'Total de Evaluaciones', value: '0', icon: '<path d="M3 3v18h18"/><path d="M7 16v-4"/><path d="M11 16V9"/><path d="M15 16V5"/><path d="M19 16v-7"/>' },
+    { label: 'Publicadas', value: '0', icon: '<path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"/><polyline points="22 4 12 14.01 9 11.01"/>' },
+    { label: 'Borradores', value: '0', icon: '<circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/>' },
     { label: 'Avance General', value: '0', suffix: '%', icon: '<path d="M3 3v18h18"/><path d="M7 16v-4"/><path d="M11 16V9"/><path d="M15 16V5"/><path d="M19 16v-7"/>' },
   ];
+
+  ngOnInit() {
+    this.academicService.getAcademicYears().subscribe(res => {
+      const activeYear = res.data.find((y: any) => y.is_active);
+      if (activeYear) {
+        this.academicService.getPeriods({ academic_year_id: activeYear.id }).subscribe(res => {
+          this.periods = res.data;
+          if (this.periods.length > 0) {
+            this.selectedPeriodId = this.periods[0].id;
+            this.onPeriodChange();
+          }
+        });
+      }
+    });
+  }
+
+  onPeriodChange() {
+    this.selectedPeriod = this.periods.find(p => p.id === this.selectedPeriodId) || null;
+    if (this.selectedPeriodId) {
+      this.loadStats();
+    }
+  }
+
+  loadStats() {
+    this.evaluationService.getEvaluations({ period_id: this.selectedPeriodId }).subscribe(res => {
+      const data = res.data || res;
+      const total = data.length;
+      const published = data.filter((e: any) => e.status === 'publicada').length;
+      const drafts = data.filter((e: any) => e.status === 'borrador').length;
+      const progress = total > 0 ? Math.round((published / total) * 100) : 0;
+
+      this.kpis[0].value = total.toString();
+      this.kpis[1].value = published.toString();
+      this.kpis[2].value = drafts.toString();
+      this.kpis[3].value = progress.toString();
+      
+      this.pendingEvaluations = drafts;
+    });
+  }
+
+  closePeriod() {
+    if (confirm('¿Está seguro de cerrar este periodo académico? Esta acción no se puede deshacer.')) {
+      this.academicService.updatePeriod(this.selectedPeriodId, { is_closed: true }).subscribe(() => {
+        alert('Periodo cerrado correctamente.');
+        // Refresh periods to get updated status
+        this.academicService.getAcademicYears().subscribe(res => {
+          const activeYear = res.data.find((y: any) => y.is_active);
+          if (activeYear) {
+            this.academicService.getPeriods({ academic_year_id: activeYear.id }).subscribe(res => {
+              this.periods = res.data;
+              this.onPeriodChange();
+            });
+          }
+        });
+      });
+    }
+  }
 }

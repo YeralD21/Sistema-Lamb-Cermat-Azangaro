@@ -1,82 +1,113 @@
-import { Injectable, signal } from '@angular/core';
+import { Injectable, signal, inject } from '@angular/core';
+import { HttpClient } from '@angular/common/http';
 import { User, UserRole } from '../models/user.model';
-import { BehaviorSubject, Observable, delay, of } from 'rxjs';
+import { BehaviorSubject, Observable, catchError, map, of, tap } from 'rxjs';
 import { Router } from '@angular/router';
+import { environment } from '../../../environments/environment';
+
+interface LoginResponse {
+  token: string;
+  user: {
+    id: string;
+    email: string;
+    name: string;
+    profile: {
+      role: string;
+      full_name?: string;
+    };
+  };
+}
 
 @Injectable({
   providedIn: 'root'
 })
 export class AuthService {
-  private readonly USER_KEY = 'cermat_mock_user';
+  private readonly USER_KEY = 'cermat_user_data';
+  private readonly TOKEN_KEY = 'cermat_auth_token';
   
-  // Using BehaviorSubject for standard RxJS reactivity and a Signal for newer Angular 16+ features
+  private http = inject(HttpClient);
+  private router = inject(Router);
+
   private currentUserSubject = new BehaviorSubject<User | null>(this.getStoredUser());
   public currentUser$ = this.currentUserSubject.asObservable();
   public currentUser = signal<User | null>(this.getStoredUser());
 
-  constructor(private router: Router) {}
+  constructor() {
+    // Optional: Refresh session from backend on init
+    this.checkSession();
+  }
 
   private getStoredUser(): User | null {
+    if (typeof window === 'undefined') return null;
     const stored = localStorage.getItem(this.USER_KEY);
     return stored ? JSON.parse(stored) : null;
   }
 
-  // Intercept the login. We don't check for passwords since this is purely a frontend mock routing.
-  // We'll map specific emails to roles for fast testing.
-  mockLogin(email: string): Observable<{success: boolean; error?: string}> {
-    return new Observable(subscriber => {
-      // Simulate network delay
-      setTimeout(() => {
-        let role: UserRole = 'student'; // default
-        let name = 'Usuario de Prueba';
-        
-        email = email.toLowerCase().trim();
+  login(credentials: { email: string; password?: string }): Observable<{success: boolean; error?: string}> {
+    return this.http.post<LoginResponse>(`${environment.apiUrl}/login`, credentials).pipe(
+      map(response => {
+        const user = this.mapBackendUser(response.user);
+        this.setSession(response.token, user);
+        return { success: true };
+      }),
+      catchError(err => {
+        console.error('Login error:', err);
+        const message = err.error?.message || 'Error al conectar con el servidor.';
+        return of({ success: false, error: message });
+      })
+    );
+  }
 
-        if (email.includes('admin')) {
-          role = 'admin';
-          name = 'Administrador Sistema';
-        } else if (email.includes('teacher') || email.includes('profesor')) {
-          role = 'teacher';
-          name = 'Profesor Juan';
-        } else if (email.includes('student') || email.includes('alumno')) {
-          role = 'student';
-          name = 'Alumno Pedro';
-        } else if (email.includes('apoderado') || email.includes('apoderado')) {
-          role = 'apoderado';
-          name = 'Apoderado Maria';
-        } else if (email.includes('cashier') || email.includes('caja')) {
-          role = 'cashier';
-          name = 'Cajero Local';
-        } else if (email.includes('administrative') || email.includes('secretaria')) {
-          role = 'administrative';
-          name = 'Secretaria Ana';
-        } else {
-          subscriber.next({ success: false, error: 'Por favor usa un correo que contenga el rol, ej: admin@cermat.pe, teacher@...' });
-          subscriber.complete();
-          return;
-        }
+  private checkSession() {
+    if (typeof window === 'undefined') return;
+    const token = localStorage.getItem(this.TOKEN_KEY);
+    if (!token) return;
 
-        const user: User = {
-          id: Math.random().toString(36).substring(7),
-          email,
-          name,
-          role
-        };
-
-        localStorage.setItem(this.USER_KEY, JSON.stringify(user));
-        this.currentUserSubject.next(user);
-        this.currentUser.set(user);
-        
-        subscriber.next({ success: true });
-        subscriber.complete();
-      }, 800);
+    this.http.get<{user: any}>(`${environment.apiUrl}/me`, {
+      headers: { Authorization: `Bearer ${token}` }
+    }).subscribe({
+      next: (res) => {
+        const user = this.mapBackendUser(res.user);
+        this.updateUserState(user);
+      },
+      error: () => this.logout()
     });
   }
 
+  private mapBackendUser(backendUser: any): User {
+    // Map backend roles to frontend UserRole
+    let role: UserRole = 'student';
+    const backendRole = backendUser.profile?.role;
+
+    if (backendRole === 'guardian') {
+      role = 'apoderado';
+    } else if (['admin', 'teacher', 'student', 'cashier', 'administrative'].includes(backendRole)) {
+      role = backendRole as UserRole;
+    }
+
+    return {
+      id: backendUser.id,
+      email: backendUser.email,
+      name: backendUser.profile?.full_name || backendUser.name || 'Usuario',
+      role: role
+    };
+  }
+
+  private setSession(token: string, user: User): void {
+    localStorage.setItem(this.TOKEN_KEY, token);
+    localStorage.setItem(this.USER_KEY, JSON.stringify(user));
+    this.updateUserState(user);
+  }
+
+  private updateUserState(user: User | null): void {
+    this.currentUserSubject.next(user);
+    this.currentUser.set(user);
+  }
+
   logout(): void {
+    localStorage.removeItem(this.TOKEN_KEY);
     localStorage.removeItem(this.USER_KEY);
-    this.currentUserSubject.next(null);
-    this.currentUser.set(null);
+    this.updateUserState(null);
     this.router.navigate(['/login']);
   }
 
@@ -86,5 +117,9 @@ export class AuthService {
 
   isAuthenticated(): boolean {
     return !!this.currentUserSubject.value;
+  }
+
+  getToken(): string | null {
+    return localStorage.getItem(this.TOKEN_KEY);
   }
 }

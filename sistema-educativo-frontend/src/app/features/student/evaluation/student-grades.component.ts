@@ -3,6 +3,7 @@ import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { DomSanitizer, SafeHtml } from '@angular/platform-browser';
 import { RouterModule } from '@angular/router';
+import { BackButtonComponent } from '@shared/components/back-button/back-button.component';
 import { ICONS } from '@core/constants/icons';
 
 interface CourseGrade {
@@ -25,16 +26,10 @@ interface CourseGrade {
 @Component({
   selector: 'app-grades-student',
   standalone: true,
-  imports: [CommonModule, FormsModule, RouterModule],
+  imports: [CommonModule, FormsModule, RouterModule, BackButtonComponent],
   template: `
     <div class="min-h-[calc(100vh-80px)] p-4 sm:p-6 lg:p-8 max-w-7xl mx-auto space-y-8">
-      <!-- Go Back Button -->
-      <a routerLink="/app/dashboard/student" class="inline-flex items-center gap-2 text-slate-500 hover:text-slate-700 transition-colors text-sm font-medium group">
-        <div class="p-1.5 bg-white border border-slate-200 rounded-lg group-hover:bg-slate-50 transition-colors shadow-sm">
-          <svg class="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M19 12H5M12 19l-7-7 7-7"/></svg>
-        </div>
-        Volver al Panel
-      </a>
+      <app-back-button link="/app/dashboard/student"></app-back-button>
 
       <!-- Header Section -->
       <div class="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-6">

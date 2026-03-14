@@ -1,7 +1,9 @@
-import { Component, signal, computed, OnInit } from '@angular/core';
+import { Component, signal, computed, OnInit, inject } from '@angular/core';
+import { BackButtonComponent } from '@shared/components/back-button/back-button.component';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { RouterModule } from '@angular/router';
+import { AcademicService, AcademicYear, GradeLevel, Section } from '@core/services/academic.service';
 
 type TabType = 'attendance' | 'evaluation' | 'siagie';
 
@@ -26,35 +28,25 @@ interface EvaluationRow {
 @Component({
   selector: 'app-academic-reports',
   standalone: true,
-  imports: [CommonModule, FormsModule, RouterModule],
+  imports: [CommonModule, FormsModule, RouterModule, BackButtonComponent],
   templateUrl: './academic-reports.component.html',
 })
 export class AcademicReportsComponent implements OnInit {
+  private academicService = inject(AcademicService);
+
   activeTab: TabType = 'attendance';
   loading = false;
   error = '';
 
-  // Filters (placeholder values for now — will connect to backend)
-  academicYears = [{ id: '2025', year: '2025' }];
-  periods = [
-    { id: 'b1', name: 'Bimestre 1' },
-    { id: 'b2', name: 'Bimestre 2' },
-    { id: 'b3', name: 'Bimestre 3' },
-    { id: 'b4', name: 'Bimestre 4' },
-  ];
-  grades = [
-    { id: '1p', name: '1ro Primaria' },
-    { id: '2p', name: '2do Primaria' },
-    { id: '3p', name: '3ro Primaria' },
-    { id: '1s', name: '1ro Secundaria' },
-    { id: '2s', name: '2do Secundaria' },
-    { id: '3s', name: '3ro Secundaria' },
-  ];
-  sections: { id: string; name: string }[] = [];
-  courses: { id: string; name: string }[] = [];
+  // Data from backend
+  academicYears: AcademicYear[] = [];
+  periods: any[] = [];
+  grades: GradeLevel[] = [];
+  sections: Section[] = [];
+  courses: any[] = [];
 
-  selectedYear = '2025';
-  selectedPeriod = 'b1';
+  selectedYear = '';
+  selectedPeriod = '';
   selectedGrade = '';
   selectedSection = '';
   selectedCourse = '';
@@ -73,7 +65,23 @@ export class AcademicReportsComponent implements OnInit {
   gradeDistribution = { AD: 0, A: 0, B: 0, C: 0 };
   studentsAtRisk = 0;
 
-  ngOnInit() {}
+  ngOnInit() {
+    this.loading = true;
+    this.academicService.getAcademicYears().subscribe({
+      next: (res) => {
+        this.academicYears = res.data;
+        this.selectedYear = this.academicYears.find(y => y.is_active)?.id || '';
+        this.loading = false;
+        this.loadInitialFilters();
+      },
+      error: () => this.loading = false
+    });
+  }
+
+  loadInitialFilters() {
+    this.academicService.getGradeLevels().subscribe(res => this.grades = res.data);
+    this.academicService.getPeriods({ academic_year_id: this.selectedYear }).subscribe(res => this.periods = res.data);
+  }
 
   setTab(tab: TabType) {
     this.activeTab = tab;
@@ -83,11 +91,7 @@ export class AcademicReportsComponent implements OnInit {
     this.sections = [];
     this.selectedSection = '';
     if (this.selectedGrade) {
-      // Placeholder: sections per grade
-      this.sections = [
-        { id: `${this.selectedGrade}-a`, name: 'A' },
-        { id: `${this.selectedGrade}-b`, name: 'B' },
-      ];
+      this.academicService.getSections({ grade_level_id: this.selectedGrade }).subscribe(res => this.sections = res.data);
     }
   }
 
@@ -95,12 +99,7 @@ export class AcademicReportsComponent implements OnInit {
     this.courses = [];
     this.selectedCourse = '';
     if (this.selectedSection) {
-      this.courses = [
-        { id: 'c1', name: 'Matemática' },
-        { id: 'c2', name: 'Comunicación' },
-        { id: 'c3', name: 'Ciencias' },
-        { id: 'c4', name: 'Historia' },
-      ];
+      this.academicService.getCourses({ section_id: this.selectedSection }).subscribe(res => this.courses = res.data);
     }
   }
 
@@ -121,7 +120,6 @@ export class AcademicReportsComponent implements OnInit {
   }
 
   exportCSV(type: 'attendance' | 'evaluation') {
-    // placeholder
     alert(`Exportación CSV de "${type}" — se habilitará al conectar el backend.`);
   }
 

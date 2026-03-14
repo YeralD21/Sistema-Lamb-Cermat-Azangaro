@@ -1,13 +1,18 @@
-import { Component } from '@angular/core';
+import { Component, OnInit, inject } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { RouterModule } from '@angular/router';
+import { FormsModule } from '@angular/forms';
+import { BackButtonComponent } from '@shared/components/back-button/back-button.component';
+import { AcademicService, GradeLevel, Section } from '@core/services/academic.service';
+import { ScheduleService } from '@core/services/schedule.service';
 
 @Component({
   selector: 'app-admin-schedule',
   standalone: true,
-  imports: [CommonModule, RouterModule],
+  imports: [CommonModule, RouterModule, FormsModule, BackButtonComponent],
   template: `
-    <div class="min-h-[calc(100vh-80px)] p-6 sm:p-10 max-w-7xl mx-auto space-y-8">
+    <div class="min-h-[calc(100vh-80px)] p-6 sm:p-10 max-w-7xl mx-auto space-y-8 text-slate-700">
+      <app-back-button></app-back-button>
       <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
         <div class="flex items-center gap-4">
           <div class="p-3 bg-blue-50 rounded-2xl border border-blue-100 shadow-sm">
@@ -26,18 +31,28 @@ import { RouterModule } from '@angular/router';
 
       <!-- Grade/Section filter -->
       <div class="bg-white border border-slate-100 rounded-2xl p-4 shadow-sm inline-flex gap-3 flex-wrap">
-        <select class="bg-slate-50 border border-slate-200 text-slate-700 rounded-xl px-4 py-2.5 text-xs font-bold uppercase tracking-widest focus:outline-none focus:ring-2 focus:ring-blue-500/10 focus:border-blue-500 transition-all">
-          <option>Seleccionar Grado</option>
-          <option>1ro Primaria</option>
-          <option>2do Primaria</option>
-          <option>3ro Primaria</option>
-          <option>1ro Secundaria</option>
-          <option>2do Secundaria</option>
-        </select>
-        <select class="bg-slate-50 border border-slate-200 text-slate-700 rounded-xl px-4 py-2.5 text-xs font-bold uppercase tracking-widest focus:outline-none focus:ring-2 focus:ring-blue-500/10 focus:border-blue-500 transition-all">
-          <option>Sección A</option>
-          <option>Sección B</option>
-        </select>
+        <div class="flex flex-col gap-1">
+          <label class="text-[9px] font-bold text-slate-400 uppercase tracking-widest pl-1">Grado</label>
+          <select 
+            [(ngModel)]="selectedGradeId" 
+            (change)="onGradeChange()"
+            class="bg-slate-50 border border-slate-200 text-slate-700 rounded-xl px-4 py-2.5 text-xs font-bold uppercase tracking-widest focus:outline-none focus:ring-2 focus:ring-blue-500/10 focus:border-blue-500 transition-all cursor-pointer">
+            <option value="">Seleccionar Grado</option>
+            <option *ngFor="let g of grades" [value]="g.id">{{ g.level }} {{ g.grade }}°</option>
+          </select>
+        </div>
+        
+        <div class="flex flex-col gap-1">
+          <label class="text-[9px] font-bold text-slate-400 uppercase tracking-widest pl-1">Sección</label>
+          <select 
+            [(ngModel)]="selectedSectionId" 
+            (change)="loadSchedules()"
+            [disabled]="!selectedGradeId"
+            class="bg-slate-50 border border-slate-200 text-slate-700 rounded-xl px-4 py-2.5 text-xs font-bold uppercase tracking-widest focus:outline-none focus:ring-2 focus:ring-blue-500/10 focus:border-blue-500 transition-all cursor-pointer disabled:opacity-50">
+            <option value="">Seleccionar Sección</option>
+            <option *ngFor="let s of sections" [value]="s.id">Sección {{ s.section_letter }}</option>
+          </select>
+        </div>
       </div>
 
       <!-- Schedule grid -->
@@ -68,7 +83,37 @@ import { RouterModule } from '@angular/router';
     </div>
   `
 })
-export class AdminScheduleComponent {
+export class AdminScheduleComponent implements OnInit {
+  private academicService = inject(AcademicService);
+  private scheduleService = inject(ScheduleService);
+
   days = ['Lunes', 'Martes', 'Miércoles', 'Jueves', 'Viernes'];
   timeSlots = ['07:00', '08:00', '09:00', '10:00', '11:00', '12:00', '13:00', '14:00'];
+
+  grades: GradeLevel[] = [];
+  sections: Section[] = [];
+  selectedGradeId = '';
+  selectedSectionId = '';
+  schedules: any[] = [];
+
+  ngOnInit() {
+    this.academicService.getGradeLevels().subscribe(res => this.grades = res.data);
+  }
+
+  onGradeChange() {
+    this.sections = [];
+    this.selectedSectionId = '';
+    if (this.selectedGradeId) {
+      this.academicService.getSections({ grade_level_id: this.selectedGradeId }).subscribe(res => this.sections = res.data);
+    }
+  }
+
+  loadSchedules() {
+    if (this.selectedSectionId) {
+      this.scheduleService.getSchedules({ section_id: this.selectedSectionId }).subscribe(res => {
+        this.schedules = res.data;
+        // Logic to map schedules to the grid would go here
+      });
+    }
+  }
 }

@@ -22,23 +22,38 @@ export class LoginMockComponent {
   ) {}
 
   async handleSubmit() {
+    if (!this.email || !this.password) {
+      this.error = 'Por favor ingresa correo y contraseña.';
+      return;
+    }
+
     this.error = '';
     this.loading = true;
 
-    this.authService.mockLogin(this.email).subscribe({
+    this.authService.login({ email: this.email, password: this.password }).subscribe({
       next: (res) => {
         if (!res.success) {
           this.error = res.error || 'Autenticación fallida.';
           this.loading = false;
         } else {
-          // Success! Redirect. Since we don't have dashboard yet, we'll redirect to /app
-          // In the future this will be the private dashboard
-          this.router.navigate(['/app']);
+          // Success! Redirect to app dashboard based on role
+          const role = this.authService.getRole();
+          if (role === 'admin') {
+            this.router.navigate(['/app/dashboard']);
+          } else if (role === 'student') {
+            this.router.navigate(['/app/dashboard/student']);
+          } else if (role === 'teacher') {
+            this.router.navigate(['/app/dashboard/teacher']);
+          } else if (role === 'apoderado') {
+            this.router.navigate(['/app/dashboard/apoderado']);
+          } else {
+            this.router.navigate(['/app']);
+          }
         }
       },
       error: (err) => {
         console.error('Error inesperado en login', err);
-        this.error = 'Error al iniciar sesión. Intenta nuevamente.';
+        this.error = 'Error al conectar con el servidor. Verifica que el backend esté corriendo.';
         this.loading = false;
       }
     });

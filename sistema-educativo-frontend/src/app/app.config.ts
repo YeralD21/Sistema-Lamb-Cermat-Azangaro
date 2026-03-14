@@ -4,6 +4,7 @@ import { provideHttpClient, withFetch, withInterceptors } from '@angular/common/
 import { provideClientHydration } from '@angular/platform-browser';
 import { provideAnimations } from '@angular/platform-browser/animations';
 import { routes } from './app.routes';
+import { authInterceptor } from './core/interceptors/auth.interceptor';
 
 /**
  * Configuración principal de la aplicación Angular 18
@@ -21,9 +22,10 @@ export const appConfig: ApplicationConfig = {
       withViewTransitions()
     ),
     
-    // HTTP Client con fetch API
+    // HTTP Client con fetch API e interceptores
     provideHttpClient(
-      withFetch()
+      withFetch(),
+      withInterceptors([authInterceptor])
     ),
     
     // Hydration para SSR (Server-Side Rendering)
