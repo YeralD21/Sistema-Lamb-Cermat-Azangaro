@@ -6,35 +6,40 @@ use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\HasMany;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 
+use Illuminate\Database\Eloquent\Concerns\HasUuids;
+
 class Assignment extends Model
 {
-    protected $table = 'assignments';
+    use HasUuids;
 
-protected $fillable = [
-    'course_id',
-    'section_id',
-    'title',
-    'description',
-    'instructions',
-    'due_date',
-    'max_score',
-    'attachment_url',
-    'created_by'
-];
+    protected $table = 'assignments';
+    protected $keyType = 'string';
+    public $incrementing = false;
+
+    protected $fillable = [
+        'course_id',
+        'section_id',
+        'title',
+        'description',
+        'instructions',
+        'due_date',
+        'max_score',
+        'attachment_url',
+        'created_by'    ];
 
     public function submissions(): HasMany
     {
-        return $this->hasMany(TaskSubmission::class, 'assignment_id');
+        return $this->hasMany(TaskSubmission::class , 'assignment_id');
     }
 
     public function course(): BelongsTo
     {
-        return $this->belongsTo(Course::class, 'course_id');
+        return $this->belongsTo(Course::class , 'course_id');
     }
 
     public function section(): BelongsTo
     {
-        return $this->belongsTo(Section::class, 'section_id');
+        return $this->belongsTo(Section::class , 'section_id');
     }
 
 }

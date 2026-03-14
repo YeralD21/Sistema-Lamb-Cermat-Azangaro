@@ -132,11 +132,13 @@ Route::middleware('auth:sanctum')->group(function () {
     |--------------------------------------------------------------------------
     */
     Route::middleware('role:admin,director,coordinator,secretary')->group(function () {
+        Route::get('profiles/stats', [ProfileController::class, 'stats']);
         Route::apiResource('profiles', ProfileController::class);
         Route::apiResource('students', StudentController::class);
         Route::apiResource('teachers', TeacherController::class);
         Route::apiResource('guardians', GuardianController::class);
         Route::apiResource('student-guardians', StudentGuardianController::class);
+        Route::post('users', [\App\Http\Controllers\Api\UserController::class, 'store']);
     });
 
     /*

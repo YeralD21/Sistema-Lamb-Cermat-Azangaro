@@ -29,9 +29,6 @@ class AssignmentController extends Controller
     {
         $data = $request->validated();
 
-        // Si tu tabla tiene created_by como UUID de usuario/perfil:
-        $data['created_by'] = $request->user()->id;
-
         $assignment = Assignment::create($data);
 
         return response()->json($assignment, 201);

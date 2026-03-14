@@ -14,14 +14,33 @@ class ProfileController extends Controller
     {
         $query = Profile::query();
 
-        if ($request->has('role')) $query->where('role', $request->role);
-        if ($request->has('is_active')) $query->where('is_active', filter_var($request->is_active, FILTER_VALIDATE_BOOLEAN));
+        if ($request->has('role') && $request->role !== 'todos') {
+            $query->where('role', $request->role);
+        }
+
+        if ($request->has('is_active')) {
+            $query->where('is_active', filter_var($request->is_active, FILTER_VALIDATE_BOOLEAN));
+        }
+
         if ($request->has('q')) {
             $q = $request->q;
-            $query->where('full_name', 'ilike', "%{$q}%");
+            $query->where(function($group) use ($q) {
+                $group->where('full_name', 'ilike', "%{$q}%")
+                      ->orWhere('email', 'ilike', "%{$q}%");
+            });
         }
 
         return response()->json($query->orderByDesc('created_at')->paginate(20));
+    }
+
+    public function stats()
+    {
+        return response()->json([
+            'total' => Profile::count(),
+            'active' => Profile::where('is_active', true)->count(),
+            'inactive' => Profile::where('is_active', false)->count(),
+            'teachers' => Profile::where('role', 'teacher')->count(),
+        ]);
     }
 
     public function store(StoreProfileRequest $request)
