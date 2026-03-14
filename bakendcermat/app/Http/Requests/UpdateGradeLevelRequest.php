@@ -14,7 +14,7 @@ class UpdateGradeLevelRequest extends FormRequest
 
     public function rules(): array
     {
-        $id = $this->route('grade_level')->id ?? null;
+        $id = $this->route('grade_level');
 
         return [
             'level' => ['string'],

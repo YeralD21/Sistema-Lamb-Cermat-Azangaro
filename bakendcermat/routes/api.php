@@ -266,16 +266,8 @@ Route::middleware('auth:sanctum')->group(function () {
     | Registro y mantenimiento de asistencia.
     |--------------------------------------------------------------------------
     */
-    Route::get('attendance', [AttendanceController::class, 'index'])
-        ->middleware('role:admin,director,coordinator,secretary,teacher');
-    Route::post('attendance', [AttendanceController::class, 'store'])
-        ->middleware('role:admin,director,coordinator,secretary,teacher');
-    Route::get('attendance/{attendance}', [AttendanceController::class, 'show'])
-        ->middleware('role:admin,director,coordinator,secretary,teacher');
-    Route::put('attendance/{attendance}', [AttendanceController::class, 'update'])
-        ->middleware('role:admin,director,coordinator,secretary,teacher');
-    Route::delete('attendance/{attendance}', [AttendanceController::class, 'destroy'])
-        ->middleware('role:admin,director,coordinator,secretary');
+        Route::post('attendance/batch', [AttendanceController::class, 'batchStore']);
+        Route::apiResource('attendance', AttendanceController::class);
 
     /*
     |--------------------------------------------------------------------------
@@ -408,6 +400,7 @@ Route::middleware('auth:sanctum')->group(function () {
     */
     Route::middleware('role:admin,director,coordinator,secretary')->group(function () {
         Route::apiResource('fee-concepts', FeeConceptController::class);
+        Route::post('charges/batch', [ChargeController::class, 'batchStore']);
         Route::apiResource('charges', ChargeController::class);
         Route::apiResource('payments', PaymentController::class)->only(['index', 'store', 'show', 'destroy']);
         Route::apiResource('receipts', ReceiptController::class)->only(['index', 'store', 'show', 'destroy']);

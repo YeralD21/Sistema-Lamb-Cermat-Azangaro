@@ -16,8 +16,8 @@ class Attendance extends Model
         'section_id',
         'date',
         'status',      // enum attendance_status (ej: present/absent/late/justified)
-        'notes',       // si existe en tu tabla; si no existe, quítalo
-        'marked_by',   // si existe (teacher/profile/user); si no existe, quítalo
+        'justification',
+        'recorded_by',
     ];
 
     protected $casts = [

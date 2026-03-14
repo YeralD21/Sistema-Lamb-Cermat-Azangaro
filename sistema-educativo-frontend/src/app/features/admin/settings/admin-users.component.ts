@@ -4,6 +4,7 @@ import { UserService, UserProfile } from '@core/services/user.service';
 import { Router } from '@angular/router';
 import { FormsModule } from '@angular/forms';
 import { BackButtonComponent } from '@shared/components/back-button/back-button.component';
+import Swal from 'sweetalert2';
 
 @Component({
   selector: 'app-admin-users',
@@ -252,7 +253,18 @@ export class AdminUsersComponent implements OnInit {
 
   loadStats() {
     this.userService.getStats().subscribe({
-      next: (res) => this.stats.set(res),
+      next: (res) => {
+        // the backend returns { stats: { total: X, active: Y, ... } }
+        const data = res.data || res;
+        if (data && typeof data === 'object') {
+            this.stats.set({
+               total: data.total || 0,
+               active: data.active || 0,
+               inactive: data.inactive || 0,
+               teachers: data.teachers || 0
+            });
+        }
+      },
       error: (err) => console.error('Error loading stats:', err)
     });
   }
@@ -315,21 +327,38 @@ export class AdminUsersComponent implements OnInit {
         this.closeModal();
         this.loadUsers();
         this.loadStats();
-        alert('Usuario creado correctamente');
+        Swal.fire({
+          icon: 'success', title: 'Usuario creado', toast: true, position: 'top-end', timer: 3000, showConfirmButton: false
+        });
       },
       error: (err) => {
         this.submitting.set(false);
-        alert('Error al crear usuario: ' + (err.error?.message || 'Error desconocido'));
+        Swal.fire('Error', err.error?.message || 'Error al crear usuario', 'error');
       }
     });
   }
 
   deleteUser(user: UserProfile) {
-    if (confirm(`¿Estás seguro de eliminar a ${user.full_name}?`)) {
-      this.userService.deleteProfile(user.id).subscribe(() => {
-        this.loadUsers();
-        this.loadStats();
-      });
-    }
+    Swal.fire({
+      title: `¿Eliminar a ${user.full_name}?`,
+      text: "Esta acción no se puede deshacer",
+      icon: 'warning',
+      showCancelButton: true,
+      confirmButtonColor: '#d33',
+      cancelButtonColor: '#3085d6',
+      confirmButtonText: 'Sí, eliminar',
+      cancelButtonText: 'Cancelar'
+    }).then((result: any) => {
+      if (result.isConfirmed) {
+        this.userService.deleteProfile(user.id).subscribe({
+           next: () => {
+             Swal.fire({ icon: 'success', title: 'Eliminado', toast: true, position: 'top-end', timer: 3000, showConfirmButton: false });
+             this.loadUsers();
+             this.loadStats();
+           },
+           error: (err) => Swal.fire('Error', err.error?.message || 'No se pudo eliminar el usuario', 'error')
+        });
+      }
+    });
   }
 }

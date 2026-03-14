@@ -6,15 +6,21 @@ use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\HasOne;
 
+use Illuminate\Database\Eloquent\Concerns\HasUuids;
+
 class Payment extends Model
 {
+    use HasUuids;
+
     protected $table = 'payments';
+    public $incrementing = false;
+    protected $keyType = 'string';
 
     protected $fillable = [
         'charge_id',
         'student_id',
         'amount',
-        'method',      // payment_method
+        'method', // payment_method
         'reference',
         'paid_at',
         'received_by',
@@ -27,16 +33,16 @@ class Payment extends Model
 
     public function charge(): BelongsTo
     {
-        return $this->belongsTo(Charge::class, 'charge_id');
+        return $this->belongsTo(Charge::class , 'charge_id');
     }
 
     public function student(): BelongsTo
     {
-        return $this->belongsTo(Student::class, 'student_id');
+        return $this->belongsTo(Student::class , 'student_id');
     }
 
     public function receipt(): HasOne
     {
-        return $this->hasOne(Receipt::class, 'payment_id');
+        return $this->hasOne(Receipt::class , 'payment_id');
     }
 }

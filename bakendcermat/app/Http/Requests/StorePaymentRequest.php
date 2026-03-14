@@ -7,20 +7,23 @@ use Illuminate\Validation\Rule;
 
 class StorePaymentRequest extends FormRequest
 {
-    public function authorize(): bool { return true; }
+    public function authorize(): bool
+    {
+        return true;
+    }
 
     public function rules(): array
     {
         return [
-            'charge_id'  => ['required','uuid','exists:charges,id'],
-            'student_id' => ['required','uuid','exists:students,id'],
+            'charge_id' => ['required', 'uuid', 'exists:charges,id'],
+            'student_id' => ['required', 'uuid', 'exists:students,id'],
 
-            'amount'  => ['required','numeric','min:0.01'],
-            'method'  => ['required','string', Rule::in(['efectivo','transferencia','tarjeta','yape','plin','pasarela'])],
+            'amount' => ['required', 'numeric', 'min:0.01'],
+            'method' => ['required', 'string', Rule::in(['efectivo', 'transferencia', 'tarjeta', 'yape', 'plin', 'pasarela'])],
 
-            'reference' => ['nullable','string','max:255'],
-            'paid_at'   => ['nullable','date'],
-            'notes'     => ['nullable','string','max:2000'],
+            'reference' => ['nullable', 'string', 'max:255'],
+            'paid_at' => ['nullable', 'date'],
+            'notes' => ['nullable', 'string', 'max:2000'],
         ];
     }
 }

@@ -40,10 +40,13 @@
       <div>
         <label class="block text-sm font-bold text-slate-700 mb-2 uppercase tracking-wide">Curso / Sección</label>
         <div class="relative">
-          <select [(ngModel)]="selectedCourse" class="w-full appearance-none rounded-xl border-slate-200 border-2 p-3 font-medium text-slate-700 focus:border-cermat-blue-500 focus:ring-4 focus:ring-cermat-blue-500/20 transition-all outline-none bg-slate-50 focus:bg-white cursor-pointer hover:border-slate-300">
+          <select 
+            [ngModel]="selectedAssignment?.id" 
+            (change)="onAssignmentChange($event)"
+            class="w-full appearance-none rounded-xl border-slate-200 border-2 p-3 font-medium text-slate-700 focus:border-cermat-blue-500 focus:ring-4 focus:ring-cermat-blue-500/20 transition-all outline-none bg-slate-50 focus:bg-white cursor-pointer hover:border-slate-300">
             <option value="">Seleccionar curso asignado</option>
-            <option *ngFor="let c of courses" [value]="c.course.id">
-              {{ c.course.code }} - {{ c.course.name }} ({{ c.section.grade_level.name }} {{ c.section.section_letter }})
+            <option *ngFor="let assignment of courses" [value]="assignment.id">
+              {{ assignment.course?.code }} - {{ assignment.course?.name }} ({{ assignment.section?.grade_level?.name }} {{ assignment.section?.section_letter }})
             </option>
           </select>
           <div class="absolute inset-y-0 right-0 flex items-center pr-3 pointer-events-none text-slate-400">
@@ -58,7 +61,7 @@
           <div class="absolute inset-y-0 left-0 flex items-center pl-3.5 pointer-events-none text-slate-400">
             <i data-lucide="calendar" class="w-5 h-5"></i>
           </div>
-          <input type="date" [(ngModel)]="selectedDate" class="w-full pl-11 rounded-xl border-2 border-slate-200 p-3 font-medium text-slate-700 focus:border-cermat-blue-500 focus:ring-4 focus:ring-cermat-blue-500/20 transition-all outline-none bg-slate-50 focus:bg-white hover:border-slate-300" />
+          <input type="date" [(ngModel)]="selectedDate" (change)="loadStudents()" class="w-full pl-11 rounded-xl border-2 border-slate-200 p-3 font-medium text-slate-700 focus:border-cermat-blue-500 focus:ring-4 focus:ring-cermat-blue-500/20 transition-all outline-none bg-slate-50 focus:bg-white hover:border-slate-300" />
         </div>
       </div>
 

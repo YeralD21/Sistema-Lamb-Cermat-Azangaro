@@ -7,6 +7,7 @@ use App\Http\Requests\StoreAttendanceRequest;
 use App\Http\Requests\UpdateAttendanceRequest;
 use App\Models\Attendance;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\DB;
 
 class AttendanceController extends Controller
 {
@@ -38,10 +39,9 @@ class AttendanceController extends Controller
     {
         $data = $request->validated();
 
-        // Si tu tabla tiene marked_by y quieres guardar el usuario:
-        if (array_key_exists('marked_by', (new Attendance())->getFillable())) {
-            $data['marked_by'] = $request->user()->id;
-        }
+        $data = $request->validated();
+
+        $data['recorded_by'] = $request->user()->id;
 
         // Importante: en tu BD hay UNIQUE(student_id, course_id, date)
         // Si quieres "upsert" en vez de error:
@@ -55,6 +55,46 @@ class AttendanceController extends Controller
         );
 
         return response()->json($attendance, 201);
+    }
+
+    public function batchStore(Request $request)
+    {
+        $request->validate([
+            'date'       => 'required|date',
+            'course_id'  => 'required|uuid|exists:courses,id',
+            'section_id' => 'required|uuid|exists:sections,id',
+            'records'    => 'required|array',
+            'records.*.student_id'    => 'required|uuid|exists:students,id',
+            'records.*.status'        => 'required|string|in:presente,tarde,falta,justificado',
+            'records.*.justification' => 'nullable|string',
+        ]);
+
+        $recordedBy = $request->user()->id;
+        $createdCount = 0;
+
+        DB::transaction(function() use ($request, $recordedBy, &$createdCount) {
+            foreach ($request->records as $record) {
+                Attendance::updateOrCreate(
+                    [
+                        'student_id' => $record['student_id'],
+                        'course_id'  => $request->course_id,
+                        'date'       => $request->date,
+                    ],
+                    [
+                        'section_id'    => $request->section_id,
+                        'status'        => $record['status'],
+                        'justification' => $record['justification'] ?? null,
+                        'recorded_by'   => $recordedBy,
+                    ]
+                );
+                $createdCount++;
+            }
+        });
+
+        return response()->json([
+            'message' => "Se procesaron {$createdCount} registros de asistencia.",
+            'count'   => $createdCount
+        ]);
     }
 
     public function show(Attendance $attendance)

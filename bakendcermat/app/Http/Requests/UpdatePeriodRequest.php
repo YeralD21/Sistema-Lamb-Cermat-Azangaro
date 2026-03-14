@@ -14,7 +14,7 @@ class UpdatePeriodRequest extends FormRequest
 
     public function rules(): array
     {
-        $id = $this->route('period')->id ?? null;
+        $id = $this->route('period');
 
         return [
             'academic_year_id' => ['uuid','exists:academic_years,id'],

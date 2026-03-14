@@ -5,14 +5,20 @@ namespace App\Models;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\HasMany;
 
+use Illuminate\Database\Eloquent\Concerns\HasUuids;
+
 class FeeConcept extends Model
 {
+    use HasUuids;
+
     protected $table = 'fee_concepts';
+    protected $keyType = 'string';
+    public $incrementing = false;
 
     protected $fillable = [
         'name',
         'description',
-        'amount',
+        'base_amount',
         'type',         // concept_type
         'periodicity',  // concept_periodicity
         'is_active',

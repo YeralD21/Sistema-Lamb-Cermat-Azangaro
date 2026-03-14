@@ -14,7 +14,7 @@ class StoreFeeConceptRequest extends FormRequest
         return [
             'name'        => ['required','string','max:255'],
             'description' => ['nullable','string','max:2000'],
-            'amount'      => ['required','numeric','min:0'],
+            'base_amount' => ['required','numeric','min:0'],
 
             'type'        => ['required','string', Rule::in(['matricula','pension','interes','certificado','taller','servicio','otro'])],
             'periodicity' => ['required','string', Rule::in(['unico','mensual','anual','opcional'])],

@@ -58,6 +58,11 @@ public function messages()
     return $this->hasMany(Message::class, 'student_id');
 }
 
+    public function enrollments()
+    {
+        return $this->hasMany(StudentCourseEnrollment::class);
+    }
+
 public function assignmentSubmissions()
 {
     return $this->hasMany(AssignmentSubmission::class, 'student_id');

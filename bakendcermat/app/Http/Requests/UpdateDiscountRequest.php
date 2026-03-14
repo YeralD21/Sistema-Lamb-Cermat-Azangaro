@@ -18,7 +18,7 @@ class UpdateDiscountRequest extends FormRequest
             'name' => ['sometimes', 'string', 'max:255'],
             'type' => ['sometimes', Rule::in(['porcentaje', 'monto_fijo'])],
             'value' => ['sometimes', 'numeric', 'min:0'],
-            'scope' => ['sometimes', Rule::in(['todos', 'concepto_especifico'])],
+            'scope' => ['sometimes', Rule::in(['todos', 'pension', 'matricula', 'especifico'])],
             'specific_concept_id' => ['nullable', 'uuid', 'exists:fee_concepts,id'],
             'description' => ['nullable', 'string'],
             'is_active' => ['sometimes', 'boolean'],

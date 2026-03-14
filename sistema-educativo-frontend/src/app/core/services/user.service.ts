@@ -22,12 +22,21 @@ export interface PaginatedResponse<T> {
   per_page: number;
 }
 
+export interface User {
+  id: string;
+  name: string;
+  last_name?: string;
+  email: string;
+  role: string;
+}
+
 @Injectable({
   providedIn: 'root'
 })
 export class UserService {
   private http = inject(HttpClient);
   private apiUrl = `${environment.apiUrl}/profiles`;
+  private usersUrl = `${environment.apiUrl}/users`;
 
   getProfiles(params?: { role?: string; is_active?: boolean; q?: string; page?: number }): Observable<PaginatedResponse<UserProfile>> {
     let httpParams = new HttpParams();
@@ -41,8 +50,12 @@ export class UserService {
     return this.http.get<PaginatedResponse<UserProfile>>(this.apiUrl, { params: httpParams });
   }
 
+  getUsersByRole(role: string): Observable<any> {
+    return this.http.get(`${this.usersUrl}?role=${role}`);
+  }
+
   createUser(userData: any): Observable<any> {
-    return this.http.post(`${environment.apiUrl}/users`, userData);
+    return this.http.post(this.usersUrl, userData);
   }
 
   updateProfile(id: string, profileData: any): Observable<any> {
@@ -52,6 +65,7 @@ export class UserService {
   deleteProfile(id: string): Observable<any> {
     return this.http.delete(`${this.apiUrl}/${id}`);
   }
+  
   getStats(): Observable<any> {
     return this.http.get(`${this.apiUrl}/stats`);
   }

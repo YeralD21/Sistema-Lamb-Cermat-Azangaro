@@ -1,11 +1,15 @@
-import { Component } from '@angular/core';
+import { Component, OnInit } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { BackButtonComponent } from '@shared/components/back-button/back-button.component';
+import { MessagingService, Announcement } from '@core/services/messaging.service';
+import { AcademicService } from '@core/services/academic.service';
+import { FormsModule, ReactiveFormsModule, FormBuilder, FormGroup, Validators } from '@angular/forms';
+import Swal from 'sweetalert2';
 
 @Component({
   selector: 'app-communications-management',
   standalone: true,
-  imports: [CommonModule, BackButtonComponent],
+  imports: [CommonModule, BackButtonComponent, FormsModule, ReactiveFormsModule],
   template: `
     <div class="min-h-[calc(100vh-80px)] p-6 sm:p-10 max-w-7xl mx-auto space-y-8 animate-fade-in text-slate-700">
       
@@ -17,7 +21,9 @@ import { BackButtonComponent } from '@shared/components/back-button/back-button.
           <h1 class="text-3xl font-semibold text-blue-900 tracking-tight">Gestionar Comunicados</h1>
           <p class="text-slate-500 text-sm font-medium">Administra los avisos y anuncios institucionales</p>
         </div>
-        <button class="px-6 py-2.5 bg-gradient-to-r from-blue-900 to-red-600 hover:opacity-90 text-white text-sm font-semibold rounded-xl transition-all shadow-lg active:scale-95 flex items-center justify-center gap-2">
+        <button 
+          (click)="openModal()"
+          class="px-6 py-2.5 bg-gradient-to-r from-blue-900 to-red-600 hover:opacity-90 text-white text-sm font-semibold rounded-xl transition-all shadow-lg active:scale-95 flex items-center justify-center gap-2">
           <svg class="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
           Nuevo Comunicado
         </button>
@@ -49,78 +55,91 @@ import { BackButtonComponent } from '@shared/components/back-button/back-button.
           <div class="space-y-2">
             <label class="text-[10px] font-bold text-slate-400 uppercase tracking-widest pl-1">Estado</label>
             <div class="relative group">
-              <select class="w-full bg-white border border-slate-200 text-slate-700 rounded-xl px-4 py-3 text-sm font-medium appearance-none cursor-pointer focus:outline-none focus:ring-2 focus:ring-blue-500/10 focus:border-blue-500 transition-all">
-                <option>Todos</option>
-                <option>Borrador</option>
-                <option>Pendiente Aprobación</option>
-                <option>Publicado</option>
-                <option>Archivado</option>
+              <select (change)="applyFilters('status', $any($event.target).value)" class="w-full bg-white border border-slate-200 text-slate-700 rounded-xl px-4 py-3 text-sm font-medium appearance-none cursor-pointer focus:outline-none focus:ring-2 focus:ring-blue-500/10 focus:border-blue-500 transition-all">
+                <option value="">Todos</option>
+                <option value="borrador">Borrador</option>
+                <option value="pendiente_aprobacion">Pendiente Aprobación</option>
+                <option value="publicado">Publicado</option>
+                <option value="archivado">Archivado</option>
               </select>
               <svg class="w-4 h-4 text-slate-400 absolute right-4 top-1/2 -translate-y-1/2 pointer-events-none" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="6 9 12 15 18 9"/></svg>
             </div>
           </div>
           <div class="space-y-2">
-            <label class="text-[10px] font-bold text-slate-400 uppercase tracking-widest pl-1">Sección</label>
+            <label class="text-[10px] font-bold text-slate-400 uppercase tracking-widest pl-1">Público (Audiencia)</label>
             <div class="relative group">
-              <select class="w-full bg-white border border-slate-200 text-slate-700 rounded-xl px-4 py-3 text-sm font-medium appearance-none cursor-pointer focus:outline-none focus:ring-2 focus:ring-blue-500/10 focus:border-blue-500 transition-all">
-                <option>Todas</option>
-                <option>5to Secundaria - Secc. A</option>
-                <option>4to Secundaria - Secc. B</option>
-                <option>1ro Primaria - Secc. C</option>
+              <select (change)="applyFilters('audience', $any($event.target).value)" class="w-full bg-white border border-slate-200 text-slate-700 rounded-xl px-4 py-3 text-sm font-medium appearance-none cursor-pointer focus:outline-none focus:ring-2 focus:ring-blue-500/10 focus:border-blue-500 transition-all">
+                <option value="">Todas</option>
+                <option value="todos">Todos</option>
+                <option value="docentes">Docentes</option>
+                <option value="estudiantes">Estudiantes</option>
+                <option value="apoderados">Apoderados</option>
+                <option value="seccion_especifica">Sección Específica</option>
               </select>
               <svg class="w-4 h-4 text-slate-400 absolute right-4 top-1/2 -translate-y-1/2 pointer-events-none" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="6 9 12 15 18 9"/></svg>
             </div>
           </div>
-        </div>
-      </div>
-
-      <!-- Search Bar -->
-      <div class="bg-white border border-slate-100 rounded-2xl shadow-sm p-4 px-6 flex items-center gap-4">
-        <div class="relative flex-1">
-          <input type="text" placeholder="Buscar comunicado por título..." class="w-full bg-slate-50 border border-slate-100 text-slate-700 rounded-xl px-12 py-3 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500/10 focus:border-blue-500 transition-all font-medium" />
-          <svg class="w-4 h-4 text-slate-400 absolute left-5 top-1/2 -translate-y-1/2" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><circle cx="11" cy="11" r="8"/><path d="m21 21-4.3-4.3"/></svg>
         </div>
       </div>
 
       <!-- Communications List -->
       <div class="bg-white border border-slate-100 rounded-3xl overflow-hidden shadow-sm">
         <div class="p-6 border-b border-slate-50 flex items-center justify-between bg-slate-50/10 px-8">
-          <h2 class="text-base font-bold text-slate-800 tracking-tight uppercase">Mis Comunicados ({{ communications.length }})</h2>
+          <h2 class="text-base font-bold text-slate-800 tracking-tight uppercase">Mis Comunicados ({{ filteredCommunications.length }})</h2>
         </div>
 
         <div class="divide-y divide-slate-50">
-          <div *ngFor="let comm of communications" class="p-8 hover:bg-slate-50/50 transition-all group scale-100 active:scale-[0.99]">
+          <div *ngIf="loading" class="p-8 text-center text-slate-400">Cargando comunicados...</div>
+          <div *ngIf="!loading && filteredCommunications.length === 0" class="p-8 text-center text-slate-400">No hay comunicados registrados.</div>
+          
+          <div *ngFor="let comm of filteredCommunications" class="p-8 hover:bg-slate-50/50 transition-all group scale-100 active:scale-[0.99]">
             <div class="flex flex-col md:flex-row md:items-start justify-between gap-6">
               <div class="space-y-4 flex-1">
                 <div class="flex items-center gap-3">
-                  <span [class]="'px-3 py-1 text-[10px] font-bold rounded-lg uppercase tracking-tight ' + comm.statusStyle">
-                    {{ comm.status }}
-                  </span>
-                  <span [class]="'px-3 py-1 text-[10px] font-bold rounded-lg uppercase tracking-tight ' + comm.priorityStyle">
-                    {{ comm.priority }}
+                  <span [class]="'px-3 py-1 text-[10px] font-bold rounded-lg uppercase tracking-tight ' + getStatusClass(comm.status)">
+                    {{ comm.status.replace('_', ' ') }}
                   </span>
                 </div>
                 <div>
                   <h3 class="text-lg font-bold text-slate-900 group-hover:text-blue-900 transition-colors tracking-tight uppercase">{{ comm.title }}</h3>
-                  <p class="text-sm text-slate-500 mt-2 line-clamp-2 leading-relaxed font-medium">
+                  <p class="text-sm text-slate-500 mt-2 line-clamp-2 leading-relaxed font-medium whitespace-pre-line">
                     {{ comm.content }}
                   </p>
                 </div>
                 <div class="flex flex-wrap items-center gap-4 text-[11px] font-bold text-slate-400 uppercase tracking-widest pt-2">
-                  <div class="flex items-center gap-1.5"><svg class="w-3.5 h-3.5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg> {{ comm.audience }}</div>
-                  <div class="flex items-center gap-1.5"><svg class="w-3.5 h-3.5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><rect width="18" height="18" x="3" y="4" rx="2" ry="2"/><line x1="16" x2="16" y1="2" y2="6"/><line x1="8" x2="8" y1="2" y2="6"/><line x1="3" x2="21" y1="10" y2="10"/></svg> {{ comm.date }}</div>
-                  <div *ngIf="comm.attachment" class="flex items-center gap-1.5 text-blue-500 font-bold"><svg class="w-3.5 h-3.5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="m21.44 11.05-9.19 9.19a6 6 0 0 1-8.49-8.49l9.19-9.19a4 4 0 0 1 5.66 5.66l-9.2 9.19a2 2 0 0 1-2.83-2.83l8.49-8.48"/></svg> ARCHIVO ADJUNTO</div>
+                  <div class="flex items-center gap-1.5"><svg class="w-3.5 h-3.5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg> 
+                    {{ comm.audience === 'seccion_especifica' && comm.section ? 'Sección: ' + comm.section.name : comm.audience }}
+                  </div>
+                  <div class="flex items-center gap-1.5"><svg class="w-3.5 h-3.5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><rect width="18" height="18" x="3" y="4" rx="2" ry="2"/><line x1="16" x2="16" y1="2" y2="6"/><line x1="8" x2="8" y1="2" y2="6"/><line x1="3" x2="21" y1="10" y2="10"/></svg> Creado: {{ comm.created_at | date:'dd MMM yyyy' }}</div>
                 </div>
               </div>
               
               <div class="flex items-center gap-2">
-                <button class="p-3 text-slate-400 hover:text-blue-900 hover:bg-blue-50 rounded-2xl transition-all shadow-sm active:scale-95">
-                  <svg class="w-5 h-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M2 12s3-7 10-7 10 7 10 7-3 7-10 7-10-7-10-7Z"/><circle cx="12" cy="12" r="3"/></svg>
+                <button 
+                  *ngIf="comm.status === 'borrador'"
+                  (click)="requestApproval(comm.id)"
+                  title="Solicitar Aprobación"
+                  class="p-3 text-slate-400 hover:text-green-600 hover:bg-green-50 rounded-2xl transition-all shadow-sm active:scale-95">
+                  <svg class="w-5 h-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"/><polyline points="22 4 12 14.01 9 11.01"/></svg>
                 </button>
-                <button class="p-3 text-slate-400 hover:text-blue-900 hover:bg-blue-50 rounded-2xl transition-all shadow-sm active:scale-95">
+                <button 
+                  *ngIf="comm.status === 'borrador'"
+                  (click)="editAnnouncement(comm)"
+                  title="Editar"
+                  class="p-3 text-slate-400 hover:text-blue-900 hover:bg-blue-50 rounded-2xl transition-all shadow-sm active:scale-95">
                   <svg class="w-5 h-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/></svg>
                 </button>
-                <button class="p-3 text-slate-400 hover:text-red-500 hover:bg-red-50 rounded-2xl transition-all shadow-sm active:scale-95">
+                <button 
+                  *ngIf="comm.status === 'publicado'"
+                  (click)="archive(comm.id)"
+                  title="Archivar"
+                  class="p-3 text-slate-400 hover:text-orange-500 hover:bg-orange-50 rounded-2xl transition-all shadow-sm active:scale-95">
+                  <svg class="w-5 h-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="21 8 21 21 3 21 3 8"/><rect width="22" height="5" x="1" y="3" rx="1"/><line x1="10" x2="14" y1="12" y2="12"/></svg>
+                </button>
+                <button 
+                  (click)="deleteAnnouncement(comm.id)"
+                  title="Eliminar"
+                  class="p-3 text-slate-400 hover:text-red-500 hover:bg-red-50 rounded-2xl transition-all shadow-sm active:scale-95">
                   <svg class="w-5 h-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M3 6h18"/><path d="M19 6v14c0 1-1 2-2 2H7c-1 0-2-1-2-2V6"/><path d="M8 6V4c0-1 1-2 2-2h4c1 0 2 1 2 2v2"/></svg>
                 </button>
               </div>
@@ -129,55 +148,279 @@ import { BackButtonComponent } from '@shared/components/back-button/back-button.
         </div>
       </div>
 
+      <!-- Modal Crear/Editar -->
+      <div *ngIf="showModal" class="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/60 backdrop-blur-sm animate-fade-in">
+        <div class="bg-white rounded-3xl w-full max-w-2xl shadow-2xl overflow-hidden animate-slide-up">
+          <div class="p-6 border-b border-slate-100 flex items-center justify-between bg-slate-50/50">
+            <h3 class="text-xl font-bold text-blue-900">{{ isEditing ? 'Editar' : 'Nuevo' }} Comunicado</h3>
+            <button (click)="closeModal()" class="p-2 hover:bg-slate-100 rounded-full transition-colors">
+              <svg class="w-5 h-5 text-slate-400" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+            </button>
+          </div>
+          <form [formGroup]="form" (ngSubmit)="saveAnnouncement()" class="p-8 space-y-6">
+            <div class="space-y-4">
+              <div class="space-y-2">
+                <label class="text-[10px] font-semibold text-slate-400 uppercase tracking-widest pl-1">Título del Comunicado</label>
+                <input formControlName="title" type="text" placeholder="Escribe el título aquí..." class="w-full bg-slate-50 border border-slate-200 rounded-xl px-4 py-3 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500/10 focus:border-blue-500 transition-all font-medium">
+              </div>
+              
+              <div class="space-y-2">
+                <label class="text-[10px] font-semibold text-slate-400 uppercase tracking-widest pl-1">Audiencia (Público Objetivo)</label>
+                <select formControlName="audience" class="w-full bg-slate-50 border border-slate-200 rounded-xl px-4 py-3 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500/10 focus:border-blue-500 transition-all font-medium">
+                  <option value="todos">Todos en la institución</option>
+                  <option value="docentes">Solo Docentes</option>
+                  <option value="estudiantes">Solo Estudiantes</option>
+                  <option value="apoderados">Solo Apoderados</option>
+                  <option value="seccion_especifica">Una Sección Específica</option>
+                </select>
+              </div>
+
+              <div *ngIf="form.get('audience')?.value === 'seccion_especifica'" class="space-y-2 animate-fade-in">
+                <label class="text-[10px] font-semibold text-slate-400 uppercase tracking-widest pl-1">Seleccionar Sección</label>
+                <select formControlName="section_id" class="w-full bg-slate-50 border border-slate-200 rounded-xl px-4 py-3 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500/10 focus:border-blue-500 transition-all font-medium">
+                  <option value="">Seleccione...</option>
+                  <option *ngFor="let sec of sections" [value]="sec.id">{{ sec.name }} ({{ sec.grade_level?.name }})</option>
+                </select>
+              </div>
+
+              <div class="space-y-2">
+                <label class="text-[10px] font-semibold text-slate-400 uppercase tracking-widest pl-1">Contenido del Mensaje</label>
+                <textarea formControlName="content" rows="6" placeholder="Detalla el contenido del anuncio..." class="w-full bg-slate-50 border border-slate-200 rounded-xl px-4 py-3 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500/10 focus:border-blue-500 transition-all font-medium resize-none"></textarea>
+              </div>
+            </div>
+            
+            <div class="flex gap-4 pt-4">
+              <button (click)="closeModal()" type="button" class="flex-1 px-6 py-3 bg-slate-100 hover:bg-slate-200 text-slate-600 text-sm font-bold rounded-xl transition-all active:scale-95">
+                Cancelar
+              </button>
+              <button [disabled]="form.invalid || saving" type="submit" class="flex-1 px-6 py-3 bg-gradient-to-r from-blue-900 to-red-600 text-white text-sm font-bold rounded-xl shadow-lg active:scale-95 disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center">
+                <span *ngIf="saving" class="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin mr-2"></span>
+                {{ saving ? 'Guardando...' : (isEditing ? 'Actualizar' : 'Guardar como Borrador') }}
+              </button>
+            </div>
+          </form>
+        </div>
+      </div>
+
     </div>
   `,
   styles: [`
     :host { display: block; }
-    .animate-fade-in { animation: fadeIn 0.5s ease-out; }
-    @keyframes fadeIn { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }
+    .animate-fade-in { animation: fadeIn 0.3s ease-out; }
+    .animate-slide-up { animation: slideUp 0.4s cubic-bezier(0.16, 1, 0.3, 1); }
+    @keyframes fadeIn { from { opacity: 0; } to { opacity: 1; } }
+    @keyframes slideUp { from { opacity: 0; transform: translateY(20px); } to { opacity: 1; transform: translateY(0); } }
   `]
 })
-export class CommunicationsManagementComponent {
+export class CommunicationsManagementComponent implements OnInit {
   kpis = [
-    { label: 'Total', value: 3, iconColor: 'text-blue-500', bgColor: 'bg-blue-50', icon: '<path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V7.5L14.5 2z"/><polyline points="14 2 14 8 20 8"/><path d="M10 13h4"/><path d="M10 17h4"/>' },
-    { label: 'Publicados', value: 1, iconColor: 'text-green-500', bgColor: 'bg-green-50', icon: '<path d="m9 11 3 3L22 4"/><path d="M21 12v7a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11"/>' },
-    { label: 'Borradores', value: 1, iconColor: 'text-orange-500', bgColor: 'bg-orange-50', icon: '<path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/>' },
-    { label: 'Pendientes', value: 1, iconColor: 'text-purple-500', bgColor: 'bg-purple-50', icon: '<circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/>' },
+    { label: 'Total', value: 0, iconColor: 'text-blue-500', bgColor: 'bg-blue-50', icon: '<path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V7.5L14.5 2z"/><polyline points="14 2 14 8 20 8"/><path d="M10 13h4"/><path d="M10 17h4"/>' },
+    { label: 'Publicados', value: 0, iconColor: 'text-green-500', bgColor: 'bg-green-50', icon: '<path d="m9 11 3 3L22 4"/><path d="M21 12v7a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11"/>' },
+    { label: 'Borradores', value: 0, iconColor: 'text-orange-500', bgColor: 'bg-orange-50', icon: '<path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/>' },
+    { label: 'Pendientes', value: 0, iconColor: 'text-purple-500', bgColor: 'bg-purple-50', icon: '<circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/>' },
   ];
 
-  communications = [
-    {
-      title: 'INICIO DE EXÁMENES DEL PRIMER BIMESTRE',
-      content: 'Se comunica a todos los padres de familia que los exámenes correspondientes al primer bimestre iniciarán el próximo lunes 24 de marzo. Favor de revisar el temario adjunto.',
-      status: 'Publicado',
-      statusStyle: 'bg-green-50 text-green-600',
-      priority: 'Alta',
-      priorityStyle: 'bg-red-50 text-red-600',
-      audience: 'Toda la institución',
-      date: '12 Mar 2025',
-      attachment: true
-    },
-    {
-      title: 'REUNIÓN DE PADRES DE FAMILIA - 5TO SECUNDARIA',
-      content: 'Citación para la reunión informativa sobre el viaje de promoción y preparativos para la graduación 2025.',
-      status: 'Borrador',
-      statusStyle: 'bg-orange-50 text-orange-600',
-      priority: 'Normal',
-      priorityStyle: 'bg-slate-100 text-slate-500',
-      audience: '5to Secundaria - Secc. A',
-      date: '11 Mar 2025',
-      attachment: false
-    },
-    {
-      title: 'CAMBIO EN EL HORARIO DE TALLER DE DANZA',
-      content: 'Por motivos de mantenimiento en el auditorio, el taller de danza del día miércoles se trasladará al polideportivo.',
-      status: 'Pendiente',
-      statusStyle: 'bg-purple-50 text-purple-600',
-      priority: 'Media',
-      priorityStyle: 'bg-yellow-50 text-yellow-600',
-      audience: 'Estudiantes de Talleres',
-      date: '10 Mar 2025',
-      attachment: false
-    }
-  ];
+  communications: Announcement[] = [];
+  filteredCommunications: Announcement[] = [];
+  sections: any[] = [];
+  loading = false;
+  saving = false;
+  
+  filters = { status: '', audience: '' };
+  
+  showModal = false;
+  isEditing = false;
+  currentId: string | null = null;
+  form: FormGroup;
+
+  constructor(
+    private messagingService: MessagingService,
+    private academicService: AcademicService,
+    private fb: FormBuilder
+  ) {
+    this.form = this.fb.group({
+      title: ['', Validators.required],
+      content: ['', Validators.required],
+      audience: ['todos', Validators.required],
+      section_id: ['']
+    });
+
+    this.form.get('audience')?.valueChanges.subscribe(val => {
+      const sectionCtrl = this.form.get('section_id');
+      if (val === 'seccion_especifica') {
+        sectionCtrl?.setValidators(Validators.required);
+      } else {
+        sectionCtrl?.clearValidators();
+        sectionCtrl?.setValue('');
+      }
+      sectionCtrl?.updateValueAndValidity();
+    });
+  }
+
+  ngOnInit() {
+    this.loadAnnouncements();
+    this.loadSections();
+  }
+
+  loadAnnouncements() {
+    this.loading = true;
+    this.messagingService.getAnnouncements(this.filters).subscribe({
+      next: (res) => {
+        this.communications = res.data || res;
+        this.filteredCommunications = [...this.communications];
+        this.updateKPIs();
+        this.loading = false;
+      },
+      error: () => this.loading = false
+    });
+  }
+
+  loadSections() {
+    this.academicService.getSections().subscribe(res => {
+      this.sections = res.data || res;
+    });
+  }
+
+  applyFilters(key: 'status' | 'audience', value: string) {
+    this.filters[key] = value;
+    this.loadAnnouncements();
+  }
+
+  updateKPIs() {
+    this.kpis[0].value = this.communications.length;
+    this.kpis[1].value = this.communications.filter(c => c.status === 'publicado').length;
+    this.kpis[2].value = this.communications.filter(c => c.status === 'borrador').length;
+    this.kpis[3].value = this.communications.filter(c => c.status === 'pendiente_aprobacion').length;
+  }
+
+  getStatusClass(status: string): string {
+    const map: any = {
+      'borrador': 'bg-orange-50 text-orange-600',
+      'pendiente_aprobacion': 'bg-purple-50 text-purple-600',
+      'publicado': 'bg-green-50 text-green-600',
+      'archivado': 'bg-slate-100 text-slate-500'
+    };
+    return map[status] || 'bg-slate-100 text-slate-500';
+  }
+
+  openModal() {
+    this.isEditing = false;
+    this.currentId = null;
+    this.form.reset({ audience: 'todos' });
+    this.showModal = true;
+  }
+
+  editAnnouncement(comm: Announcement) {
+    this.isEditing = true;
+    this.currentId = comm.id;
+    this.form.patchValue({
+      title: comm.title,
+      content: comm.content,
+      audience: comm.audience,
+      section_id: comm.section_id || ''
+    });
+    this.showModal = true;
+  }
+
+  closeModal() {
+    this.showModal = false;
+  }
+
+  saveAnnouncement() {
+    if (this.form.invalid) return;
+    this.saving = true;
+    
+    // Always create as draft from the backend logic
+    const request = this.isEditing && this.currentId
+      ? this.messagingService.updateAnnouncement(this.currentId, this.form.value)
+      : this.messagingService.createAnnouncement(this.form.value);
+
+    request.subscribe({
+      next: () => {
+        Swal.fire({
+          icon: 'success',
+          title: this.isEditing ? 'Actualizado' : 'Borrador Creado',
+          text: 'El comunicado se ha guardado exitosamente.',
+          confirmButtonColor: '#1e3a8a',
+          toast: true,
+          position: 'top-end',
+          timer: 3000,
+          showConfirmButton: false
+        });
+        this.closeModal();
+        this.loadAnnouncements();
+        this.saving = false;
+      },
+      error: () => {
+        this.saving = false;
+        Swal.fire('Error', 'No se pudo guardar el comunicado.', 'error');
+      }
+    });
+  }
+
+  requestApproval(id: string) {
+    Swal.fire({
+      title: '¿Solicitar Aprobación?',
+      text: "El comunicado pasará a revisión por un administrador.",
+      icon: 'question',
+      showCancelButton: true,
+      confirmButtonColor: '#1e3a8a',
+      cancelButtonColor: '#d33',
+      confirmButtonText: 'Sí, enviar',
+      cancelButtonText: 'Cancelar'
+    }).then((result) => {
+      if (result.isConfirmed) {
+        this.messagingService.requestApproval(id).subscribe({
+          next: () => {
+             Swal.fire({
+              icon: 'success',
+              title: 'Enviado',
+              text: 'Se ha solicitado aprobación.',
+              toast: true,
+              position: 'top-end',
+              timer: 3000,
+              showConfirmButton: false
+            });
+            this.loadAnnouncements();
+          }
+        });
+      }
+    });
+  }
+
+  archive(id: string) {
+    this.messagingService.archiveAnnouncement(id).subscribe({
+      next: () => this.loadAnnouncements()
+    });
+  }
+
+  deleteAnnouncement(id: string) {
+    Swal.fire({
+      title: '¿Eliminar Comunicado?',
+      text: "Esta acción no se puede deshacer.",
+      icon: 'warning',
+      showCancelButton: true,
+      confirmButtonColor: '#d33',
+      cancelButtonColor: '#3085d6',
+      confirmButtonText: 'Sí, eliminar',
+      cancelButtonText: 'Cancelar'
+    }).then((result) => {
+      if (result.isConfirmed) {
+        this.messagingService.deleteAnnouncement(id).subscribe({
+          next: () => {
+            Swal.fire({
+              icon: 'success',
+              title: 'Eliminado',
+              toast: true,
+              position: 'top-end',
+              timer: 3000,
+              showConfirmButton: false
+            });
+            this.loadAnnouncements();
+          }
+        });
+      }
+    });
+  }
 }
+

@@ -11,42 +11,64 @@ export interface AcademicYear {
 
 export interface GradeLevel {
   id: string;
+  name: string;
   level: string;
   grade: number;
-  section_count?: number;
 }
 
 export interface Section {
   id: string;
-  academic_year_id: string;
+  name?: string;
+  section_letter?: string;
   grade_level_id: string;
-  section_letter: string;
   capacity: number;
-  vacancies: number;
+  vacancies?: number;
+  is_active: boolean;
 }
 
 export interface Period {
   id: string;
-  academic_year_id: string;
   name: string;
-  period_number: number;
+  academic_year_id: string;
   start_date: string;
   end_date: string;
   is_closed: boolean;
-  status?: string;
+  period_number: number;
 }
 
 export interface Course {
   id: string;
+  code: string;
   name: string;
-  description?: string;
-  credits?: number;
+  grade_level_id: string;
+  weekly_hours: number;
+  color?: string;
 }
 
 export interface Competency {
   id: string;
-  name: string;
-  description?: string;
+  course_id: string;
+  name?: string;
+  description: string;
+  order?: number;
+}
+
+export interface TeacherCourseAssignment {
+  id: string;
+  user_id: string;
+  course_id: string;
+  section_id: string;
+  academic_year_id: string;
+}
+
+export interface StudentCourseEnrollment {
+  id: string;
+  user_id: string;
+  course_id: string;
+  academic_year_id: string;
+  status: string;
+  enrollment_date?: string;
+  user?: any; // The backend usually includes the user object
 }
 
 @Injectable({
@@ -60,32 +82,119 @@ export class AcademicService {
     return this.http.get(`${this.apiUrl}/academic-years`);
   }
 
+  createAcademicYear(data: Partial<AcademicYear>): Observable<any> {
+    return this.http.post(`${this.apiUrl}/academic-years`, data);
+  }
+
+  updateAcademicYear(id: string, data: Partial<AcademicYear>): Observable<any> {
+    return this.http.put(`${this.apiUrl}/academic-years/${id}`, data);
+  }
+
+  deleteAcademicYear(id: string): Observable<any> {
+    return this.http.delete(`${this.apiUrl}/academic-years/${id}`);
+  }
+
   getGradeLevels(params?: any): Observable<any> {
     return this.http.get(`${this.apiUrl}/grade-levels`, { params });
+  }
+
+  createGradeLevel(data: Partial<GradeLevel>): Observable<any> {
+    return this.http.post(`${this.apiUrl}/grade-levels`, data);
+  }
+
+  updateGradeLevel(id: string, data: Partial<GradeLevel>): Observable<any> {
+    return this.http.put(`${this.apiUrl}/grade-levels/${id}`, data);
+  }
+
+  deleteGradeLevel(id: string): Observable<any> {
+    return this.http.delete(`${this.apiUrl}/grade-levels/${id}`);
   }
 
   getSections(params?: any): Observable<any> {
     return this.http.get(`${this.apiUrl}/sections`, { params });
   }
 
+  createSection(data: Partial<Section>): Observable<any> {
+    return this.http.post(`${this.apiUrl}/sections`, data);
+  }
+
+  updateSection(id: string, data: Partial<Section>): Observable<any> {
+    return this.http.put(`${this.apiUrl}/sections/${id}`, data);
+  }
+
+  deleteSection(id: string): Observable<any> {
+    return this.http.delete(`${this.apiUrl}/sections/${id}`);
+  }
+
   getPeriods(params?: any): Observable<any> {
     return this.http.get(`${this.apiUrl}/periods`, { params });
+  }
+
+  createPeriod(data: Partial<Period>): Observable<any> {
+    return this.http.post(`${this.apiUrl}/periods`, data);
+  }
+
+  updatePeriod(id: string, data: Partial<Period>): Observable<any> {
+    return this.http.put(`${this.apiUrl}/periods/${id}`, data);
+  }
+
+  deletePeriod(id: string): Observable<any> {
+    return this.http.delete(`${this.apiUrl}/periods/${id}`);
   }
 
   getCourses(params?: any): Observable<any> {
     return this.http.get(`${this.apiUrl}/courses`, { params });
   }
 
+  createCourse(data: Partial<Course>): Observable<any> {
+    return this.http.post(`${this.apiUrl}/courses`, data);
+  }
+
+  updateCourse(id: string, data: Partial<Course>): Observable<any> {
+    return this.http.put(`${this.apiUrl}/courses/${id}`, data);
+  }
+
+  deleteCourse(id: string): Observable<any> {
+    return this.http.delete(`${this.apiUrl}/courses/${id}`);
+  }
+
   getCompetencies(params?: any): Observable<any> {
     return this.http.get(`${this.apiUrl}/competencies`, { params });
   }
 
-  getEnrolledStudents(params?: any): Observable<any> {
-    // Evaluation workflows often need to fetch students enrolled in a specific course/section
-    return this.http.get(`${this.apiUrl}/student-course-enrollments`, { params });
+  createCompetency(data: Partial<Competency>): Observable<any> {
+    return this.http.post(`${this.apiUrl}/competencies`, data);
   }
 
-  updatePeriod(id: string, data: Partial<Period>): Observable<any> {
-    return this.http.put(`${this.apiUrl}/periods/${id}`, data);
+  updateCompetency(id: string, data: Partial<Competency>): Observable<any> {
+    return this.http.put(`${this.apiUrl}/competencies/${id}`, data);
+  }
+
+  deleteCompetency(id: string): Observable<any> {
+    return this.http.delete(`${this.apiUrl}/competencies/${id}`);
+  }
+
+  getTeacherCourseAssignments(params?: any): Observable<any> {
+    return this.http.get(`${environment.apiUrl}/teacher-course-assignments`, { params });
+  }
+
+  createTeacherCourseAssignment(data: any): Observable<any> {
+    return this.http.post(`${environment.apiUrl}/teacher-course-assignments`, data);
+  }
+
+  updateTeacherCourseAssignment(id: string, data: any): Observable<any> {
+    return this.http.put(`${environment.apiUrl}/teacher-course-assignments/${id}`, data);
+  }
+
+  deleteTeacherCourseAssignment(id: string): Observable<any> {
+    return this.http.delete(`${environment.apiUrl}/teacher-course-assignments/${id}`);
+  }
+
+  getStudentCourseEnrollments(): Observable<any> {
+    return this.http.get(`${environment.apiUrl}/student-course-enrollments`);
+  }
+
+  getEnrolledStudents(params?: any): Observable<any> {
+    return this.http.get(`${environment.apiUrl}/student-course-enrollments`, { params });
   }
 }

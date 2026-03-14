@@ -14,7 +14,7 @@ class UpdateFeeConceptRequest extends FormRequest
         return [
             'name'        => ['sometimes','string','max:255'],
             'description' => ['sometimes','nullable','string','max:2000'],
-            'amount'      => ['sometimes','numeric','min:0'],
+            'base_amount' => ['sometimes','numeric','min:0'],
 
             'type'        => ['sometimes','string', Rule::in(['matricula','pension','interes','certificado','taller','servicio','otro'])],
             'periodicity' => ['sometimes','string', Rule::in(['unico','mensual','anual','opcional'])],

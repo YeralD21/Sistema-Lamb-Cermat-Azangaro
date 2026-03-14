@@ -14,14 +14,18 @@ class StudentController extends Controller
     {
         $query = Student::query();
 
-        if ($request->has('section_id')) $query->where('section_id', $request->section_id);
-        if ($request->has('status')) $query->where('status', $request->status);
-        if ($request->has('dni')) $query->where('dni', $request->dni);
-        if ($request->has('student_code')) $query->where('student_code', $request->student_code);
+        if ($request->has('section_id'))
+            $query->where('section_id', $request->section_id);
+        if ($request->has('status'))
+            $query->where('status', $request->status);
+        if ($request->has('dni'))
+            $query->where('dni', $request->dni);
+        if ($request->has('student_code'))
+            $query->where('student_code', $request->student_code);
 
         if ($request->has('q')) {
             $q = $request->q;
-            $query->where(function($sub) use ($q) {
+            $query->where(function ($sub) use ($q) {
                 $sub->where('first_name', 'ilike', "%{$q}%")
                     ->orWhere('last_name', 'ilike', "%{$q}%")
                     ->orWhere('student_code', 'ilike', "%{$q}%");
@@ -40,14 +44,16 @@ class StudentController extends Controller
     public function show($id)
     {
         $row = Student::find($id);
-        if (!$row) return response()->json(['message' => 'Estudiante no encontrado'], 404);
+        if (!$row)
+            return response()->json(['message' => 'Estudiante no encontrado'], 404);
         return response()->json($row);
     }
 
     public function update(UpdateStudentRequest $request, $id)
     {
         $row = Student::find($id);
-        if (!$row) return response()->json(['message' => 'Estudiante no encontrado'], 404);
+        if (!$row)
+            return response()->json(['message' => 'Estudiante no encontrado'], 404);
 
         $row->update($request->validated());
         return response()->json(['message' => 'Estudiante actualizado', 'data' => $row]);
@@ -56,7 +62,8 @@ class StudentController extends Controller
     public function destroy($id)
     {
         $row = Student::find($id);
-        if (!$row) return response()->json(['message' => 'Estudiante no encontrado'], 404);
+        if (!$row)
+            return response()->json(['message' => 'Estudiante no encontrado'], 404);
 
         $row->delete();
         return response()->json(['message' => 'Estudiante eliminado']);

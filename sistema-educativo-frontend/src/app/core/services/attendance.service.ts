@@ -38,4 +38,24 @@ export class AttendanceService {
   rejectJustification(id: string): Observable<any> {
     return this.http.post(`${this.apiUrl}/attendance-justifications/${id}/reject`, {});
   }
+
+  // --- Attendance Management ---
+
+  getStudentsForAttendance(courseId: string, sectionId: string): Observable<any> {
+    return this.http.get(`${this.apiUrl}/student-course-enrollments`, {
+      params: { course_id: courseId, section_id: sectionId, status: 'active' }
+    });
+  }
+
+  getAttendanceHistory(params: any): Observable<any> {
+    let httpParams = new HttpParams();
+    Object.keys(params).forEach(key => {
+      if (params[key]) httpParams = httpParams.set(key, params[key]);
+    });
+    return this.http.get(`${this.apiUrl}/attendance`, { params: httpParams });
+  }
+
+  saveBatchAttendance(data: any): Observable<any> {
+    return this.http.post(`${this.apiUrl}/attendance/batch`, data);
+  }
 }

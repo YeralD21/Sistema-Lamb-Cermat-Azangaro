@@ -28,6 +28,27 @@ class PaymentController extends Controller
         $data = $request->validated();
 
         return DB::transaction(function () use ($data, $request) {
+            // Caso 1: Movimiento Libre (sin charge_id ni student_id)
+            if (empty($data['charge_id'])) {
+                 $paymentInsert = [
+                    'charge_id'  => null,
+                    'student_id' => null,
+                    'amount'     => (float) $data['amount'],
+                    'method'     => $data['method'],
+                    'reference'  => $data['reference'] ?? null,
+                    'paid_at'    => $data['paid_at'] ?? now(),
+                    'notes'      => $data['notes'] ?? null,
+                ];
+
+                if (Schema::hasColumn('payments', 'received_by')) {
+                    $paymentInsert['received_by'] = $request->user()->id;
+                }
+
+                $payment = Payment::create($paymentInsert);
+                return response()->json($payment, 201);
+            }
+
+            // Caso 2: Pago asociado a un cargo de estudiante
             /** @var Charge $charge */
             $charge = Charge::lockForUpdate()->findOrFail($data['charge_id']);
 
@@ -46,7 +67,7 @@ class PaymentController extends Controller
             // crear pago
             $paymentInsert = [
                 'charge_id'  => $charge->id,
-                'student_id' => $data['student_id'],
+                'student_id' => $data['student_id'] ?? $charge->student_id,
                 'amount'     => $amountToPay,
                 'method'     => $data['method'],
                 'reference'  => $data['reference'] ?? null,
