@@ -13,6 +13,22 @@ use Illuminate\Validation\Rule;
 
 class UserController extends Controller
 {
+    public function index(Request $request)
+{
+    $role = $request->query('role');
+
+    $query = User::with('profile');
+
+    if ($role) {
+        $query->whereHas('profile', function ($q) use ($role) {
+            $q->where('role', $role);
+        });
+    }
+
+    $users = $query->get();
+
+    return response()->json($users);
+}
     public function store(Request $request)
     {
         $validated = $request->validate([

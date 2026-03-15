@@ -57,6 +57,7 @@ use App\Http\Controllers\Api\CashClosureController;
 
 // Auditoría
 use App\Http\Controllers\Api\AuditLogController;
+use App\Http\Controllers\Api\UserController;
 
 /*
 |--------------------------------------------------------------------------
@@ -138,7 +139,8 @@ Route::middleware('auth:sanctum')->group(function () {
         Route::apiResource('teachers', TeacherController::class);
         Route::apiResource('guardians', GuardianController::class);
         Route::apiResource('student-guardians', StudentGuardianController::class);
-        Route::post('users', [\App\Http\Controllers\Api\UserController::class, 'store']);
+        Route::get('users', [UserController::class, 'index']);
+        Route::post('users', [UserController::class, 'store']);
     });
 
     /*
