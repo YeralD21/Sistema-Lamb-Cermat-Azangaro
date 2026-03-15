@@ -34,9 +34,12 @@ class TeacherCourseAssignmentController extends Controller
         }
 
         $perPage = (int) $request->integer('per_page', 15);
+        $useSimple = $request->boolean('simple', false);
+
+        $query = $q->orderByDesc('created_at');
 
         return response()->json(
-            $q->orderByDesc('created_at')->paginate($perPage)
+            $useSimple ? $query->simplePaginate($perPage) : $query->paginate($perPage)
         );
     }
 

@@ -23,8 +23,13 @@ class AcademicYearController extends Controller
             $query->where('is_active', filter_var($request->is_active, FILTER_VALIDATE_BOOLEAN));
         }
 
+        $perPage = (int) $request->integer('per_page', 20);
+        $useSimple = $request->boolean('simple', false);
+
+        $query = $query->orderByDesc('year');
+
         return response()->json(
-            $query->orderByDesc('year')->paginate(20)
+            $useSimple ? $query->simplePaginate($perPage) : $query->paginate($perPage)
         );
     }
 

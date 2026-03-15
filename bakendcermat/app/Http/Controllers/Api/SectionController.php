@@ -22,11 +22,15 @@ class SectionController extends Controller
             $query->where('grade_level_id', $request->grade_level_id);
         }
 
+        $perPage = (int) $request->integer('per_page', 20);
+        $useSimple = $request->boolean('simple', false);
+
+        $query = $query->orderBy('academic_year_id')
+            ->orderBy('grade_level_id')
+            ->orderBy('section_letter');
+
         return response()->json(
-            $query->orderBy('academic_year_id')
-                ->orderBy('grade_level_id')
-                ->orderBy('section_letter')
-                ->paginate(20)
+            $useSimple ? $query->simplePaginate($perPage) : $query->paginate($perPage)
         );
     }
 

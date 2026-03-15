@@ -78,8 +78,8 @@ export class AcademicService {
   private http = inject(HttpClient);
   private apiUrl = environment.apiUrl;
 
-  getAcademicYears(): Observable<any> {
-    return this.http.get(`${this.apiUrl}/academic-years`);
+  getAcademicYears(params?: any): Observable<any> {
+    return this.http.get(`${this.apiUrl}/academic-years`, { params });
   }
 
   createAcademicYear(data: Partial<AcademicYear>): Observable<any> {

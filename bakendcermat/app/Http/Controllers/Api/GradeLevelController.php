@@ -22,8 +22,13 @@ class GradeLevelController extends Controller
             $query->where('grade', (int) $request->grade);
         }
 
+        $perPage = (int) $request->integer('per_page', 20);
+        $useSimple = $request->boolean('simple', false);
+
+        $query = $query->orderBy('level')->orderBy('grade');
+
         return response()->json(
-            $query->orderBy('level')->orderBy('grade')->paginate(20)
+            $useSimple ? $query->simplePaginate($perPage) : $query->paginate($perPage)
         );
     }
 

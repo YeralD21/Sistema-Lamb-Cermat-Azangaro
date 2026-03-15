@@ -1,3 +1,5 @@
+
+//src/app/features/admin/settings/teacher-assignments.component.ts
 import { Component, OnInit } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { ReactiveFormsModule, FormBuilder, FormGroup, Validators, FormsModule } from '@angular/forms';
@@ -21,7 +23,7 @@ import { forkJoin } from 'rxjs';
           <h1 class="text-3xl font-bold text-[#0F172A] tracking-tight">Asignación Docente</h1>
           <p class="text-slate-500 text-sm font-medium">Gestiona la carga institucional de los docentes</p>
         </div>
-        <button 
+        <button
           (click)="openModal()"
           class="px-6 py-3 bg-gradient-to-r from-[#0E3A8A] to-[#C026D3] hover:opacity-90 text-white text-sm font-bold rounded-2xl transition-all shadow-lg active:scale-95 flex items-center justify-center gap-2">
           <svg class="w-5 h-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
@@ -65,7 +67,7 @@ import { forkJoin } from 'rxjs';
       <!-- Teacher Cards -->
       <div *ngIf="!loading" class="grid grid-cols-1 lg:grid-cols-2 gap-8">
         <div *ngFor="let teacherGroup of filteredTeacherGroups" class="bg-white border border-slate-100 rounded-[2.5rem] p-8 shadow-sm hover:shadow-xl transition-all group flex flex-col relative overflow-hidden">
-          
+
           <div class="absolute -right-10 -top-10 w-32 h-32 bg-slate-50 rounded-full blur-3xl group-hover:bg-blue-50 transition-colors pointer-events-none"></div>
 
           <!-- Card Header: Teacher Profile -->
@@ -135,10 +137,10 @@ import { forkJoin } from 'rxjs';
           </div>
 
           <form [formGroup]="assignForm" (ngSubmit)="saveAssignment()" class="p-8 space-y-5">
-            
+
             <div class="space-y-1.5 focus-within:text-blue-600">
               <label class="text-[10px] font-bold uppercase tracking-widest text-slate-400">Docente</label>
-              <select formControlName="user_id" class="w-full bg-slate-50 border border-slate-200 text-slate-800 rounded-xl px-4 py-3 text-sm font-semibold focus:outline-none focus:border-blue-500">
+              <select formControlName="teacher_id" class="w-full bg-slate-50 border border-slate-200 text-slate-800 rounded-xl px-4 py-3 text-sm font-semibold focus:outline-none focus:border-blue-500">
                 <option value="">Selecciona Docente...</option>
                 <option *ngFor="let t of teachers" [value]="t.id">{{ t.name }} {{ t.last_name }}</option>
               </select>
@@ -201,7 +203,7 @@ export class TeacherAssignmentsComponent implements OnInit {
 
   teacherGroups: { teacher: User, assignments: any[] }[] = [];
   filteredTeacherGroups: any[] = [];
-  
+
   loading = false;
   showModal = false;
   isSubmitting = false;
@@ -213,8 +215,9 @@ export class TeacherAssignmentsComponent implements OnInit {
     private academicService: AcademicService,
     private userService: UserService
   ) {
+    // Note: backend expects `teacher_id` for teacher assignments (not `user_id`)
     this.assignForm = this.fb.group({
-      user_id: ['', Validators.required],
+      teacher_id: ['', Validators.required],
       academic_year_id: ['', Validators.required],
       course_id: ['', Validators.required],
       section_id: ['', Validators.required]
@@ -232,28 +235,51 @@ export class TeacherAssignmentsComponent implements OnInit {
 
   loadInitialData() {
     this.loading = true;
+    console.log('Iniciando carga de datos...');
+    const startTime = performance.now();
+
     forkJoin({
-      teachers: this.userService.getUsersByRole('teacher'),
-      courses: this.academicService.getCourses(),
-      sections: this.academicService.getSections(),
-      academicYears: this.academicService.getAcademicYears(),
-      assignments: this.academicService.getTeacherCourseAssignments(),
-      grades: this.academicService.getGradeLevels()
+      teachers: this.academicService.getTeachers({ per_page: 200, simple: true }),
+      courses: this.academicService.getCourses({ per_page: 200, simple: true }),
+      sections: this.academicService.getSections({ per_page: 200, simple: true }),
+      academicYears: this.academicService.getAcademicYears({ per_page: 50, simple: true }),
+      assignments: this.academicService.getTeacherCourseAssignments({ per_page: 200, simple: true }),
+      grades: this.academicService.getGradeLevels({ per_page: 200, simple: true })
     }).subscribe({
       next: (res: any) => {
-        this.teachers = res.teachers.data || res.teachers;
+        const elapsed = Math.round(performance.now() - startTime);
+        console.log(`Carga de datos completada en ${elapsed}ms`);
+        console.log('Datos cargados:', res);
+
+        const teacherData: any[] = res.teachers?.data || res.teachers || [];
+        // Normalize teacher shape so template (name/last_name) works
+        this.teachers = Array.isArray(teacherData)
+          ? teacherData.map(t => ({ ...t, name: t.first_name || t.name, last_name: t.last_name || '' }))
+          : [];
+
         this.courses = res.courses.data || res.courses;
         this.sections = res.sections.data || res.sections;
         this.academicYears = res.academicYears.data || res.academicYears;
         this.assignments = res.assignments.data || res.assignments;
-        
+
+        console.log('Docentes:', this.teachers.length, this.teachers);
+        console.log('Cursos:', this.courses.length, this.courses);
+        console.log('Secciones:', this.sections.length, this.sections);
+        console.log('Años académicos:', this.academicYears.length, this.academicYears);
+        console.log('Asignaciones:', this.assignments.length, this.assignments);
+
         const grades = res.grades.data || res.grades;
         grades.forEach((g: any) => this.gradeLevelsMap[g.id] = g.name);
+
+        console.log('Niveles de grado:', grades.length, grades);
 
         this.processGroups();
         this.loading = false;
       },
-      error: () => this.loading = false
+      error: (err) => {
+        console.log('Error al cargar datos:', err);
+        this.loading = false;
+      }
     });
   }
 
@@ -263,23 +289,33 @@ export class TeacherAssignmentsComponent implements OnInit {
   }
 
   processGroups() {
+    // Ensure we use the right teacher key (backend uses teacher_id)
+    const sample = this.assignments?.[0];
+    if (sample) {
+      console.log('Sample assignment record:', sample);
+    }
+
     this.teacherGroups = this.teachers.map(teacher => {
       // Find all assignments for this teacher
-      const teacherAssignments = this.assignments.filter(a => a.user_id === teacher.id).map(a => {
-        const course = this.courses.find(c => c.id === a.course_id);
-        const section = this.sections.find(s => s.id === a.section_id);
-        const academicYear = this.academicYears.find(ay => ay.id === a.academic_year_id);
-        
-        return {
-          id: a.id,
-          course: course,
-          section: section,
-          academicYear: academicYear
-        };
-      });
+      const teacherAssignments = this.assignments
+        .filter(a => (a as any).teacher_id === teacher.id || (a as any).user_id === teacher.id)
+        .map((a: any) => {
+          const course = this.courses.find(c => c.id === a.course_id);
+          const section = this.sections.find(s => s.id === a.section_id);
+          const academicYear = this.academicYears.find(ay => ay.id === a.academic_year_id);
+
+          return {
+            id: a.id,
+            course,
+            section,
+            academicYear
+          };
+        });
 
       return { teacher, assignments: teacherAssignments };
     });
+
+    console.log('Teacher groups processed:', this.teacherGroups);
 
     this.filterTeachers();
   }
@@ -289,7 +325,7 @@ export class TeacherAssignmentsComponent implements OnInit {
       this.filteredTeacherGroups = [...this.teacherGroups];
     } else {
       const term = this.searchTerm.toLowerCase();
-      this.filteredTeacherGroups = this.teacherGroups.filter(g => 
+      this.filteredTeacherGroups = this.teacherGroups.filter(g =>
         g.teacher.name.toLowerCase().includes(term) || g.teacher.last_name?.toLowerCase().includes(term)
       );
     }
@@ -297,7 +333,7 @@ export class TeacherAssignmentsComponent implements OnInit {
 
   openModal(preselectedTeacherId?: string) {
     this.assignForm.reset({
-      user_id: preselectedTeacherId || '',
+      teacher_id: preselectedTeacherId || '',
       academic_year_id: this.academicYears.length > 0 ? this.academicYears[0].id : '',
       course_id: '',
       section_id: ''
@@ -312,20 +348,30 @@ export class TeacherAssignmentsComponent implements OnInit {
   saveAssignment() {
     if (this.assignForm.invalid) return;
     this.isSubmitting = true;
-    
-    this.academicService.createTeacherCourseAssignment(this.assignForm.value).subscribe({
-      next: () => {
+
+    const payload = {
+      ...this.assignForm.value,
+      // Backend expects teacher_id, not user_id
+      teacher_id: (this.assignForm.value as any).teacher_id || (this.assignForm.value as any).user_id
+    };
+
+    console.log('Enviando asignación al backend:', payload);
+
+    this.academicService.createTeacherCourseAssignment(payload).subscribe({
+      next: (res) => {
+        console.log('Respuesta creación asignación:', res);
         this.isSubmitting = false;
         this.closeModal();
         Swal.fire({
           icon: 'success', title: 'Asignación creada', toast: true, position: 'top-end', timer: 3000, showConfirmButton: false
         });
-        
+
         // Reload all data to ensure references are fresh
         this.loadInitialData();
       },
       error: (err) => {
         this.isSubmitting = false;
+        console.error('Error al crear asignación:', err);
         Swal.fire('Error', err.error?.message || 'Error al asignar curso', 'error');
       }
     });
