@@ -21,4 +21,16 @@ export class ScheduleService {
     }
     return this.http.get(this.apiUrl, { params: httpParams });
   }
+
+  createSchedule(data: any): Observable<any> {
+    return this.http.post(this.apiUrl, data);
+  }
+
+  updateSchedule(id: string, data: any): Observable<any> {
+    return this.http.put(`${this.apiUrl}/${id}`, data);
+  }
+
+  deleteSchedule(id: string): Observable<any> {
+    return this.http.delete(`${this.apiUrl}/${id}`);
+  }
 }

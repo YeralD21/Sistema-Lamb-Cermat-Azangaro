@@ -190,6 +190,10 @@ export class AcademicService {
     return this.http.delete(`${environment.apiUrl}/teacher-course-assignments/${id}`);
   }
 
+  getTeachers(params?: any): Observable<any> {
+    return this.http.get(`${environment.apiUrl}/teachers`, { params });
+  }
+
   getStudentCourseEnrollments(): Observable<any> {
     return this.http.get(`${environment.apiUrl}/student-course-enrollments`);
   }
