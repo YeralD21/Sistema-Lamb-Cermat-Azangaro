@@ -9,21 +9,22 @@ use App\Http\Middleware\StudentGuardianAccessMiddleware;
 return Application::configure(basePath: dirname(__DIR__))
     ->withRouting(
         web: __DIR__.'/../routes/web.php',
-        api: __DIR__.'/../routes/api.php',   // ✅ ESTA LÍNEA ES LA CLAVE
+        api: __DIR__.'/../routes/api.php',
         commands: __DIR__.'/../routes/console.php',
         health: '/up',
     )
     ->withMiddleware(function (Middleware $middleware) {
-        // ✅ Alias para usar middleware('role:admin') y student.guardian.access
+
         $middleware->alias([
-            'role' => RoleMiddleware::class,
+            'role'                    => RoleMiddleware::class,
             'student.guardian.access' => StudentGuardianAccessMiddleware::class,
         ]);
 
-        // (Opcional) Sanctum stateful, útil si usas cookies en SPA
         $middleware->api(prepend: [
+            \Illuminate\Http\Middleware\HandleCors::class,                          // ← CORS primero
             \Laravel\Sanctum\Http\Middleware\EnsureFrontendRequestsAreStateful::class,
         ]);
+
     })
     ->withExceptions(function (Exceptions $exceptions): void {
         //
