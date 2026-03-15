@@ -14,12 +14,12 @@ class UpdateAcademicYearRequest extends FormRequest
 
     public function rules(): array
     {
-        $id = $this->route('academic_year')->id ?? null;
+        $id = $this->route('id');
 
         return [
-            'year' => ['integer', Rule::unique('academic_years','year')->ignore($id)],
+            'year' => ['integer', Rule::unique('academic_years', 'year')->ignore($id)],
             'start_date' => ['date'],
-            'end_date' => ['date','after:start_date'],
+            'end_date' => ['date', 'after:start_date'],
             'is_active' => ['boolean']
         ];
     }

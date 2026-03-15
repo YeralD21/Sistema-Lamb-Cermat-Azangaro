@@ -3,7 +3,9 @@ import { BackButtonComponent } from '@shared/components/back-button/back-button.
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { RouterModule } from '@angular/router';
-import { AcademicService, AcademicYear, GradeLevel, Section } from '@core/services/academic.service';
+import { GradeLevel, Section } from '@core/services/academic.service';
+import { AcademicService } from '@core/services/academic.service';
+import { AcademicYear } from '@core/models/AcademicYear';
 
 type TabType = 'attendance' | 'evaluation' | 'siagie';
 

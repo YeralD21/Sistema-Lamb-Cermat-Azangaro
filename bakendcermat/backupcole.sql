@@ -1,4 +1,4 @@
---
+cd --
 -- PostgreSQL database dump
 --
 

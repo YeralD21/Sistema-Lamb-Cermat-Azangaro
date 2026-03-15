@@ -2,7 +2,10 @@ import { Component, OnInit } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { ReactiveFormsModule, FormBuilder, FormGroup, Validators } from '@angular/forms';
 import { BackButtonComponent } from '@shared/components/back-button/back-button.component';
-import { AcademicService, Period, AcademicYear } from '@core/services/academic.service';
+import { Period } from '@core/services/academic.service';
+import { AcademicService } from '@core/services/academic.service';
+import { AcademicYear } from '@core/models/AcademicYear';
+
 import Swal from 'sweetalert2';
 
 @Component({
@@ -185,7 +188,7 @@ export class PeriodsComponent implements OnInit {
   periods: Period[] = [];
   academicYears: AcademicYear[] = [];
   groupedPeriods: { year: number | string, periods: Period[] }[] = [];
-  
+
   loading = false;
   showModal = false;
   isEditing = false;
@@ -220,7 +223,7 @@ export class PeriodsComponent implements OnInit {
     // Cargar periodos y años para el select
     this.academicService.getAcademicYears().subscribe((resY) => {
       this.academicYears = resY.data || resY;
-      
+
       this.academicService.getPeriods().subscribe({
         next: (resP) => {
           const fetchedPeriods = resP.data || resP;
@@ -235,12 +238,12 @@ export class PeriodsComponent implements OnInit {
 
   groupPeriods() {
     const groups: { [key: string]: Period[] } = {};
-    
+
     this.periods.forEach(period => {
       // Find year name
       const yearObj = this.academicYears.find(y => y.id === period.academic_year_id);
       const yearName = yearObj ? yearObj.year : 'Desconocido';
-      
+
       if (!groups[yearName]) groups[yearName] = [];
       groups[yearName].push(period);
     });
@@ -258,7 +261,7 @@ export class PeriodsComponent implements OnInit {
       // Truncate time if exists
       const start = period.start_date.substring(0, 10);
       const end = period.end_date.substring(0, 10);
-      
+
       this.periodForm.patchValue({
         ...period,
         start_date: start,
@@ -266,7 +269,7 @@ export class PeriodsComponent implements OnInit {
       });
     } else {
       this.currentEditId = null;
-      
+
       // Default to active year if possible
       const activeYear = this.academicYears.find(y => y.is_active);
       const yearId = activeYear ? activeYear.id : '';
@@ -279,7 +282,7 @@ export class PeriodsComponent implements OnInit {
         }
       }
 
-      this.periodForm.reset({ 
+      this.periodForm.reset({
         academic_year_id: yearId,
         is_closed: false,
         name: `Periodo ${nextNumber}`,

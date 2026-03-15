@@ -4,10 +4,12 @@ import { Component, OnInit } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { ReactiveFormsModule, FormBuilder, FormGroup, Validators, FormsModule } from '@angular/forms';
 import { BackButtonComponent } from '@shared/components/back-button/back-button.component';
-import { AcademicService, TeacherCourseAssignment, Course, Section, AcademicYear } from '@core/services/academic.service';
+import { TeacherCourseAssignment, Course, Section } from '@core/services/academic.service';
 import { UserService, User } from '@core/services/user.service';
 import Swal from 'sweetalert2';
 import { forkJoin } from 'rxjs';
+import { AcademicService } from '@core/services/academic.service';
+import { AcademicYear } from '@core/models/AcademicYear';
 
 @Component({
   selector: 'app-teacher-assignments',
