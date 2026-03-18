@@ -18,6 +18,36 @@ interface LoginResponse {
   };
 }
 
+export interface AcademicContextStudent {
+  id: string;
+  student_code: string;
+  full_name: string;
+  section_id?: string | null;
+  section?: {
+    id: string;
+    section_letter?: string;
+    grade_level?: {
+      id: string;
+      name: string;
+      level: string;
+      grade: number;
+    } | null;
+  } | null;
+}
+
+export interface AcademicContextResponse {
+  user: any;
+  role: string | null;
+  active_academic_year: {
+    id: string;
+    year: number;
+    start_date?: string;
+    end_date?: string;
+    is_active: boolean;
+  } | null;
+  students: AcademicContextStudent[];
+}
+
 @Injectable({
   providedIn: 'root'
 })
@@ -72,6 +102,10 @@ export class AuthService {
       },
       error: () => this.logout()
     });
+  }
+
+  getAcademicContext(): Observable<AcademicContextResponse> {
+    return this.http.get<AcademicContextResponse>(`${environment.apiUrl}/me/academic-context`);
   }
 
   private mapBackendUser(backendUser: any): User {

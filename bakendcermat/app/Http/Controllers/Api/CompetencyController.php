@@ -7,17 +7,37 @@ use App\Http\Requests\StoreCompetencyRequest;
 use App\Http\Requests\UpdateCompetencyRequest;
 use App\Models\Competency;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Log;
 
 class CompetencyController extends Controller
 {
     public function index(Request $request)
     {
+        Log::info('CompetencyController@index request', [
+            'course_id' => $request->course_id,
+            'q' => $request->q,
+            'user_id' => optional($request->user())->id,
+        ]);
+
         $q = Competency::query();
 
         if ($request->filled('course_id')) $q->where('course_id', $request->course_id);
-        if ($request->filled('q')) $q->where('name', 'ilike', '%'.$request->q.'%');
+        if ($request->filled('q')) {
+            $search = '%' . $request->q . '%';
+            $q->where(function ($query) use ($search) {
+                $query->where('description', 'ilike', $search)
+                    ->orWhere('code', 'ilike', $search);
+            });
+        }
 
-        return $q->orderBy('name')->paginate(30);
+        $result = $q->orderBy('order_index')->orderBy('description')->paginate(30);
+
+        Log::info('CompetencyController@index response', [
+            'count' => count($result->items()),
+            'total' => $result->total(),
+        ]);
+
+        return $result;
     }
 
     public function store(StoreCompetencyRequest $request)

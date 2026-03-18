@@ -17,6 +17,7 @@ class ReportController extends Controller
     public function reportCard(Student $student, Request $request)
     {
         $periodId = $request->query('period_id');
+        $commentsColumn = Schema::hasColumn('evaluations', 'observations') ? 'observations' : 'comments';
 
         $q = DB::table('evaluations as e')
             ->join('courses as c', 'c.id', '=', 'e.course_id')
@@ -33,7 +34,7 @@ class ReportController extends Controller
                 'p.name as period_name',
                 'e.grade',
                 'e.status',
-                DB::raw("COALESCE(e.comments,'') as comments"),
+                DB::raw("COALESCE(e.{$commentsColumn},'') as comments"),
                 'e.created_at',
             ])
             ->where('e.student_id', $student->id);

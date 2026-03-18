@@ -197,4 +197,8 @@ export class AcademicService {
   getEnrolledStudents(params?: any): Observable<any> {
     return this.http.get(`${environment.apiUrl}/student-course-enrollments`, { params });
   }
+
+  getStudents(params?: any): Observable<any> {
+    return this.http.get(`${environment.apiUrl}/students`, { params });
+  }
 }

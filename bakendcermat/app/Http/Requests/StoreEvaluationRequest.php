@@ -24,6 +24,7 @@ class StoreEvaluationRequest extends FormRequest
             'status' => ['required', 'string', Rule::in(['borrador','publicada','cerrada'])],
 
             'comments' => ['nullable', 'string', 'max:2000'],
+            'observations' => ['nullable', 'string', 'max:2000'],
         ];
     }
 

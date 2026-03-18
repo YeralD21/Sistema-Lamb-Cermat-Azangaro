@@ -16,6 +16,13 @@ use App\Http\Controllers\Api\CourseScheduleController;
 use App\Http\Controllers\Api\CompetencyController;
 use App\Http\Controllers\Api\EvaluationController;
 use App\Http\Controllers\Api\ReportController;
+use App\Http\Controllers\Api\AcademicEvaluationController;
+use App\Http\Controllers\Api\DescriptiveConclusionController;
+use App\Http\Controllers\Api\FinalCompetencyResultController;
+use App\Http\Controllers\Api\PromotionRuleController;
+use App\Http\Controllers\Api\RecoveryProcessController;
+use App\Http\Controllers\Api\RecoveryResultController;
+use App\Http\Controllers\Api\StudentFinalStatusController;
 
 // Personas
 use App\Http\Controllers\Api\ProfileController;
@@ -88,6 +95,7 @@ Route::middleware('auth:sanctum')->group(function () {
     |--------------------------------------------------------------------------
     */
     Route::get('/me', [AuthController::class, 'me']);
+    Route::get('/me/academic-context', [AuthController::class, 'academicContext']);
     Route::post('/logout', [AuthController::class, 'logout']);
 
     /*
@@ -318,7 +326,39 @@ Route::middleware('auth:sanctum')->group(function () {
 
         Route::post('evaluations/{evaluation}/publish', [EvaluationController::class, 'publish']);
         Route::post('evaluations/{evaluation}/close', [EvaluationController::class, 'close']);
+
+        Route::apiResource('descriptive-conclusions', DescriptiveConclusionController::class);
+        Route::get('final-competency-results', [FinalCompetencyResultController::class, 'index']);
+        Route::get('final-competency-results/{finalCompetencyResult}', [FinalCompetencyResultController::class, 'show']);
+        Route::get('student-final-statuses', [StudentFinalStatusController::class, 'index']);
+        Route::get('student-final-statuses/{studentFinalStatus}', [StudentFinalStatusController::class, 'show']);
+        Route::apiResource('recovery-processes', RecoveryProcessController::class);
+        Route::apiResource('recovery-results', RecoveryResultController::class);
+        Route::post(
+            'academic-years/{academicYear}/students/{student}/evaluation-summary/recalculate',
+            [AcademicEvaluationController::class, 'recalculate']
+        );
+        Route::post(
+            'academic-years/{academicYear}/sections/{section}/evaluation-summary/recalculate',
+            [AcademicEvaluationController::class, 'recalculateSection']
+        );
     });
+
+    Route::middleware('role:admin,director,coordinator,secretary')->group(function () {
+        Route::apiResource('promotion-rules', PromotionRuleController::class);
+    });
+
+    Route::get(
+        'academic-years/{academicYear}/students/{student}/evaluation-summary',
+        [AcademicEvaluationController::class, 'summary']
+    )
+        ->middleware('role:admin,director,coordinator,secretary,teacher,student,guardian')
+        ->middleware('student.guardian.access');
+    Route::get(
+        'academic-years/{academicYear}/sections/{section}/evaluation-dashboard',
+        [AcademicEvaluationController::class, 'sectionDashboard']
+    )
+        ->middleware('role:admin,director,coordinator,secretary,teacher');
 
     /*
     |--------------------------------------------------------------------------

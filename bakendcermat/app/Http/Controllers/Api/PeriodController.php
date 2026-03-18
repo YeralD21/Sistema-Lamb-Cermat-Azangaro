@@ -7,11 +7,18 @@ use App\Models\Period;
 use App\Http\Requests\StorePeriodRequest;
 use App\Http\Requests\UpdatePeriodRequest;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Log;
 
 class PeriodController extends Controller
 {
     public function index(Request $request)
     {
+        Log::info('PeriodController@index request', [
+            'academic_year_id' => $request->academic_year_id,
+            'is_closed' => $request->is_closed,
+            'user_id' => optional($request->user())->id,
+        ]);
+
         $query = Period::query();
 
         if ($request->has('academic_year_id')) {
@@ -22,11 +29,16 @@ class PeriodController extends Controller
             $query->where('is_closed', filter_var($request->is_closed, FILTER_VALIDATE_BOOLEAN));
         }
 
-        return response()->json(
-            $query->orderBy('academic_year_id')
-                ->orderBy('period_number')
-                ->paginate(20)
-        );
+        $result = $query->orderBy('academic_year_id')
+            ->orderBy('period_number')
+            ->paginate(20);
+
+        Log::info('PeriodController@index response', [
+            'count' => count($result->items()),
+            'total' => $result->total(),
+        ]);
+
+        return response()->json($result);
     }
 
     public function store(StorePeriodRequest $request)

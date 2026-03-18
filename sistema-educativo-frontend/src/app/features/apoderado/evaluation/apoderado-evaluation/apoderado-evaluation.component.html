@@ -1,11 +1,10 @@
 <div class="space-y-8 max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8 animate-slide-up">
-  <!-- Header Section -->
   <div class="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 bg-white p-6 rounded-2xl shadow-sm border border-slate-200/60 relative overflow-hidden">
     <div class="absolute -right-10 -top-10 w-40 h-40 bg-cermat-blue-500/10 rounded-full blur-3xl pointer-events-none"></div>
 
     <div class="relative z-10">
       <h1 class="text-3xl font-extrabold text-slate-900 tracking-tight">Notas y Calificaciones</h1>
-      <p class="text-slate-500 mt-1 font-medium">Seguimiento académico detallado por competencias y bimestres</p>
+      <p class="text-slate-500 mt-1 font-medium">Seguimiento académico por competencias y cierre anual</p>
     </div>
     <button (click)="downloadBoletin()" [disabled]="isDownloading" class="relative z-10 inline-flex items-center gap-2 px-6 py-2.5 bg-white text-cermat-blue-800 border-2 border-cermat-blue-100 hover:border-cermat-blue-300 hover:bg-cermat-blue-50/50 rounded-xl transition-all duration-300 shadow-sm font-bold disabled:opacity-50 disabled:cursor-wait">
       <i *ngIf="!isDownloading" data-lucide="download" class="w-5 h-5"></i>
@@ -14,11 +13,60 @@
     </button>
   </div>
 
-  <!-- Content Section -->
-  <div class="bg-white rounded-2xl shadow-sm border border-slate-200/60 overflow-hidden">
-    <div class="p-6 border-b border-slate-100 bg-slate-50/50">
-      <h2 class="text-lg font-bold text-slate-800">Calificaciones Activas</h2>
+  <div *ngIf="error" class="bg-red-50 border border-red-200 text-red-700 px-4 py-3 rounded-xl text-sm font-medium">
+    {{ error }}
+  </div>
+
+  <div class="bg-white rounded-2xl shadow-sm border border-slate-200/60 p-6">
+    <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+      <div>
+        <label class="block text-[10px] font-bold text-slate-400 mb-2 uppercase tracking-widest">Estudiante</label>
+        <select [(ngModel)]="selectedStudentId" (change)="loadEvaluationData()" class="w-full bg-slate-50 border border-slate-200 rounded-xl px-4 py-3 text-sm font-semibold text-slate-700">
+          <option *ngFor="let student of students" [value]="student.id">{{ student.full_name }}</option>
+        </select>
+      </div>
+      <div>
+        <label class="block text-[10px] font-bold text-slate-400 mb-2 uppercase tracking-widest">Periodo</label>
+        <select [(ngModel)]="selectedPeriod" (change)="loadEvaluationData()" class="w-full bg-slate-50 border border-slate-200 rounded-xl px-4 py-3 text-sm font-semibold text-slate-700">
+          <option value="all">Cierre anual</option>
+          <option *ngFor="let period of periods" [value]="period.id">{{ period.name }}</option>
+        </select>
+      </div>
     </div>
+  </div>
+
+  <div *ngIf="summary && selectedPeriod === 'all'" class="grid grid-cols-1 md:grid-cols-3 gap-4">
+    <div class="bg-white rounded-2xl border border-slate-200/60 p-6 shadow-sm">
+      <p class="text-[10px] font-bold text-slate-400 uppercase tracking-widest mb-2">Estudiante</p>
+      <p class="text-xl font-extrabold text-slate-900">{{ getSelectedStudentName() }}</p>
+      <p class="text-sm text-slate-500 mt-2">{{ summary.totals.competencies }} competencias consolidadas</p>
+    </div>
+
+    <div class="bg-white rounded-2xl border border-slate-200/60 p-6 shadow-sm">
+      <p class="text-[10px] font-bold text-slate-400 uppercase tracking-widest mb-2">Estado Final</p>
+      <p class="text-xl font-extrabold text-slate-900">{{ getFinalStatusLabel(summary.student_final_status?.final_status) }}</p>
+      <p class="text-sm text-slate-500 mt-2">{{ summary.student_final_status?.decision_reason || 'Sin observación adicional' }}</p>
+    </div>
+
+    <div class="bg-white rounded-2xl border border-slate-200/60 p-6 shadow-sm">
+      <p class="text-[10px] font-bold text-slate-400 uppercase tracking-widest mb-2">Recuperación</p>
+      <p class="text-xl font-extrabold text-slate-900">{{ summary.recovery_process?.results?.length || 0 }}</p>
+      <p class="text-sm text-slate-500 mt-2">{{ summary.recovery_process ? 'Competencias con plan de apoyo' : 'Sin proceso activo' }}</p>
+    </div>
+  </div>
+
+  <div class="bg-white rounded-2xl shadow-sm border border-slate-200/60 overflow-hidden">
+    <div class="p-6 border-b border-slate-100 bg-slate-50/50 flex items-center justify-between gap-3">
+      <div>
+        <h2 class="text-lg font-bold text-slate-800">Calificaciones Activas</h2>
+        <p class="text-sm text-slate-500 mt-1">{{ selectedPeriod === 'all' ? 'Resultado anual consolidado' : 'Detalle del periodo seleccionado' }}</p>
+      </div>
+      <div *ngIf="loading" class="flex items-center gap-2 text-xs font-bold uppercase tracking-widest text-cermat-blue-700">
+        <i data-lucide="loader-2" class="w-4 h-4 animate-spin"></i>
+        Cargando
+      </div>
+    </div>
+
     <div class="overflow-x-auto w-full">
       <table class="w-full text-left border-collapse whitespace-nowrap">
         <thead>
@@ -26,6 +74,7 @@
             <th class="py-4 px-6 font-bold text-slate-500 text-xs uppercase tracking-wider">Periodo</th>
             <th class="py-4 px-6 font-bold text-slate-500 text-xs uppercase tracking-wider">Materia</th>
             <th class="py-4 px-6 font-bold text-slate-500 text-xs uppercase tracking-wider">Competencia Evaluada</th>
+            <th class="py-4 px-6 font-bold text-slate-500 text-xs uppercase tracking-wider">Observación</th>
             <th class="py-4 px-6 font-bold text-slate-500 text-xs uppercase tracking-wider text-center">Calificación</th>
           </tr>
         </thead>
@@ -44,27 +93,29 @@
                 <span class="font-bold text-slate-900">{{ ev.subject }}</span>
               </div>
             </td>
-            <td class="py-4 px-6 font-medium text-slate-600 truncate max-w-[250px]">{{ ev.competence }}</td>
+            <td class="py-4 px-6 font-medium text-slate-600 max-w-[320px] whitespace-normal">{{ ev.competence }}</td>
+            <td class="py-4 px-6 font-medium text-slate-500 max-w-[320px] whitespace-normal">{{ ev.comments || 'Sin observación' }}</td>
             <td class="py-4 px-6 text-center">
               <span class="inline-flex items-center justify-center w-12 h-12 rounded-xl text-lg font-black shadow-sm tracking-widest transform group-hover:scale-110 transition-all duration-300"
                 [ngClass]="{
                   'bg-gradient-to-br from-emerald-400 to-emerald-600 text-white shadow-emerald-500/30': ev.grade === 'AD',
                   'bg-gradient-to-br from-blue-400 to-blue-600 text-white shadow-blue-500/30': ev.grade === 'A',
                   'bg-gradient-to-br from-amber-400 to-amber-600 text-white shadow-amber-500/30': ev.grade === 'B',
-                  'bg-gradient-to-br from-rose-400 to-rose-600 text-white shadow-rose-500/30': ev.grade === 'C'
+                  'bg-gradient-to-br from-rose-400 to-rose-600 text-white shadow-rose-500/30': ev.grade === 'C',
+                  'bg-slate-100 text-slate-500': !['AD', 'A', 'B', 'C'].includes(ev.grade)
                 }">
                 {{ ev.grade }}
               </span>
             </td>
           </tr>
-          <!-- Empty state -->
-          <tr *ngIf="evaluations.length === 0">
-            <td colspan="4" class="py-12 text-center text-slate-500">
+
+          <tr *ngIf="!loading && evaluations.length === 0">
+            <td colspan="5" class="py-12 text-center text-slate-500">
               <div class="flex flex-col items-center justify-center space-y-3">
                 <div class="w-16 h-16 bg-slate-50 rounded-full flex items-center justify-center">
                   <i data-lucide="graduation-cap" class="w-8 h-8 text-slate-400"></i>
                 </div>
-                <p class="font-medium text-slate-600">Aún no hay calificaciones para este periodo.</p>
+                <p class="font-medium text-slate-600">Aún no hay calificaciones para esta selección.</p>
               </div>
             </td>
           </tr>

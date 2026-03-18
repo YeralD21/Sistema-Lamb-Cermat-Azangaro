@@ -1,11 +1,12 @@
+//src/app/features/admin/evaluation/grade-entry/grade-entry.component.ts
 import { Component, OnInit, inject } from '@angular/core';
 import { CommonModule } from '@angular/common';
-import { BackButtonComponent } from '@shared/components/back-button/back-button.component';
 import { FormsModule } from '@angular/forms';
-import { AcademicService, Course, Period, Competency } from '@core/services/academic.service';
-import { EvaluationService, Evaluation } from '@core/services/evaluation.service';
 import { forkJoin, of } from 'rxjs';
-import { catchError, finalize } from 'rxjs/operators';
+import { catchError, finalize, switchMap } from 'rxjs/operators';
+import { BackButtonComponent } from '@shared/components/back-button/back-button.component';
+import { AcademicService, Competency, Course, Period } from '@core/services/academic.service';
+import { Evaluation, EvaluationService, SectionEvaluationDashboardStudent } from '@core/services/evaluation.service';
 
 interface EnrolledStudent {
   id: string;
@@ -16,136 +17,27 @@ interface EnrolledStudent {
   observation: string;
   evaluation_id?: string;
   status?: string;
+  section_id?: string;
+  section_label?: string;
+  final_status?: string | null;
+  pending_competencies_count?: number;
+  recovery_required?: boolean;
+  risk_count?: number;
+  totals?: {
+    competencies: number;
+    ad: number;
+    a: number;
+    b: number;
+    c: number;
+  };
+  summary?: SectionEvaluationDashboardStudent['academic_summary'] | null;
 }
 
 @Component({
   selector: 'app-grade-entry',
   standalone: true,
   imports: [CommonModule, FormsModule, BackButtonComponent],
-  template: `
-    <div class="min-h-[calc(100vh-80px)] p-6 sm:p-10 max-w-7xl mx-auto space-y-8 text-slate-700">
-      
-      <app-back-button></app-back-button>
-
-      <!-- Header Section -->
-      <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-6">
-        <div>
-          <h1 class="text-3xl font-semibold text-slate-900 tracking-tight">Registro de Evaluaciones</h1>
-          <p class="text-slate-500 text-sm mt-1 font-medium">Califica a tus estudiantes por competencias</p>
-        </div>
-        <div class="flex items-center gap-3">
-          <button (click)="saveDraft()" [disabled]="!canSave() || saving" class="px-6 py-2.5 bg-white border border-blue-700 text-blue-700 text-sm font-bold rounded-xl transition-all hover:bg-blue-50 active:scale-95 flex items-center gap-2 disabled:opacity-50">
-            <svg *ngIf="!saving" class="w-5 h-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M19 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11l5 5v11a2 2 0 0 1-2 2z"/><polyline points="17 21 17 13 7 13 7 21"/><polyline points="7 3 7 8 15 8"/></svg>
-            <div *ngIf="saving" class="w-4 h-4 border-2 border-blue-700 border-t-transparent rounded-full animate-spin"></div>
-            Guardar borrador
-          </button>
-          <button (click)="publishAll()" [disabled]="!canPublish() || saving" class="px-6 py-2.5 bg-blue-700 hover:bg-blue-600 text-white text-sm font-bold rounded-xl transition-all shadow-lg active:scale-95 flex items-center gap-2 disabled:opacity-50">
-            <svg *ngIf="!saving" class="w-5 h-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><line x1="22" y1="2" x2="11" y2="13"/><polyline points="22 2 15 22 11 13 2 9 22 2"/></svg>
-            <div *ngIf="saving" class="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin"></div>
-            Publicar calificaciones
-          </button>
-        </div>
-      </div>
-
-      <!-- Filters Section -->
-      <div class="bg-white border border-slate-100 rounded-2xl p-6 shadow-sm flex flex-col md:flex-row items-end gap-6">
-        <div class="flex-1 space-y-2 w-full">
-          <label class="text-[10px] font-bold text-slate-400 uppercase tracking-widest pl-1">Curso</label>
-          <select [(ngModel)]="selectedCourseId" (change)="onFilterChange()" [disabled]="saving" class="w-full bg-slate-50 border border-slate-200 text-slate-700 rounded-xl px-4 py-3 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500/10 focus:border-blue-500 transition-all font-medium">
-            <option value="">Seleccionar Curso</option>
-            <option *ngFor="let c of courses" [value]="c.id">{{ c.name }}</option>
-          </select>
-        </div>
-        <div class="flex-2 space-y-2 w-full md:w-48">
-          <label class="text-[10px] font-bold text-slate-400 uppercase tracking-widest pl-1">Periodo</label>
-          <select [(ngModel)]="selectedPeriodId" (change)="onFilterChange()" [disabled]="saving" class="w-full bg-slate-50 border border-slate-200 text-slate-700 rounded-xl px-4 py-3 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500/10 focus:border-blue-500 transition-all font-medium">
-            <option value="">Seleccionar Periodo</option>
-            <option *ngFor="let p of periods" [value]="p.id">{{ p.name }}</option>
-          </select>
-        </div>
-        <div class="flex-1 space-y-2 w-full">
-          <label class="text-[10px] font-bold text-slate-400 uppercase tracking-widest pl-1">Competencia</label>
-          <select [(ngModel)]="selectedCompetencyId" (change)="onFilterChange()" [disabled]="saving" class="w-full bg-slate-50 border border-slate-200 text-slate-700 rounded-xl px-4 py-3 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500/10 focus:border-blue-500 transition-all font-medium">
-            <option value="">Seleccionar Competencia</option>
-            <option *ngFor="let comp of competencies" [value]="comp.id">{{ comp.name }}</option>
-          </select>
-        </div>
-      </div>
-
-      <!-- Loading State -->
-      <div *ngIf="loading" class="flex justify-center py-12">
-        <div class="w-8 h-8 border-4 border-blue-600 border-t-transparent rounded-full animate-spin"></div>
-      </div>
-
-      <!-- Grades Plate Section -->
-      <div *ngIf="!loading && students.length > 0" class="bg-white border border-slate-100 rounded-3xl overflow-hidden shadow-sm">
-        <div class="p-6 border-b border-slate-50 bg-slate-50/20 flex justify-between items-center">
-          <h2 class="text-lg font-bold text-slate-800 tracking-tight">Planilla de Calificaciones</h2>
-          <div *ngIf="saving" class="flex items-center gap-2 text-xs font-bold text-blue-600 uppercase tracking-widest animate-pulse">
-            <div class="w-3 h-3 border-2 border-blue-600 border-t-transparent rounded-full animate-spin"></div>
-            Sincronizando...
-          </div>
-        </div>
-        <div class="overflow-x-auto">
-          <table class="w-full">
-            <thead>
-              <tr class="text-slate-400 text-[10px] font-bold uppercase tracking-widest border-b border-slate-50">
-                <th class="py-5 px-6 text-center w-16">#</th>
-                <th class="py-5 px-6 text-left">Estudiante</th>
-                <th class="py-5 px-6 text-center">Calificación</th>
-              </tr>
-            </thead>
-            <tbody class="divide-y divide-slate-50">
-              <tr *ngFor="let student of students; let i = index" class="group hover:bg-slate-50/50 transition-colors">
-                <td class="py-6 px-6 text-center text-sm font-medium text-slate-400">{{ i + 1 }}</td>
-                <td class="py-6 px-6">
-                  <div class="flex items-center gap-4">
-                    <div class="w-10 h-10 rounded-full bg-slate-100 flex items-center justify-center text-slate-600 font-bold text-xs uppercase">
-                      {{ student.initials }}
-                    </div>
-                    <div class="flex flex-col">
-                      <span class="text-sm font-bold text-slate-800">{{ student.name }}</span>
-                      <span class="text-[10px] font-mono text-slate-400 uppercase">{{ student.code }}</span>
-                    </div>
-                  </div>
-                </td>
-                <td class="py-6 px-6">
-                  <div class="flex flex-col gap-3">
-                    <div class="flex items-center justify-center gap-2">
-                      <button *ngFor="let grade of ['AD', 'A', 'B', 'C']"
-                              (click)="setGrade(student, grade)"
-                              [disabled]="student.status === 'publicada' || saving"
-                              [class]="student.grade === grade ? getGradeSelectedClass(grade) : 'px-3 py-1.5 rounded-lg border border-slate-200 text-slate-400 text-xs font-bold hover:bg-slate-50 transition-all active:scale-95 disabled:opacity-50 disabled:cursor-not-allowed'">
-                        {{ grade }}
-                      </button>
-                    </div>
-                    <div class="relative max-w-xs mx-auto w-full">
-                      <input type="text" [(ngModel)]="student.observation" placeholder="Observación..." 
-                             [disabled]="student.status === 'publicada' || saving"
-                             class="w-full bg-slate-50/50 border border-slate-100 rounded-lg px-3 py-1.5 text-[10px] italic text-slate-500 focus:outline-none focus:border-blue-300 transition-all disabled:bg-transparent disabled:border-none" />
-                    </div>
-                    <div *ngIf="student.status" class="text-center">
-                      <span class="text-[9px] font-bold uppercase tracking-widest px-2 py-0.5 rounded-md" 
-                            [class.bg-blue-50]="student.status === 'publicada'" [class.text-blue-500]="student.status === 'publicada'" 
-                            [class.bg-slate-50]="student.status === 'borrador'" [class.text-slate-400]="student.status === 'borrador'">
-                        {{ student.status }}
-                      </span>
-                    </div>
-                  </div>
-                </td>
-              </tr>
-            </tbody>
-          </table>
-        </div>
-      </div>
-
-      <!-- Empty State -->
-      <div *ngIf="!loading && students.length === 0 && selectedCourseId && selectedPeriodId && selectedCompetencyId" class="text-center py-12 bg-white rounded-3xl border border-slate-100">
-        <p class="text-slate-400 font-medium">No se encontraron estudiantes para los filtros seleccionados.</p>
-      </div>
-
-    </div>
-  `,
+  templateUrl: './grade-entry.component.html',
   styles: [`
     :host { display: block; }
   `]
@@ -156,97 +48,311 @@ export class GradeEntryComponent implements OnInit {
 
   courses: Course[] = [];
   periods: Period[] = [];
+  allCompetencies: Competency[] = [];
   competencies: Competency[] = [];
   students: EnrolledStudent[] = [];
 
   selectedCourseId = '';
   selectedPeriodId = '';
   selectedCompetencyId = '';
+  selectedStudentId = '';
+  activeAcademicYearId = '';
+  activeAcademicYearLabel = '';
+  currentSectionId = '';
+  currentSectionLabel = '';
   loading = false;
   saving = false;
+  recalculating = false;
+  errorMessage = '';
+  successMessage = '';
+
+  sectionDecisionStats = {
+    promociona: 0,
+    recuperacion: 0,
+    permanece: 0,
+    pendiente: 0,
+  };
 
   ngOnInit() {
-    this.academicService.getAcademicYears().subscribe(res => {
-      const data = res.data || res;
-      const activeYear = data.find((y: any) => y.is_active);
-      if (activeYear) {
-        this.academicService.getPeriods({ academic_year_id: activeYear.id }).subscribe(res => {
-          this.periods = res.data || res;
+    this.loadInitialData();
+  }
+
+  get selectedStudent(): EnrolledStudent | undefined {
+    return this.students.find((student) => student.id === this.selectedStudentId);
+  }
+
+  get selectedCompetencyName(): string {
+    const competency = this.competencies.find((item) => item.id === this.selectedCompetencyId);
+    return competency?.name || competency?.description || '';
+  }
+
+  get selectedStudentConclusion(): string {
+    const conclusions = this.selectedStudent?.summary?.descriptive_conclusions || [];
+    const conclusion = conclusions.find((item) => {
+      const sameCompetency = !this.selectedCompetencyId || item.competency_id === this.selectedCompetencyId;
+      const samePeriod = !this.selectedPeriodId || item.period_id === this.selectedPeriodId;
+      return sameCompetency && samePeriod;
+    });
+
+    return conclusion?.conclusion_text || conclusion?.recommendations || '';
+  }
+
+  get gradedCount(): number {
+    return this.students.filter((student) => student.grade !== null).length;
+  }
+
+  get currentRiskCount(): number {
+    return this.students.filter((student) => student.grade === 'B' || student.grade === 'C').length;
+  }
+
+  get publishedCount(): number {
+    return this.students.filter((student) => student.status === 'publicada').length;
+  }
+
+  get sectionRiskStudents(): number {
+    return this.students.filter((student) => ['recuperacion', 'permanece'].includes(student.final_status || '')).length;
+  }
+
+  loadInitialData() {
+    this.academicService.getAcademicYears().subscribe({
+      next: (response) => {
+        const data = this.normalizeCollection(response);
+        console.log('[grade-entry] academic years response:', response);
+        console.log('[grade-entry] academic years normalized:', data);
+        const activeYear = data.find((year: any) => year.is_active) || data[0];
+
+        if (!activeYear) {
+          console.warn('[grade-entry] no academic year returned');
+          this.errorMessage = 'No se encontró un año académico activo.';
+          return;
+        }
+
+        this.activeAcademicYearId = activeYear.id;
+        this.activeAcademicYearLabel = String(activeYear.year || '');
+        console.log('[grade-entry] active academic year:', activeYear);
+
+        this.academicService.getPeriods({ academic_year_id: activeYear.id }).subscribe({
+          next: (periodResponse) => {
+            this.periods = this.normalizeCollection(periodResponse);
+            console.log('[grade-entry] periods response:', periodResponse);
+            console.log('[grade-entry] periods loaded:', this.periods);
+          },
+          error: (error) => {
+            console.error('[grade-entry] periods error:', error);
+            this.errorMessage = 'No se pudieron cargar los periodos.';
+          }
         });
+      },
+      error: (error) => {
+        console.error('[grade-entry] academic years error:', error);
+        this.errorMessage = 'No se pudieron cargar los años académicos.';
       }
     });
-    this.academicService.getCourses().subscribe(res => this.courses = res.data || res);
-    this.academicService.getCompetencies().subscribe(res => this.competencies = res.data || res);
+
+    this.academicService.getCourses().subscribe({
+      next: (response) => {
+        this.courses = this.normalizeCollection(response);
+        console.log('[grade-entry] courses response:', response);
+        console.log('[grade-entry] courses loaded:', this.courses);
+      },
+      error: (error) => {
+        console.error('[grade-entry] courses error:', error);
+        this.errorMessage = 'No se pudieron cargar los cursos.';
+      }
+    });
+
+    this.academicService.getCompetencies().subscribe({
+      next: (response) => {
+        this.allCompetencies = this.normalizeCollection(response);
+        console.log('[grade-entry] competencies preload response:', response);
+        console.log('[grade-entry] competencies preload loaded:', this.allCompetencies);
+      },
+      error: (error) => {
+        console.error('[grade-entry] competencies preload error:', error);
+      }
+    });
+  }
+
+  onCourseChange() {
+    this.selectedCompetencyId = '';
+    this.competencies = [];
+    console.log('[grade-entry] selected course:', this.selectedCourseId);
+
+    if (!this.selectedCourseId) {
+      this.onFilterChange();
+      return;
+    }
+
+    this.academicService.getCompetencies({ course_id: this.selectedCourseId }).subscribe({
+      next: (response) => {
+        const filtered = this.normalizeCollection(response);
+        this.competencies = filtered.length > 0
+          ? filtered
+          : this.allCompetencies.filter((item) => item.course_id === this.selectedCourseId);
+        console.log('[grade-entry] competencies by course response:', response);
+        console.log('[grade-entry] competencies loaded for course:', this.competencies);
+        this.onFilterChange();
+      },
+      error: (error) => {
+        console.error('[grade-entry] competencies by course error:', error);
+        this.competencies = this.allCompetencies.filter((item) => item.course_id === this.selectedCourseId);
+        this.onFilterChange();
+      }
+    });
   }
 
   onFilterChange() {
+    this.errorMessage = '';
+    this.successMessage = '';
+
     if (this.selectedCourseId && this.selectedPeriodId && this.selectedCompetencyId) {
       this.loadStudents();
-    } else {
-      this.students = [];
+      return;
     }
+
+    this.students = [];
+    this.selectedStudentId = '';
+    this.currentSectionId = '';
+    this.currentSectionLabel = '';
+    this.sectionDecisionStats = { promociona: 0, recuperacion: 0, permanece: 0, pendiente: 0 };
   }
 
   loadStudents() {
     this.loading = true;
-    this.academicService.getEnrolledStudents({ course_id: this.selectedCourseId }).subscribe({
-      next: (res) => {
-        const data = res.data || res;
-        const enrolled = data.map((item: any) => ({
-          id: item.student.id,
-          name: item.student.full_name || 'N/A',
-          code: item.student.student_code || 'N/A',
-          initials: this.getInitials(item.student.full_name || 'N A'),
-          grade: null,
-          observation: '',
-          status: ''
-        }));
+    this.errorMessage = '';
 
-        this.evaluationService.getEvaluations({
-          course_id: this.selectedCourseId,
-          period_id: this.selectedPeriodId,
-          competency_id: this.selectedCompetencyId
-        }).subscribe({
-          next: (evalRes) => {
-            const evals = evalRes.data || evalRes;
-            enrolled.forEach((student: EnrolledStudent) => {
-              const existing = Array.isArray(evals) ? evals.find((e: any) => e.student_id === student.id) : null;
-              if (existing) {
-                student.grade = existing.grade as any;
-                student.observation = existing.comments || '';
-                student.evaluation_id = existing.id;
-                student.status = existing.status;
-              }
-            });
-            this.students = enrolled;
-            this.loading = false;
-          },
-          error: () => this.loading = false
+    this.academicService.getEnrolledStudents({
+      course_id: this.selectedCourseId,
+      academic_year_id: this.activeAcademicYearId,
+      per_page: 200,
+    }).subscribe({
+      next: (response) => {
+        const rawRows = Array.isArray(response?.data)
+          ? response.data
+          : Array.isArray(response?.data?.data)
+            ? response.data.data
+            : [];
+
+        const enrollmentsMap = new Map<string, EnrolledStudent>();
+        const sectionIds = new Set<string>();
+        let sectionLabel = '';
+
+        rawRows.forEach((item: any) => {
+          const student = item.student;
+          if (!student?.id || enrollmentsMap.has(student.id)) {
+            return;
+          }
+
+          if (item.section?.id) {
+            sectionIds.add(item.section.id);
+            sectionLabel = this.formatSectionLabel(item.section);
+          }
+
+          enrollmentsMap.set(student.id, {
+            id: student.id,
+            name: student.full_name || 'N/A',
+            code: student.student_code || 'N/A',
+            initials: this.getInitials(student.full_name || 'N A'),
+            grade: null,
+            observation: '',
+            status: '',
+            section_id: item.section?.id || '',
+            section_label: this.formatSectionLabel(item.section),
+          });
         });
+
+        this.currentSectionId = sectionIds.size === 1 ? Array.from(sectionIds)[0] : '';
+        this.currentSectionLabel = sectionIds.size === 1 ? sectionLabel : sectionIds.size > 1 ? 'Multiples secciones' : '';
+
+        const enrolled = Array.from(enrollmentsMap.values());
+        this.loadSectionDashboard(enrolled);
       },
-      error: () => this.loading = false
+      error: () => {
+        this.errorMessage = 'No se pudieron cargar los estudiantes inscritos.';
+        this.loading = false;
+      }
     });
+  }
+
+  loadSectionDashboard(enrolled: EnrolledStudent[]) {
+    if (!this.activeAcademicYearId || !this.currentSectionId || enrolled.length === 0) {
+      this.students = enrolled;
+      this.selectedStudentId = enrolled[0]?.id || '';
+      this.loading = false;
+      return;
+    }
+
+    this.evaluationService.getSectionEvaluationDashboard(this.activeAcademicYearId, this.currentSectionId, {
+      course_id: this.selectedCourseId,
+      period_id: this.selectedPeriodId,
+      competency_id: this.selectedCompetencyId,
+    }).subscribe({
+      next: (dashboard) => {
+        enrolled.forEach((student) => {
+          const dashboardStudent = dashboard.students.find((item) => item.id === student.id);
+
+          if (!dashboardStudent) {
+            student.summary = null;
+            return;
+          }
+
+          student.grade = dashboardStudent.current_evaluation?.grade ?? student.grade;
+          student.observation = dashboardStudent.current_evaluation?.comments || student.observation;
+          student.evaluation_id = dashboardStudent.current_evaluation?.id || student.evaluation_id;
+          student.status = dashboardStudent.current_evaluation?.status || student.status;
+          student.summary = dashboardStudent.academic_summary;
+          student.final_status = dashboardStudent.academic_summary.final_status || 'pendiente';
+          student.pending_competencies_count = dashboardStudent.academic_summary.pending_competencies_count || 0;
+          student.recovery_required = dashboardStudent.academic_summary.recovery_required || false;
+          student.risk_count = (dashboardStudent.academic_summary.totals?.b || 0) + (dashboardStudent.academic_summary.totals?.c || 0);
+          student.totals = dashboardStudent.academic_summary.totals;
+        });
+
+        this.currentSectionLabel = dashboard.section?.label || this.currentSectionLabel;
+        this.sectionDecisionStats = dashboard.stats?.status_breakdown || this.sectionDecisionStats;
+        this.students = enrolled;
+        this.selectedStudentId = enrolled.find((student) => student.id === this.selectedStudentId)?.id || enrolled[0]?.id || '';
+        this.loading = false;
+      },
+      error: () => {
+        this.students = enrolled;
+        this.selectedStudentId = enrolled[0]?.id || '';
+        this.loading = false;
+      }
+    });
+  }
+
+  selectStudent(studentId: string) {
+    this.selectedStudentId = studentId;
   }
 
   setGrade(student: EnrolledStudent, grade: any) {
     if (student.status === 'publicada') return;
     student.grade = grade;
+    this.successMessage = '';
   }
 
   canSave(): boolean {
-    return this.students.some(s => s.grade !== null && s.status !== 'publicada');
+    return this.students.some((student) => student.grade !== null && student.status !== 'publicada');
   }
 
   canPublish(): boolean {
-    return this.students.some(s => s.grade !== null && s.status === 'borrador');
+    return this.students.some((student) => student.grade !== null && student.status === 'borrador');
+  }
+
+  canRecalculate(): boolean {
+    return !!this.activeAcademicYearId && !!this.currentSectionId && this.students.length > 0;
   }
 
   saveDraft() {
-    const toSave = this.students.filter(s => s.grade !== null && s.status !== 'publicada');
+    const toSave = this.students.filter((student) => student.grade !== null && student.status !== 'publicada');
     if (toSave.length === 0) return;
 
     this.saving = true;
-    const requests = toSave.map(student => {
+    this.errorMessage = '';
+    this.successMessage = '';
+
+    const requests = toSave.map((student) => {
       const data: Partial<Evaluation> = {
         student_id: student.id,
         course_id: this.selectedCourseId,
@@ -256,35 +362,70 @@ export class GradeEntryComponent implements OnInit {
         comments: student.observation,
         status: 'borrador'
       };
-      return this.evaluationService.saveEvaluation(data).pipe(catchError(err => of(null)));
+
+      return this.evaluationService.saveEvaluation(data).pipe(catchError(() => of(null)));
     });
 
     forkJoin(requests).pipe(
       finalize(() => {
         this.saving = false;
-        this.loadStudents();
       })
     ).subscribe(() => {
-      alert('Borradores sincronizados correctamente.');
+      this.successMessage = 'Borradores sincronizados correctamente.';
+      this.loadStudents();
     });
   }
 
   publishAll() {
-    const toPublish = this.students.filter(s => s.status === 'borrador' && s.evaluation_id);
+    const toPublish = this.students.filter((student) => student.status === 'borrador' && student.evaluation_id);
     if (toPublish.length === 0) return;
 
     this.saving = true;
-    const requests = toPublish.map(student => {
-      return this.evaluationService.publishEvaluation(student.evaluation_id!).pipe(catchError(err => of(null)));
-    });
+    this.errorMessage = '';
+    this.successMessage = '';
+
+    const requests = toPublish.map((student) =>
+      this.evaluationService.publishEvaluation(student.evaluation_id!).pipe(catchError(() => of(null)))
+    );
 
     forkJoin(requests).pipe(
+      switchMap(() => {
+        if (this.canRecalculate()) {
+          return this.evaluationService.recalculateSectionEvaluationSummary(this.activeAcademicYearId, this.currentSectionId).pipe(
+            catchError(() => of(null))
+          );
+        }
+
+        return of(null);
+      }),
       finalize(() => {
         this.saving = false;
-        this.loadStudents();
       })
     ).subscribe(() => {
-      alert('Calificaciones publicadas correctamente.');
+      this.successMessage = 'Calificaciones publicadas correctamente y resumen academico actualizado.';
+      this.loadStudents();
+    });
+  }
+
+  recalculateAcademicSummary() {
+    if (!this.canRecalculate()) return;
+
+    this.recalculating = true;
+    this.errorMessage = '';
+    this.successMessage = '';
+
+    this.evaluationService.recalculateSectionEvaluationSummary(this.activeAcademicYearId, this.currentSectionId).pipe(
+      finalize(() => {
+        this.recalculating = false;
+      })
+    ).subscribe({
+      next: () => {
+        this.successMessage = 'Resumen academico recalculado correctamente.';
+        this.loadStudents();
+      },
+      error: () => {
+        this.errorMessage = 'No se pudo recalcular el resumen academico de la seccion.';
+      }
     });
   }
 
@@ -299,9 +440,89 @@ export class GradeEntryComponent implements OnInit {
     }
   }
 
+  getFinalStatusLabel(status?: string | null): string {
+    const labels: Record<string, string> = {
+      promociona: 'Promociona',
+      recuperacion: 'Recuperacion',
+      permanece: 'Permanece',
+      pendiente: 'Pendiente',
+    };
+
+    return labels[status || 'pendiente'] || 'Pendiente';
+  }
+
+  getFinalStatusBadgeClass(status?: string | null): string {
+    const classes: Record<string, string> = {
+      promociona: 'bg-green-50 text-green-700 border-green-200',
+      recuperacion: 'bg-yellow-50 text-yellow-700 border-yellow-200',
+      permanece: 'bg-red-50 text-red-700 border-red-200',
+      pendiente: 'bg-slate-50 text-slate-600 border-slate-200',
+    };
+
+    return classes[status || 'pendiente'] || 'bg-slate-50 text-slate-600 border-slate-200';
+  }
+
+  getCurrentGradeBadgeClass(grade?: string | null): string {
+    const classes: Record<string, string> = {
+      AD: 'bg-green-50 text-green-700 border-green-200',
+      A: 'bg-blue-50 text-blue-700 border-blue-200',
+      B: 'bg-yellow-50 text-yellow-700 border-yellow-200',
+      C: 'bg-red-50 text-red-700 border-red-200',
+    };
+
+    return classes[grade || ''] || 'bg-slate-50 text-slate-600 border-slate-200';
+  }
+
+  private computeSectionDecisionStats() {
+    const stats = {
+      promociona: 0,
+      recuperacion: 0,
+      permanece: 0,
+      pendiente: 0,
+    };
+
+    this.students.forEach((student) => {
+      const status = student.final_status || 'pendiente';
+      if (status in stats) {
+        stats[status as keyof typeof stats]++;
+        return;
+      }
+      stats.pendiente++;
+    });
+
+    this.sectionDecisionStats = stats;
+  }
+
+  private formatSectionLabel(section: any): string {
+    if (!section) return '';
+    const gradeName = section.grade_level?.name || '';
+    const sectionLetter = section.section_letter || '';
+    return [gradeName, sectionLetter].filter(Boolean).join(' ');
+  }
+
   private getInitials(name: string): string {
     if (!name) return '??';
-    return name.split(' ').filter(n => n.length > 0).map(n => n[0]).join('').substring(0, 2).toUpperCase();
+    return name.split(' ').filter((item) => item.length > 0).map((item) => item[0]).join('').substring(0, 2).toUpperCase();
+  }
+
+  private normalizeCollection<T = any>(response: any): T[] {
+    if (Array.isArray(response)) {
+      return response;
+    }
+
+    if (Array.isArray(response?.data)) {
+      return response.data;
+    }
+
+    if (Array.isArray(response?.data?.data)) {
+      return response.data.data;
+    }
+
+    if (Array.isArray(response?.items)) {
+      return response.items;
+    }
+
+    console.warn('[grade-entry] could not normalize collection response:', response);
+    return [];
   }
 }
-

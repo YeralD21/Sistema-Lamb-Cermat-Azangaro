@@ -19,6 +19,7 @@ class UpdateEvaluationRequest extends FormRequest
             'status' => ['sometimes', 'string', Rule::in(['borrador','publicada','cerrada'])],
 
             'comments' => ['sometimes', 'nullable', 'string', 'max:2000'],
+            'observations' => ['sometimes', 'nullable', 'string', 'max:2000'],
         ];
     }
 
