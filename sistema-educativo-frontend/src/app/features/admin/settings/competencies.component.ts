@@ -246,7 +246,7 @@ export class CompetenciesComponent implements OnInit {
     this.groupedCompetencies = Object.values(groups)
       .filter(g => g.competencies.length > 0)
       .map(g => {
-        g.competencies.sort((a, b) => (a.order || 0) - (b.order || 0));
+        g.competencies.sort((a, b) => ((a.order ?? a.order_index ?? 0) - (b.order ?? b.order_index ?? 0)));
         return g;
       })
       .sort((a, b) => a.courseCode.localeCompare(b.courseCode));
@@ -305,7 +305,14 @@ export class CompetenciesComponent implements OnInit {
       },
       error: (err) => {
         this.isSubmitting = false;
-        Swal.fire('Error', err.error?.message || 'Hubo un error al guardar', 'error');
+        const validationErrors = err.error?.errors
+          ? Object.values(err.error.errors).flat().join('<br>')
+          : '';
+        Swal.fire({
+          icon: 'error',
+          title: 'Error',
+          html: validationErrors || err.error?.message || 'Hubo un error al guardar'
+        });
       }
     });
   }
