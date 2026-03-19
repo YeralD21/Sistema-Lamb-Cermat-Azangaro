@@ -8,6 +8,7 @@ use App\Http\Requests\UpdateCompetencyRequest;
 use App\Models\Competency;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Log;
+use Illuminate\Support\Str;
 
 class CompetencyController extends Controller
 {
@@ -42,8 +43,13 @@ class CompetencyController extends Controller
 
     public function store(StoreCompetencyRequest $request)
     {
-        $competency = Competency::create($request->validated());
-        return response()->json($competency, 201);
+        $payload = $this->normalizePayload($request->validated(), true);
+
+        Log::info('CompetencyController@store payload', $payload);
+
+        $competency = Competency::create($payload);
+
+        return response()->json($competency->load('course'), 201);
     }
 
     public function show(Competency $competency)
@@ -53,13 +59,67 @@ class CompetencyController extends Controller
 
     public function update(UpdateCompetencyRequest $request, Competency $competency)
     {
-        $competency->update($request->validated());
-        return $competency;
+        $payload = $this->normalizePayload($request->validated(), false, $competency);
+
+        Log::info('CompetencyController@update payload', [
+            'id' => $competency->id,
+            'payload' => $payload,
+        ]);
+
+        $competency->update($payload);
+
+        return $competency->fresh()->load('course');
     }
 
     public function destroy(Competency $competency)
     {
         $competency->delete();
         return response()->noContent();
+    }
+
+    private function normalizePayload(array $payload, bool $isCreate = false, ?Competency $competency = null): array
+    {
+        $payload['description'] = trim((string) ($payload['description'] ?? ''));
+
+        if (array_key_exists('order', $payload) && !array_key_exists('order_index', $payload)) {
+            $payload['order_index'] = $payload['order'];
+        }
+
+        unset($payload['order'], $payload['name']);
+
+        if (empty($payload['order_index'])) {
+            $payload['order_index'] = $isCreate
+                ? $this->nextOrderIndex((string) $payload['course_id'])
+                : ($competency?->order_index ?? 1);
+        }
+
+        if (empty($payload['code'])) {
+            $payload['code'] = $this->generateCode($payload['description'], (int) $payload['order_index']);
+        }
+
+        return $payload;
+    }
+
+    private function nextOrderIndex(string $courseId): int
+    {
+        return (int) Competency::query()
+            ->where('course_id', $courseId)
+            ->max('order_index') + 1;
+    }
+
+    private function generateCode(string $description, int $orderIndex): string
+    {
+        $tokens = preg_split('/\s+/', trim($description)) ?: [];
+        $acronym = collect($tokens)
+            ->filter(fn ($token) => $token !== '')
+            ->take(3)
+            ->map(fn ($token) => Str::upper(Str::substr($token, 0, 1)))
+            ->implode('');
+
+        if ($acronym === '') {
+            $acronym = 'COMP';
+        }
+
+        return Str::limit($acronym . $orderIndex, 50, '');
     }
 }

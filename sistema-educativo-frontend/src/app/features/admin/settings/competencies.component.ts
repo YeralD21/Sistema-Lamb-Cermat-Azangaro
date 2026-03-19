@@ -1,3 +1,4 @@
+//src/app/features/admin/settings/competencies.component.ts
 import { Component, OnInit } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule, ReactiveFormsModule, FormBuilder, FormGroup, Validators } from '@angular/forms';
@@ -19,7 +20,7 @@ import Swal from 'sweetalert2';
           <h1 class="text-3xl font-bold text-[#0F172A] tracking-tight">Competencias</h1>
           <p class="text-slate-500 text-sm font-medium">Gestiona las competencias curriculares por curso</p>
         </div>
-        <button 
+        <button
           (click)="openModal()"
           class="px-6 py-3 bg-gradient-to-r from-[#0E3A8A] to-[#C026D3] hover:opacity-90 text-white text-sm font-bold rounded-2xl transition-all shadow-lg active:scale-95 flex items-center justify-center gap-2">
           <svg class="w-5 h-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
@@ -52,8 +53,8 @@ import Swal from 'sweetalert2';
         <div class="text-slate-400">
           <svg class="w-5 h-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M22 3H2l8 9.46V19l4 2v-8.54L22 3z"/></svg>
         </div>
-        <select 
-          [ngModel]="selectedCourseFilter" 
+        <select
+          [ngModel]="selectedCourseFilter"
           (ngModelChange)="filterByCourse($event)"
           class="flex-1 bg-transparent border-none text-[10px] font-black text-[#0F172A] uppercase tracking-[0.15em] focus:ring-0 cursor-pointer appearance-none italic">
           <option value="">Todos los cursos</option>
@@ -76,10 +77,10 @@ import Swal from 'sweetalert2';
             {{ courseGroup.courseName }}
             <span class="text-[10px] font-black text-slate-400 uppercase tracking-tighter ml-1">({{ courseGroup.courseCode }})</span>
           </h2>
-          
+
           <div class="space-y-4">
             <div *ngFor="let competency of courseGroup.competencies; let i = index" class="bg-white border border-slate-100 rounded-[2.5rem] p-6 shadow-sm hover:shadow-lg transition-all flex flex-col md:flex-row md:items-center gap-6 md:gap-8 group relative overflow-hidden">
-              
+
               <div class="absolute -right-6 -bottom-6 w-20 h-20 bg-slate-50 rounded-full blur-2xl group-hover:bg-blue-50 transition-colors pointer-events-none"></div>
 
               <!-- Content Area -->
@@ -135,7 +136,7 @@ import Swal from 'sweetalert2';
           </div>
 
           <form [formGroup]="competencyForm" (ngSubmit)="saveCompetency()" class="p-8 space-y-5">
-            
+
             <div class="space-y-1.5 focus-within:text-blue-600">
               <label class="text-[10px] font-bold uppercase tracking-widest text-slate-400">Curso Asociado</label>
               <select formControlName="course_id" class="w-full bg-slate-50 border border-slate-200 text-slate-800 rounded-xl px-4 py-3 text-sm font-semibold focus:outline-none focus:border-blue-500">
@@ -182,7 +183,7 @@ export class CompetenciesComponent implements OnInit {
   courses: Course[] = [];
   groupedCompetencies: { courseId: string, courseName: string, courseCode: string, competencies: Competency[] }[] = [];
   filteredGroupedCompetencies: any[] = [];
-  
+
   loading = false;
   showModal = false;
   isEditing = false;
@@ -224,7 +225,7 @@ export class CompetenciesComponent implements OnInit {
     this.loading = true;
     this.academicService.getCourses().subscribe((resC) => {
       this.courses = resC.data || resC;
-      
+
       this.academicService.getCompetencies().subscribe({
         next: (resComp) => {
           this.competencies = resComp.data || resComp;
@@ -239,7 +240,7 @@ export class CompetenciesComponent implements OnInit {
 
   groupCompetencies() {
     const groups: { [key: string]: { courseId: string, courseName: string, courseCode: string, competencies: Competency[] } } = {};
-    
+
     this.courses.forEach(c => {
       groups[c.id] = { courseId: c.id, courseName: c.name, courseCode: c.code, competencies: [] };
     });
@@ -254,7 +255,7 @@ export class CompetenciesComponent implements OnInit {
     this.groupedCompetencies = Object.values(groups)
       .filter(g => g.competencies.length > 0)
       .map(g => {
-        g.competencies.sort((a, b) => (a.order || 0) - (b.order || 0));
+        g.competencies.sort((a, b) => ((a.order ?? a.order_index ?? 0) - (b.order ?? b.order_index ?? 0)));
         return g;
       })
       .sort((a, b) => a.courseCode.localeCompare(b.courseCode));
@@ -274,9 +275,9 @@ export class CompetenciesComponent implements OnInit {
             nextOrder = Math.max(...group.competencies.map(c => c.order || 0)) + 1;
          }
       }
-      this.competencyForm.reset({ 
-        course_id: this.selectedCourseFilter || '', 
-        description: '', 
+      this.competencyForm.reset({
+        course_id: this.selectedCourseFilter || '',
+        description: '',
         order: nextOrder
       });
     }
@@ -312,7 +313,14 @@ export class CompetenciesComponent implements OnInit {
       },
       error: (err) => {
         this.isSubmitting = false;
-        Swal.fire('Error', err.error?.message || 'Hubo un error al guardar', 'error');
+        const validationErrors = err.error?.errors
+          ? Object.values(err.error.errors).flat().join('<br>')
+          : '';
+        Swal.fire({
+          icon: 'error',
+          title: 'Error',
+          html: validationErrors || err.error?.message || 'Hubo un error al guardar'
+        });
       }
     });
   }
