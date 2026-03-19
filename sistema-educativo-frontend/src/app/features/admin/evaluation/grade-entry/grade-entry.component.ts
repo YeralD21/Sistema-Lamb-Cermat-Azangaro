@@ -1,6 +1,7 @@
 //src/app/features/admin/evaluation/grade-entry/grade-entry.component.ts
 import { Component, OnInit, inject } from '@angular/core';
 import { CommonModule } from '@angular/common';
+import { HttpErrorResponse } from '@angular/common/http';
 import { FormsModule } from '@angular/forms';
 import { forkJoin, of } from 'rxjs';
 import { catchError, finalize, switchMap } from 'rxjs/operators';
@@ -204,6 +205,13 @@ export class GradeEntryComponent implements OnInit {
   onFilterChange() {
     this.errorMessage = '';
     this.successMessage = '';
+    this.coerceSelectedCompetencyId();
+    console.log('[grade-entry] current filters:', {
+      course_id: this.selectedCourseId,
+      period_id: this.selectedPeriodId,
+      competency_id: this.selectedCompetencyId,
+      competency_type: typeof this.selectedCompetencyId,
+    });
 
     if (this.selectedCourseId && this.selectedPeriodId && this.selectedCompetencyId) {
       this.loadStudents();
@@ -224,6 +232,7 @@ export class GradeEntryComponent implements OnInit {
     this.academicService.getEnrolledStudents({
       course_id: this.selectedCourseId,
       academic_year_id: this.activeAcademicYearId,
+      status: 'active',
       per_page: 200,
     }).subscribe({
       next: (response) => {
@@ -237,7 +246,9 @@ export class GradeEntryComponent implements OnInit {
         const sectionIds = new Set<string>();
         let sectionLabel = '';
 
-        rawRows.forEach((item: any) => {
+        rawRows
+          .filter((item: any) => item?.status === 'active')
+          .forEach((item: any) => {
           const student = item.student;
           if (!student?.id || enrollmentsMap.has(student.id)) {
             return;
@@ -260,6 +271,8 @@ export class GradeEntryComponent implements OnInit {
             section_label: this.formatSectionLabel(item.section),
           });
         });
+
+        console.log('[grade-entry] active enrollments loaded:', rawRows.length, 'filtered active:', enrollmentsMap.size);
 
         this.currentSectionId = sectionIds.size === 1 ? Array.from(sectionIds)[0] : '';
         this.currentSectionLabel = sectionIds.size === 1 ? sectionLabel : sectionIds.size > 1 ? 'Multiples secciones' : '';
@@ -363,14 +376,25 @@ export class GradeEntryComponent implements OnInit {
         status: 'borrador'
       };
 
-      return this.evaluationService.saveEvaluation(data).pipe(catchError(() => of(null)));
+      return this.evaluationService.saveEvaluation(data).pipe(
+        catchError((error: HttpErrorResponse) => of({ __error: true, studentId: student.id, error }))
+      );
     });
 
     forkJoin(requests).pipe(
       finalize(() => {
         this.saving = false;
       })
-    ).subscribe(() => {
+    ).subscribe((results) => {
+      const failures = results.filter((result: any) => result?.__error) as Array<{ error: HttpErrorResponse }>;
+
+      if (failures.length > 0) {
+        const firstError = failures[0]?.error;
+        const details = this.formatApiError(firstError);
+        this.errorMessage = `No se pudieron guardar ${failures.length} registro(s). ${details}`;
+        return;
+      }
+
       this.successMessage = 'Borradores sincronizados correctamente.';
       this.loadStudents();
     });
@@ -385,23 +409,44 @@ export class GradeEntryComponent implements OnInit {
     this.successMessage = '';
 
     const requests = toPublish.map((student) =>
-      this.evaluationService.publishEvaluation(student.evaluation_id!).pipe(catchError(() => of(null)))
+      this.evaluationService.publishEvaluation(student.evaluation_id!).pipe(
+        catchError((error: HttpErrorResponse) => of({ __error: true, studentId: student.id, error }))
+      )
     );
 
     forkJoin(requests).pipe(
-      switchMap(() => {
+      switchMap((results) => {
+        const failures = results.filter((result: any) => result?.__error);
+
+        if (failures.length > 0) {
+          return of({ failures });
+        }
+
         if (this.canRecalculate()) {
           return this.evaluationService.recalculateSectionEvaluationSummary(this.activeAcademicYearId, this.currentSectionId).pipe(
-            catchError(() => of(null))
+            catchError(() => of({ failures: [], recalculationFailed: true }))
           );
         }
 
-        return of(null);
+        return of({ failures: [] });
       }),
       finalize(() => {
         this.saving = false;
       })
-    ).subscribe(() => {
+    ).subscribe((result) => {
+      const failures = (result?.failures || []) as Array<{ error: HttpErrorResponse }>;
+
+      if (failures.length > 0) {
+        this.errorMessage = `No se pudieron publicar ${failures.length} registro(s). ${this.formatApiError(failures[0]?.error)}`;
+        return;
+      }
+
+      if (result?.recalculationFailed) {
+        this.successMessage = 'Calificaciones publicadas correctamente, pero no se pudo recalcular el resumen academico.';
+        this.loadStudents();
+        return;
+      }
+
       this.successMessage = 'Calificaciones publicadas correctamente y resumen academico actualizado.';
       this.loadStudents();
     });
@@ -524,5 +569,41 @@ export class GradeEntryComponent implements OnInit {
 
     console.warn('[grade-entry] could not normalize collection response:', response);
     return [];
+  }
+
+  private coerceSelectedCompetencyId(): void {
+    if (!this.selectedCompetencyId || this.isUuid(this.selectedCompetencyId)) {
+      return;
+    }
+
+    const matched = this.competencies.find((competency) => {
+      const id = String(competency.id || '');
+      const code = String(competency.code || '');
+      const order = String(competency.order ?? competency.order_index ?? '');
+
+      return id.startsWith(this.selectedCompetencyId)
+        || code === this.selectedCompetencyId
+        || order === this.selectedCompetencyId;
+    });
+
+    if (matched?.id) {
+      console.warn('[grade-entry] coerced invalid competency filter to UUID:', {
+        raw: this.selectedCompetencyId,
+        resolved: matched.id,
+      });
+      this.selectedCompetencyId = String(matched.id);
+    }
+  }
+
+  private isUuid(value: string): boolean {
+    return /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(value);
+  }
+
+  private formatApiError(error: HttpErrorResponse | any): string {
+    const validationErrors = error?.error?.errors
+      ? Object.values(error.error.errors).flat().join(' ')
+      : '';
+
+    return validationErrors || error?.error?.message || 'Revise la matricula activa del estudiante y la relacion curso-competencia.';
   }
 }

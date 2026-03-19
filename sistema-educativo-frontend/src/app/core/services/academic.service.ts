@@ -37,7 +37,8 @@ export interface Course {
   code: string;
   name: string;
   grade_level_id: string;
-  weekly_hours: number;
+  hours_per_week: number;
+  weekly_hours?: number;
   color?: string;
 }
 

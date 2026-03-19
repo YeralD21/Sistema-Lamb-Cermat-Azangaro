@@ -15,6 +15,8 @@ use App\Models\Student;
 use App\Models\StudentCourseEnrollment;
 use App\Models\StudentFinalStatus;
 use Illuminate\Support\Collection;
+use Illuminate\Support\Facades\Log;
+use Illuminate\Support\Str;
 use Illuminate\Validation\ValidationException;
 
 class AcademicEvaluationService
@@ -137,9 +139,9 @@ class AcademicEvaluationService
 
     public function getSectionDashboard(Section $section, AcademicYear $academicYear, array $filters = []): array
     {
-        $courseId = $filters['course_id'] ?? null;
-        $periodId = $filters['period_id'] ?? null;
-        $competencyId = $filters['competency_id'] ?? null;
+        $courseId = $this->normalizeUuidFilter($filters['course_id'] ?? null, 'course_id');
+        $periodId = $this->normalizeUuidFilter($filters['period_id'] ?? null, 'period_id');
+        $competencyId = $this->normalizeUuidFilter($filters['competency_id'] ?? null, 'competency_id');
 
         $enrollments = StudentCourseEnrollment::query()
             ->with(['student', 'section.gradeLevel'])
@@ -657,5 +659,25 @@ class AcademicEvaluationService
     private function levelValue(?string $level): int
     {
         return self::LEVEL_ORDER[$level ?? 'C'] ?? 0;
+    }
+
+    private function normalizeUuidFilter(mixed $value, string $field): ?string
+    {
+        if ($value === null || $value === '') {
+            return null;
+        }
+
+        $stringValue = (string) $value;
+
+        if (Str::isUuid($stringValue)) {
+            return $stringValue;
+        }
+
+        Log::warning('AcademicEvaluationService ignored invalid UUID filter', [
+            'field' => $field,
+            'value' => $stringValue,
+        ]);
+
+        return null;
     }
 }

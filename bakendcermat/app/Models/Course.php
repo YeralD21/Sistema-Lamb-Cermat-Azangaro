@@ -30,6 +30,15 @@ class Course extends Model
         'created_at' => 'datetime'
     ];
 
+    protected $appends = [
+        'weekly_hours',
+    ];
+
+    public function getWeeklyHoursAttribute(): ?int
+    {
+        return $this->hours_per_week;
+    }
+
     public function gradeLevel()
     {
         return $this->belongsTo(GradeLevel::class);

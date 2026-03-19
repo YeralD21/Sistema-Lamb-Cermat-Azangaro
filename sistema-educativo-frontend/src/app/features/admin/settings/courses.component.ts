@@ -76,7 +76,11 @@ import Swal from 'sweetalert2';
               <div class="bg-slate-50/50 p-3 px-4 rounded-xl border border-slate-50 flex items-center gap-3 relative z-10">
                 <svg class="w-4 h-4 text-blue-500" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>
                 <div class="flex items-baseline gap-1.5 text-xs font-bold">
+<<<<<<< Updated upstream
                   <span class="text-[#0F172A]">{{ course.weekly_hours }} horas</span>
+=======
+                  <span class="text-[#0F172A] italic">{{ getCourseHours(course) }} horas</span>
+>>>>>>> Stashed changes
                   <span class="text-slate-400 uppercase tracking-tighter">/ semana</span>
                 </div>
               </div>
@@ -139,7 +143,7 @@ import Swal from 'sweetalert2';
 
               <div class="space-y-1.5 focus-within:text-blue-600">
                 <label class="text-[10px] font-bold uppercase tracking-widest text-slate-400 transition-colors">Horas Semanales</label>
-                <input type="number" formControlName="weekly_hours" class="w-full bg-slate-50 border border-slate-200 text-slate-800 rounded-xl px-4 py-3 text-sm font-semibold transition-all focus:outline-none focus:border-blue-500" placeholder="Ej: 4">
+                <input type="number" formControlName="hours_per_week" class="w-full bg-slate-50 border border-slate-200 text-slate-800 rounded-xl px-4 py-3 text-sm font-semibold transition-all focus:outline-none focus:border-blue-500" placeholder="Ej: 4">
               </div>
             </div>
             
@@ -197,7 +201,7 @@ export class CoursesComponent implements OnInit {
       grade_level_id: ['', Validators.required],
       name: ['', Validators.required],
       code: ['', Validators.required],
-      weekly_hours: [4, [Validators.required, Validators.min(1)]],
+      hours_per_week: [4, [Validators.required, Validators.min(1)]],
       color: ['#2563EB']
     });
   }
@@ -258,14 +262,17 @@ export class CoursesComponent implements OnInit {
     this.isEditing = !!course;
     if (course) {
       this.currentEditId = course.id;
-      this.courseForm.patchValue(course);
+      this.courseForm.patchValue({
+        ...course,
+        hours_per_week: this.getCourseHours(course)
+      });
     } else {
       this.currentEditId = null;
       this.courseForm.reset({ 
         grade_level_id: this.selectedGradeFilter || '', 
         name: '', 
         code: '',
-        weekly_hours: 4,
+        hours_per_week: 4,
         color: '#2563EB'
       });
     }
@@ -327,5 +334,9 @@ export class CoursesComponent implements OnInit {
         });
       }
     });
+  }
+
+  getCourseHours(course: Course): number {
+    return course.hours_per_week ?? course.weekly_hours ?? 0;
   }
 }
