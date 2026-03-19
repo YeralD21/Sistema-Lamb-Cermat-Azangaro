@@ -38,13 +38,14 @@ export class UserService {
   private apiUrl = `${environment.apiUrl}/profiles`;
   private usersUrl = `${environment.apiUrl}/users`;
 
-  getProfiles(params?: { role?: string; is_active?: boolean; q?: string; page?: number }): Observable<PaginatedResponse<UserProfile>> {
+  getProfiles(params?: { role?: string; is_active?: boolean; q?: string; page?: number; per_page?: number }): Observable<PaginatedResponse<UserProfile>> {
     let httpParams = new HttpParams();
     if (params) {
       if (params.role && params.role !== 'Todos') httpParams = httpParams.set('role', params.role.toLowerCase());
       if (params.is_active !== undefined) httpParams = httpParams.set('is_active', params.is_active);
       if (params.q) httpParams = httpParams.set('q', params.q);
       if (params.page) httpParams = httpParams.set('page', params.page);
+      if (params.per_page) httpParams = httpParams.set('per_page', params.per_page);
     }
 
     return this.http.get<PaginatedResponse<UserProfile>>(this.apiUrl, { params: httpParams });

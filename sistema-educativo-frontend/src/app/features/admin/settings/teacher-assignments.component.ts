@@ -4,6 +4,7 @@ import { Component, OnInit } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { ReactiveFormsModule, FormBuilder, FormGroup, Validators, FormsModule } from '@angular/forms';
 import { BackButtonComponent } from '@shared/components/back-button/back-button.component';
+import { SettingMetricCardComponent } from '@shared/components/setting-metric-card/setting-metric-card.component';
 import { TeacherCourseAssignment, Course, Section } from '@core/services/academic.service';
 import { UserService, User } from '@core/services/user.service';
 import Swal from 'sweetalert2';
@@ -14,7 +15,7 @@ import { AcademicYear } from '@core/models/AcademicYear';
 @Component({
   selector: 'app-teacher-assignments',
   standalone: true,
-  imports: [CommonModule, ReactiveFormsModule, FormsModule, BackButtonComponent],
+  imports: [CommonModule, ReactiveFormsModule, FormsModule, BackButtonComponent, SettingMetricCardComponent],
   template: `
     <div class="min-h-[calc(100vh-80px)] p-6 sm:p-10 max-w-7xl mx-auto space-y-8 animate-fade-in text-slate-700 relative">
       <app-back-button></app-back-button>
@@ -34,23 +35,11 @@ import { AcademicYear } from '@core/models/AcademicYear';
       </div>
 
       <!-- Stats Cards -->
-      <div class="grid grid-cols-2 lg:grid-cols-4 gap-4">
-        <div class="bg-white border border-slate-100 rounded-[2rem] p-6 shadow-sm flex flex-col items-center justify-center text-center space-y-1 group transition-all hover:border-blue-100">
-          <span class="text-[10px] font-black text-slate-400 uppercase tracking-[0.2em] italic mb-1">Docentes</span>
-          <span class="text-3xl font-black text-[#0F172A]">{{ totalTeachers }}</span>
-        </div>
-        <div class="bg-white border border-slate-100 rounded-[2rem] p-6 shadow-sm flex flex-col items-center justify-center text-center space-y-1 group transition-all hover:border-slate-200">
-          <span class="text-[10px] font-black text-slate-400 uppercase tracking-[0.2em] italic mb-1">Carga Total</span>
-          <span class="text-3xl font-black text-[#0F172A]">{{ totalAssignments }}</span>
-        </div>
-        <div class="bg-white border border-slate-100 rounded-[2rem] p-6 shadow-sm flex flex-col items-center justify-center text-center space-y-1 group transition-all hover:border-blue-100 border-l-4 border-l-blue-500">
-          <span class="text-[10px] font-black text-slate-400 uppercase tracking-[0.2em] italic mb-1">Promedio</span>
-          <span class="text-3xl font-black text-[#0E3A8A]">{{ avgAssignments | number:'1.0-1' }}</span>
-        </div>
-        <div class="bg-white border border-slate-100 rounded-[2rem] p-6 shadow-sm flex flex-col items-center justify-center text-center space-y-1 group transition-all hover:border-orange-100">
-          <span class="text-[10px] font-black text-slate-400 uppercase tracking-[0.2em] italic mb-1">Ocupados</span>
-          <span class="text-3xl font-black text-orange-600">{{ activeTeachersCount }}</span>
-        </div>
+      <div class="flex flex-wrap gap-3 mt-2 mb-6">
+        <app-setting-metric-card label="Docentes" [value]="totalTeachers"></app-setting-metric-card>
+        <app-setting-metric-card label="Carga Total" [value]="totalAssignments"></app-setting-metric-card>
+        <app-setting-metric-card label="Promedio" [value]="avgAssignments | number:'1.0-1'"></app-setting-metric-card>
+        <app-setting-metric-card label="Ocupados" [value]="activeTeachersCount"></app-setting-metric-card>
       </div>
 
       <!-- Filter Pill -->
@@ -58,7 +47,7 @@ import { AcademicYear } from '@core/models/AcademicYear';
         <div class="text-slate-400">
           <svg class="w-5 h-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
         </div>
-        <input type="text" [(ngModel)]="searchTerm" (ngModelChange)="filterTeachers()" placeholder="Buscar por docente..." class="flex-1 bg-transparent border-none text-[10px] font-black text-[#0F172A] uppercase tracking-[0.1em] focus:ring-0 placeholder-slate-300 italic">
+        <input type="text" [(ngModel)]="searchTerm" (ngModelChange)="filterTeachers()" placeholder="Buscar por docente..." class="flex-1 bg-transparent border-none text-[10px] font-bold text-[#0F172A] uppercase tracking-[0.1em] focus:ring-0 placeholder-slate-300">
       </div>
 
       <!-- Loading State -->
@@ -76,15 +65,15 @@ import { AcademicYear } from '@core/models/AcademicYear';
           <div class="flex items-start justify-between relative z-10">
             <div class="flex items-center gap-5">
               <div class="w-20 h-20 bg-gradient-to-br from-[#0E3A8A] to-[#1D4ED8] rounded-3xl flex items-center justify-center shadow-lg group-hover:scale-105 transition-transform shrink-0">
-                <span class="text-3xl font-black text-white italic">{{ teacherGroup.teacher.name.charAt(0) }}</span>
+                <span class="text-3xl font-bold text-white">{{ teacherGroup.teacher.name.charAt(0) }}</span>
               </div>
               <div class="overflow-hidden">
-                <h3 class="text-2xl font-black text-[#0F172A] tracking-tighter uppercase italic leading-none truncate" [title]="teacherGroup.teacher.name + ' ' + teacherGroup.teacher.last_name">
+                <h3 class="text-2xl font-bold text-[#0F172A] tracking-tighter uppercase leading-none truncate" [title]="teacherGroup.teacher.name + ' ' + teacherGroup.teacher.last_name">
                   {{ teacherGroup.teacher.name }}
                 </h3>
                 <p class="text-sm font-bold text-slate-500 uppercase truncate" [title]="teacherGroup.teacher.last_name">{{ teacherGroup.teacher.last_name }}</p>
                 <div class="flex items-center gap-2 mt-2 flex-wrap">
-                   <span class="px-3 py-1 bg-blue-50 text-[#0E3A8A] rounded-full text-[9px] font-black uppercase tracking-widest border border-blue-100 shadow-sm">{{ teacherGroup.assignments.length }} cursos asignados</span>
+                   <span class="px-3 py-1 bg-blue-50 text-[#0E3A8A] rounded-full text-[9px] font-bold uppercase tracking-widest border border-blue-100 shadow-sm">{{ teacherGroup.assignments.length }} cursos asignados</span>
                 </div>
               </div>
             </div>
@@ -94,13 +83,13 @@ import { AcademicYear } from '@core/models/AcademicYear';
           <div class="mt-8 space-y-4 relative z-10 w-full">
             <div *ngFor="let item of teacherGroup.assignments" class="bg-slate-50/50 p-4 rounded-2xl border border-slate-50 group/item hover:bg-white hover:shadow-md transition-all flex items-center justify-between w-full">
                <div class="flex items-center gap-4 overflow-hidden w-full">
-                  <div class="w-10 h-10 bg-white rounded-xl flex items-center justify-center border border-slate-100 text-[#0E3A8A] font-black text-[10px] italic shadow-sm group-hover/item:border-[#0E3A8A] shrink-0">
+                  <div class="w-10 h-10 bg-white rounded-xl flex items-center justify-center border border-slate-100 text-[#0E3A8A] font-bold text-[10px] shadow-sm group-hover/item:border-[#0E3A8A] shrink-0">
                     {{ item.course?.code || 'CRS' }}
                   </div>
                   <div class="overflow-hidden flex-1">
-                    <h4 class="text-sm font-black text-[#0F172A] tracking-tighter italic uppercase leading-tight truncate" [title]="item.course?.name">{{ item.course?.name }}</h4>
+                    <h4 class="text-sm font-bold text-[#0F172A] tracking-tighter uppercase leading-tight truncate" [title]="item.course?.name">{{ item.course?.name }}</h4>
                     <p class="text-[9px] font-black text-slate-400 uppercase tracking-widest mt-0.5 truncate">
-                      Sección {{ item.section?.name }} <span *ngIf="item.academicYear">({{ item.academicYear?.year }})</span>
+                      {{ getSectionDisplayName(item.section) }} <span *ngIf="item.academicYear">({{ item.academicYear?.year }})</span>
                     </p>
                   </div>
                </div>
@@ -284,10 +273,10 @@ export class TeacherAssignmentsComponent implements OnInit {
       }
     });
   }
-
-  getSectionDisplayName(sec: Section): string {
+  getSectionDisplayName(sec: any): string {
+    if (!sec) return 'Sección desconocida';
     const gradeName = this.gradeLevelsMap[sec.grade_level_id] || 'Grado';
-    return `${gradeName} - Sección ${sec.name}`;
+    return `${gradeName} - Sección ${sec.section_letter || sec.letter || ''}`;
   }
 
   processGroups() {

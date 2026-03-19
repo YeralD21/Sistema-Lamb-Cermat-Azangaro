@@ -2,13 +2,14 @@ import { Component, OnInit } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { BackButtonComponent } from '@shared/components/back-button/back-button.component';
+import { SettingMetricCardComponent } from '@shared/components/setting-metric-card/setting-metric-card.component';
 import { AcademicService, StudentCourseEnrollment } from '@core/services/academic.service';
 import Swal from 'sweetalert2';
 
 @Component({
   selector: 'app-enrollment-config',
   standalone: true,
-  imports: [CommonModule, FormsModule, BackButtonComponent],
+  imports: [CommonModule, FormsModule, BackButtonComponent, SettingMetricCardComponent],
   template: `
     <div class="min-h-[calc(100vh-80px)] p-6 sm:p-10 max-w-7xl mx-auto space-y-8 animate-fade-in text-slate-700">
       
@@ -23,19 +24,10 @@ import Swal from 'sweetalert2';
       </div>
 
       <!-- Stats Cards -->
-      <div class="grid grid-cols-2 md:grid-cols-4 gap-4">
-        <div class="bg-white border border-slate-100 rounded-[2rem] p-6 shadow-sm flex flex-col items-center justify-center text-center space-y-1 group transition-all cursor-default">
-          <span class="text-[10px] font-black text-slate-400 uppercase tracking-[0.2em] italic mb-1">Total Matrículas</span>
-          <span class="text-3xl font-black text-[#0F172A]">{{ totalEnrollments }}</span>
-        </div>
-        <div class="bg-white border border-slate-100 rounded-[2rem] p-6 shadow-sm flex flex-col items-center justify-center text-center space-y-1 group transition-all cursor-default">
-          <span class="text-[10px] font-black text-slate-400 uppercase tracking-[0.2em] italic mb-1">Activas</span>
-          <span class="text-3xl font-black text-green-600">{{ activeEnrollments }}</span>
-        </div>
-        <div class="bg-white border border-slate-100 rounded-[2rem] p-6 shadow-sm flex flex-col items-center justify-center text-center space-y-1 group transition-all cursor-default">
-          <span class="text-[10px] font-black text-slate-400 uppercase tracking-[0.2em] italic mb-1">Retiradas</span>
-          <span class="text-3xl font-black text-red-600">{{ inactiveEnrollments }}</span>
-        </div>
+      <div class="flex flex-wrap gap-3 mt-2 mb-6">
+        <app-setting-metric-card label="Total Matrículas" [value]="totalEnrollments"></app-setting-metric-card>
+        <app-setting-metric-card label="Activas" [value]="activeEnrollments"></app-setting-metric-card>
+        <app-setting-metric-card label="Retiradas" [value]="inactiveEnrollments"></app-setting-metric-card>
       </div>
 
       <!-- Filter Pill -->
@@ -47,7 +39,7 @@ import Swal from 'sweetalert2';
           <input type="text" [(ngModel)]="searchTerm" (ngModelChange)="applyFilters()" placeholder="Buscar estudiante o curso..." class="flex-1 bg-transparent border-none text-sm font-bold text-[#0F172A] focus:ring-0 placeholder-slate-300">
         </div>
         <div class="flex flex-wrap lg:flex-nowrap items-center gap-2 w-full lg:w-auto">
-          <select [(ngModel)]="statusFilter" (ngModelChange)="applyFilters()" class="flex-1 lg:w-32 bg-slate-50 border-none rounded-xl text-[10px] font-black text-[#0F172A] uppercase tracking-tighter focus:ring-0 cursor-pointer py-2 px-3 italic">
+          <select [(ngModel)]="statusFilter" (ngModelChange)="applyFilters()" class="flex-1 lg:w-32 bg-slate-50 border-none rounded-xl text-[10px] font-bold text-[#0F172A] uppercase tracking-tighter focus:ring-0 cursor-pointer py-2 px-3">
             <option value="">Estados</option>
             <option value="active">Activo</option>
             <option value="withdrawn">Retirado</option>
@@ -67,36 +59,36 @@ import Swal from 'sweetalert2';
           <table class="w-full text-left border-collapse">
             <thead>
               <tr class="bg-slate-50/50 border-b border-slate-100">
-                <th class="px-8 py-5 text-[10px] font-black text-slate-400 uppercase tracking-[0.2em] italic">Estudiante</th>
-                <th class="px-8 py-5 text-[10px] font-black text-slate-400 uppercase tracking-[0.2em] italic text-center">Curso ID</th>
-                <th class="px-8 py-5 text-[10px] font-black text-slate-400 uppercase tracking-[0.2em] italic">Estado</th>
-                <th class="px-8 py-5 text-[10px] font-black text-slate-400 uppercase tracking-[0.2em] italic">Matrícula</th>
+                <th class="px-8 py-5 text-[10px] font-bold text-slate-400 uppercase tracking-[0.2em]">Estudiante</th>
+                <th class="px-8 py-5 text-[10px] font-bold text-slate-400 uppercase tracking-[0.2em] text-center">Curso ID</th>
+                <th class="px-8 py-5 text-[10px] font-bold text-slate-400 uppercase tracking-[0.2em]">Estado</th>
+                <th class="px-8 py-5 text-[10px] font-bold text-slate-400 uppercase tracking-[0.2em]">Matrícula</th>
               </tr>
             </thead>
             <tbody class="divide-y divide-slate-50">
               <tr *ngFor="let enrollment of filteredEnrollments" class="hover:bg-slate-50/50 transition-colors group">
                 <td class="px-8 py-5">
                   <div class="flex flex-col">
-                    <span class="text-sm font-black text-[#0F172A] leading-tight tracking-tight uppercase italic">{{ enrollment.user?.name + ' ' + (enrollment.user?.last_name || '') || enrollment.user_id }}</span>
-                    <span class="text-[10px] font-bold text-slate-400 italic">User ID: {{ enrollment.user_id }}</span>
+                    <span class="text-sm font-bold text-[#0F172A] leading-tight tracking-tight uppercase">{{ enrollment.user?.name + ' ' + (enrollment.user?.last_name || '') || enrollment.user_id }}</span>
+                    <span class="text-[10px] font-semibold text-slate-400">User ID: {{ enrollment.user_id }}</span>
                   </div>
                 </td>
                 <td class="px-8 py-5 text-center">
                   <span class="text-sm font-black text-[#0F172A] tracking-tighter">{{ enrollment.course_id }}</span>
                 </td>
                 <td class="px-8 py-5">
-                  <span [class]="'px-3 py-1 rounded-full text-[9px] font-black uppercase tracking-widest border ' + getStatusClass(enrollment.status)">
+                  <span [class]="'px-3 py-1 rounded-full text-[9px] font-bold uppercase tracking-widest border ' + getStatusClass(enrollment.status)">
                     {{ enrollment.status }}
                   </span>
                 </td>
-                <td class="px-8 py-5 text-[11px] font-bold text-slate-400 uppercase tracking-tighter italic">
+                <td class="px-8 py-5 text-[11px] font-semibold text-slate-400 uppercase tracking-tighter">
                   {{ enrollment.enrollment_date | date:'dd MMM yyyy' }}
                 </td>
               </tr>
             </tbody>
           </table>
           <div *ngIf="filteredEnrollments.length === 0" class="p-12 text-center">
-            <p class="text-slate-400 font-bold italic uppercase tracking-widest">No se encontraron matrículas</p>
+            <p class="text-slate-400 font-bold uppercase tracking-widest text-center">No se encontraron matrículas</p>
           </div>
         </div>
       </div>
@@ -129,7 +121,7 @@ export class EnrollmentConfigComponent implements OnInit {
 
   loadEnrollments() {
     this.loading = true;
-    this.academicService.getStudentCourseEnrollments().subscribe({
+    this.academicService.getStudentCourseEnrollments({ per_page: 100 }).subscribe({
       next: (res: any) => {
         this.enrollments = res.data || res;
         this.applyFilters();

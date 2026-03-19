@@ -37,7 +37,7 @@ import Swal from 'sweetalert2';
         <select 
           [ngModel]="selectedGradeFilter" 
           (ngModelChange)="filterByGrade($event)"
-          class="flex-1 bg-transparent border-none text-[10px] font-black text-[#0F172A] uppercase tracking-[0.15em] focus:ring-0 cursor-pointer appearance-none italic">
+          class="flex-1 bg-transparent border-none text-[10px] font-bold text-[#0F172A] uppercase tracking-[0.15em] focus:ring-0 cursor-pointer appearance-none">
           <option value="">Todos los grados</option>
           <option *ngFor="let g of gradeLevels" [value]="g.id">{{ g.name }} ({{ g.level }})</option>
         </select>
@@ -54,8 +54,8 @@ import Swal from 'sweetalert2';
       <!-- Grade Section -->
       <div *ngIf="!loading" class="space-y-6">
         <div *ngFor="let gradeGroup of filteredGroupedCourses" class="space-y-6">
-          <h2 class="text-xl font-bold text-[#0F172A] flex items-center gap-3 border-l-[3px] border-blue-600 pl-4 tracking-tight uppercase leading-none italic">
-            {{ gradeGroup.gradeName }} <span class="text-sm text-slate-400 no-italic ml-2 font-medium">({{gradeGroup.level}})</span>
+          <h2 class="text-xl font-bold text-[#0F172A] flex items-center gap-3 border-l-[3px] border-blue-600 pl-4 tracking-tight uppercase leading-none">
+            {{ gradeGroup.gradeName }} <span class="text-sm text-slate-400 ml-2 font-medium">({{gradeGroup.level}})</span>
           </h2>
           
           <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
@@ -67,8 +67,8 @@ import Swal from 'sweetalert2';
                   <svg class="w-7 h-7 text-white" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20"/><path d="M6.5 2H20v20H6.5A2.5 2.5 0 0 1 4 19.5v-15A2.5 2.5 0 0 1 6.5 2z"/></svg>
                 </div>
                 <div class="space-y-1 overflow-hidden">
-                  <span class="inline-flex items-center px-2 py-0.5 rounded-lg text-[8px] font-black bg-slate-50 text-slate-500 border border-slate-100 shadow-sm uppercase tracking-widest break-words">{{ course.code }}</span>
-                  <h3 class="text-base font-black text-[#0F172A] tracking-tighter uppercase leading-tight truncate" [title]="course.name">{{ course.name }}</h3>
+                  <span class="inline-flex items-center px-2 py-0.5 rounded-lg text-[8px] font-bold bg-slate-50 text-slate-500 border border-slate-100 shadow-sm uppercase tracking-widest break-words">{{ course.code }}</span>
+                  <h3 class="text-base font-bold text-[#0F172A] tracking-tighter uppercase leading-tight truncate" [title]="course.name">{{ course.name }}</h3>
                 </div>
               </div>
 
@@ -76,14 +76,14 @@ import Swal from 'sweetalert2';
               <div class="bg-slate-50/50 p-3 px-4 rounded-xl border border-slate-50 flex items-center gap-3 relative z-10">
                 <svg class="w-4 h-4 text-blue-500" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>
                 <div class="flex items-baseline gap-1.5 text-xs font-bold">
-                  <span class="text-[#0F172A] italic">{{ course.weekly_hours }} horas</span>
+                  <span class="text-[#0F172A]">{{ course.weekly_hours }} horas</span>
                   <span class="text-slate-400 uppercase tracking-tighter">/ semana</span>
                 </div>
               </div>
 
               <!-- Card Footer: Actions -->
               <div class="flex gap-2 relative z-10">
-                <button (click)="openModal(course)" class="flex-1 py-3 bg-white text-[#0E3A8A] border-2 border-slate-100/50 hover:border-[#0E3A8A] text-[10px] font-black uppercase tracking-tight rounded-xl transition-all active:scale-95 shadow-sm flex items-center justify-center gap-2 group/btn">
+                <button (click)="openModal(course)" class="flex-1 py-3 bg-white text-[#0E3A8A] border-2 border-slate-100/50 hover:border-[#0E3A8A] text-[10px] font-bold uppercase tracking-tight rounded-xl transition-all active:scale-95 shadow-sm flex items-center justify-center gap-2 group/btn">
                   <svg class="w-3.5 h-3.5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/></svg>
                   Editar
                 </button>
@@ -220,7 +220,7 @@ export class CoursesComponent implements OnInit {
     this.academicService.getGradeLevels().subscribe((resG) => {
       this.gradeLevels = resG.data || resG;
       
-      this.academicService.getCourses().subscribe({
+      this.academicService.getCourses({ per_page: 100 }).subscribe({
         next: (resC) => {
           this.courses = resC.data || resC;
           this.groupCourses();

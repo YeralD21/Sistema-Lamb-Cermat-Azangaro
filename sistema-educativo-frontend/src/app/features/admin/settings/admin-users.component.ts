@@ -4,12 +4,13 @@ import { UserService, UserProfile } from '@core/services/user.service';
 import { Router } from '@angular/router';
 import { FormsModule } from '@angular/forms';
 import { BackButtonComponent } from '@shared/components/back-button/back-button.component';
+import { SettingMetricCardComponent } from '@shared/components/setting-metric-card/setting-metric-card.component';
 import Swal from 'sweetalert2';
 
 @Component({
   selector: 'app-admin-users',
   standalone: true,
-  imports: [CommonModule, FormsModule, BackButtonComponent],
+  imports: [CommonModule, FormsModule, BackButtonComponent, SettingMetricCardComponent],
   template: `
     <div class="min-h-[calc(100vh-80px)] p-6 sm:p-10 max-w-7xl mx-auto space-y-8 animate-fade-in text-slate-700">
       
@@ -31,23 +32,11 @@ import Swal from 'sweetalert2';
       </div>
 
       <!-- Stats Cards -->
-      <div class="grid grid-cols-2 md:grid-cols-4 gap-4">
-        <div class="bg-white border border-slate-100 rounded-[2rem] p-6 shadow-sm flex flex-col items-center justify-center text-center space-y-1 group hover:border-[#0E3A8A]/20 transition-all cursor-default">
-          <span class="text-xs font-black text-slate-400 uppercase tracking-widest italic leading-none mb-1">Total Usuarios</span>
-          <span class="text-3xl font-black text-[#0F172A]">{{ stats().total }}</span>
-        </div>
-        <div class="bg-white border border-slate-100 rounded-[2rem] p-6 shadow-sm flex flex-col items-center justify-center text-center space-y-1 group hover:border-green-100 transition-all cursor-default">
-          <span class="text-xs font-black text-slate-400 uppercase tracking-widest italic leading-none mb-1">Activos</span>
-          <span class="text-3xl font-black text-green-600">{{ stats().active }}</span>
-        </div>
-        <div class="bg-white border border-slate-100 rounded-[2rem] p-6 shadow-sm flex flex-col items-center justify-center text-center space-y-1 group hover:border-red-100 transition-all cursor-default">
-          <span class="text-xs font-black text-slate-400 uppercase tracking-widest italic leading-none mb-1">Inactivos</span>
-          <span class="text-3xl font-black text-red-600">{{ stats().inactive }}</span>
-        </div>
-        <div class="bg-white border border-slate-100 rounded-[2rem] p-6 shadow-sm flex flex-col items-center justify-center text-center space-y-1 group hover:border-blue-100 transition-all cursor-default">
-          <span class="text-xs font-black text-slate-400 uppercase tracking-widest italic leading-none mb-1">Docentes</span>
-          <span class="text-3xl font-black text-blue-600">{{ stats().teachers }}</span>
-        </div>
+      <div class="flex flex-wrap gap-3 mt-2 mb-6">
+        <app-setting-metric-card label="Total Usuarios" [value]="stats().total"></app-setting-metric-card>
+        <app-setting-metric-card label="Activos" [value]="stats().active"></app-setting-metric-card>
+        <app-setting-metric-card label="Inactivos" [value]="stats().inactive"></app-setting-metric-card>
+        <app-setting-metric-card label="Docentes" [value]="stats().teachers"></app-setting-metric-card>
       </div>
 
       <!-- Filter Pill -->
@@ -61,7 +50,7 @@ import Swal from 'sweetalert2';
         </div>
         <div class="flex items-center gap-4 w-full md:w-auto">
           <select [(ngModel)]="filters.role" (change)="loadUsers()" 
-                  class="w-full md:w-40 bg-slate-50 border-none rounded-xl text-xs font-black text-[#0F172A] uppercase tracking-tighter focus:ring-0 cursor-pointer py-2 px-4 italic">
+                  class="w-full md:w-40 bg-slate-50 border-none rounded-xl text-xs font-bold text-[#0F172A] uppercase tracking-tighter focus:ring-0 cursor-pointer py-2 px-4">
             <option value="Todos">Todos los roles</option>
             <option value="admin">Administrador</option>
             <option value="teacher">Docente</option>
@@ -69,7 +58,7 @@ import Swal from 'sweetalert2';
             <option value="guardian">Apoderado</option>
           </select>
           <select [(ngModel)]="filters.isActive" (change)="loadUsers()" 
-                  class="w-full md:w-40 bg-slate-50 border-none rounded-xl text-xs font-black text-[#0F172A] uppercase tracking-tighter focus:ring-0 cursor-pointer py-2 px-4 italic">
+                  class="w-full md:w-40 bg-slate-50 border-none rounded-xl text-xs font-bold text-[#0F172A] uppercase tracking-tighter focus:ring-0 cursor-pointer py-2 px-4">
             <option [ngValue]="undefined">Todos los estados</option>
             <option [ngValue]="true">Activo</option>
             <option [ngValue]="false">Inactivo</option>
@@ -88,11 +77,11 @@ import Swal from 'sweetalert2';
           <table class="w-full text-left border-collapse">
             <thead>
               <tr class="bg-slate-50/50 border-b border-slate-100">
-                <th class="px-8 py-5 text-[10px] font-black text-slate-400 uppercase tracking-[0.2em] italic">Usuario</th>
-                <th class="px-8 py-5 text-[10px] font-black text-slate-400 uppercase tracking-[0.2em] italic">Rol</th>
-                <th class="px-8 py-5 text-[10px] font-black text-slate-400 uppercase tracking-[0.2em] italic">Estado</th>
-                <th class="px-8 py-5 text-[10px] font-black text-slate-400 uppercase tracking-[0.2em] italic">Fecha Creación</th>
-                <th class="px-8 py-5 text-right text-[10px] font-black text-slate-400 uppercase tracking-[0.2em] italic">Acciones</th>
+                <th class="px-8 py-5 text-[10px] font-bold text-slate-400 uppercase tracking-[0.2em]">Usuario</th>
+                <th class="px-8 py-5 text-[10px] font-bold text-slate-400 uppercase tracking-[0.2em]">Rol</th>
+                <th class="px-8 py-5 text-[10px] font-bold text-slate-400 uppercase tracking-[0.2em]">Estado</th>
+                <th class="px-8 py-5 text-[10px] font-bold text-slate-400 uppercase tracking-[0.2em]">Fecha Creación</th>
+                <th class="px-8 py-5 text-right text-[10px] font-bold text-slate-400 uppercase tracking-[0.2em]">Acciones</th>
               </tr>
             </thead>
             <tbody class="divide-y divide-slate-50">
@@ -103,13 +92,13 @@ import Swal from 'sweetalert2';
                       {{ user.full_name.charAt(0) || 'U' }}
                     </div>
                     <div class="flex flex-col">
-                      <span class="text-sm font-black text-[#0F172A] leading-tight tracking-tight uppercase italic">{{ user.full_name }}</span>
-                      <span class="text-[10px] font-bold text-slate-400 italic lowercase">{{ user.email }}</span>
+                      <span class="text-sm font-bold text-[#0F172A] leading-tight tracking-tight uppercase">{{ user.full_name }}</span>
+                      <span class="text-[10px] font-semibold text-slate-400 lowercase">{{ user.email }}</span>
                     </div>
                   </div>
                 </td>
                 <td class="px-8 py-5 text-sm font-medium">
-                  <span [class]="'px-3 py-1 rounded-full text-[9px] font-black uppercase tracking-widest border ' + getRoleClass(user.role)">
+                  <span [class]="'px-3 py-1 rounded-full text-[9px] font-bold uppercase tracking-widest border ' + getRoleClass(user.role)">
                     {{ user.role }}
                   </span>
                 </td>
@@ -121,7 +110,7 @@ import Swal from 'sweetalert2';
                     </span>
                   </div>
                 </td>
-                <td class="px-8 py-5 text-[11px] font-bold text-slate-400 uppercase tracking-tighter italic">
+                <td class="px-8 py-5 text-[11px] font-semibold text-slate-400 uppercase tracking-tighter">
                   {{ user.created_at | date:'dd MMM yyyy' }}
                 </td>
                 <td class="px-8 py-5">
@@ -139,7 +128,7 @@ import Swal from 'sweetalert2';
           </table>
           <!-- Empty State -->
           <div *ngIf="users().length === 0" class="p-12 text-center">
-            <p class="text-slate-400 font-bold italic uppercase tracking-widest">No se encontraron usuarios</p>
+            <p class="text-slate-400 font-bold uppercase tracking-widest text-center">No se encontraron usuarios</p>
           </div>
         </div>
       </div>
@@ -150,7 +139,7 @@ import Swal from 'sweetalert2';
           <!-- Modal Header -->
           <div class="p-8 pb-0 flex justify-between items-center">
             <div>
-              <h2 class="text-2xl font-black text-[#0F172A] uppercase italic tracking-tight">Crear Nuevo Usuario</h2>
+              <h2 class="text-2xl font-bold text-[#0F172A] uppercase tracking-tight">Crear Nuevo Usuario</h2>
               <p class="text-slate-400 text-[10px] font-bold uppercase tracking-widest mt-1">Completa los datos del perfil</p>
             </div>
             <button (click)="closeModal()" class="p-2 hover:bg-slate-50 rounded-xl transition-colors">
@@ -161,24 +150,24 @@ import Swal from 'sweetalert2';
           <!-- Modal Body -->
           <form (submit)="createUser($event)" class="p-8 space-y-5">
             <div class="space-y-2">
-              <label class="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-1 italic">Nombre Completo</label>
+              <label class="text-[10px] font-bold text-slate-400 uppercase tracking-widest ml-1">Nombre Completo</label>
               <input type="text" [(ngModel)]="newUser.name" name="name" required
                      placeholder="Ej: Juan Perez"
-                     class="w-full bg-slate-50 border-none rounded-[1.25rem] px-5 py-3.5 text-sm font-bold text-[#0F172A] focus:ring-2 focus:ring-[#0E3A8A]/10 placeholder-slate-300 italic shadow-inner">
+                     class="w-full bg-slate-50 border-none rounded-[1.25rem] px-5 py-3.5 text-sm font-bold text-[#0F172A] focus:ring-2 focus:ring-[#0E3A8A]/10 placeholder-slate-300 shadow-inner">
             </div>
 
             <div class="space-y-2">
-              <label class="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-1 italic">Email Institucional</label>
+              <label class="text-[10px] font-bold text-slate-400 uppercase tracking-widest ml-1">Email Institucional</label>
               <input type="email" [(ngModel)]="newUser.email" name="email" required
                      placeholder="usuario@cermatschool.edu.pe"
-                     class="w-full bg-slate-50 border-none rounded-[1.25rem] px-5 py-3.5 text-sm font-bold text-[#0F172A] focus:ring-2 focus:ring-[#0E3A8A]/10 placeholder-slate-300 italic shadow-inner">
+                     class="w-full bg-slate-50 border-none rounded-[1.25rem] px-5 py-3.5 text-sm font-bold text-[#0F172A] focus:ring-2 focus:ring-[#0E3A8A]/10 placeholder-slate-300 shadow-inner">
             </div>
 
             <div class="grid grid-cols-2 gap-4">
               <div class="space-y-2">
-                <label class="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-1 italic">Rol del Sistema</label>
+                <label class="text-[10px] font-bold text-slate-400 uppercase tracking-widest ml-1">Rol del Sistema</label>
                 <select [(ngModel)]="newUser.role" name="role" required
-                        class="w-full bg-slate-50 border-none rounded-[1.25rem] px-5 py-3.5 text-xs font-black text-[#0F172A] uppercase italic focus:ring-2 focus:ring-[#0E3A8A]/10 cursor-pointer shadow-inner">
+                        class="w-full bg-slate-50 border-none rounded-[1.25rem] px-5 py-3.5 text-xs font-bold text-[#0F172A] uppercase focus:ring-2 focus:ring-[#0E3A8A]/10 cursor-pointer shadow-inner">
                   <option value="admin">Administrador</option>
                   <option value="teacher">Docente</option>
                   <option value="student">Estudiante</option>
@@ -186,21 +175,21 @@ import Swal from 'sweetalert2';
                 </select>
               </div>
               <div class="space-y-2">
-                <label class="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-1 italic">Contraseña</label>
+                <label class="text-[10px] font-bold text-slate-400 uppercase tracking-widest ml-1">Contraseña</label>
                 <input type="password" [(ngModel)]="newUser.password" name="password" required
                        placeholder="••••••••"
-                       class="w-full bg-slate-50 border-none rounded-[1.25rem] px-5 py-3.5 text-sm font-bold text-[#0F172A] focus:ring-2 focus:ring-[#0E3A8A]/10 placeholder-slate-300 italic shadow-inner">
+                       class="w-full bg-slate-50 border-none rounded-[1.25rem] px-5 py-3.5 text-sm font-bold text-[#0F172A] focus:ring-2 focus:ring-[#0E3A8A]/10 placeholder-slate-300 shadow-inner">
               </div>
             </div>
 
             <!-- Action Buttons -->
             <div class="flex gap-4 pt-4">
               <button type="button" (click)="closeModal()"
-                      class="flex-1 px-6 py-4 border-2 border-slate-50 rounded-[1.5rem] text-xs font-black text-slate-400 uppercase tracking-widest hover:border-slate-200 transition-all active:scale-95 italic">
+                      class="flex-1 px-6 py-4 border-2 border-slate-50 rounded-[1.5rem] text-xs font-bold text-slate-400 uppercase tracking-widest hover:border-slate-200 transition-all active:scale-95">
                 Cancelar
               </button>
               <button type="submit" [disabled]="submitting()"
-                      class="flex-[2] px-6 py-4 bg-gradient-to-r from-[#0E3A8A] to-[#C026D3] text-white text-xs font-black rounded-[1.5rem] uppercase tracking-widest shadow-lg shadow-blue-500/20 active:scale-95 transition-all disabled:opacity-50">
+                      class="flex-[2] px-6 py-4 bg-gradient-to-r from-[#0E3A8A] to-[#C026D3] text-white text-xs font-bold rounded-[1.5rem] uppercase tracking-widest shadow-lg shadow-blue-500/20 active:scale-95 transition-all disabled:opacity-50">
                 {{ submitting() ? 'CREANDO...' : 'CONFIRMAR CREACIÓN' }}
               </button>
             </div>
@@ -274,7 +263,8 @@ export class AdminUsersComponent implements OnInit {
     this.userService.getProfiles({
       role: this.filters.role,
       is_active: this.filters.isActive,
-      q: this.filters.q
+      q: this.filters.q,
+      per_page: 50
     }).subscribe({
       next: (res) => {
         this.users.set(res.data);

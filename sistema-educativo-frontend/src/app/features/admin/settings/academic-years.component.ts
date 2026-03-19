@@ -4,26 +4,28 @@ import { Component, OnInit } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { ReactiveFormsModule, FormBuilder, FormGroup, Validators } from '@angular/forms';
 import { BackButtonComponent } from '@shared/components/back-button/back-button.component';
+import { SettingMetricCardComponent } from '@shared/components/setting-metric-card/setting-metric-card.component';
 import Swal from 'sweetalert2';
 
 @Component({
   selector: 'app-academic-years',
   standalone: true,
-  imports: [CommonModule, ReactiveFormsModule, BackButtonComponent],
+  imports: [CommonModule, ReactiveFormsModule, BackButtonComponent, SettingMetricCardComponent],
   template: `
     <div class="min-h-[calc(100vh-80px)] p-6 sm:p-10 max-w-7xl mx-auto space-y-8 animate-fade-in text-slate-700 relative">
-      <app-back-button></app-back-button>
-
       <!-- Header -->
-      <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-6">
-        <div class="space-y-1">
-          <h1 class="text-3xl font-bold text-[#0F172A] tracking-tight">Años Académicos</h1>
-          <p class="text-slate-500 text-sm font-medium">Gestiona los años lectivos de la institución</p>
+      <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-6 mb-2">
+        <div class="flex items-center gap-4">
+          <app-back-button></app-back-button>
+          <div class="space-y-1">
+            <h1 class="text-2xl sm:text-3xl font-medium text-[#0F172A] tracking-tight">Años Académicos</h1>
+            <p class="text-slate-500 text-sm font-normal">Gestiona los años lectivos de la institución</p>
+          </div>
         </div>
         <button
           (click)="openModal()"
-          class="px-6 py-3 bg-gradient-to-r from-[#0E3A8A] to-[#C026D3] hover:opacity-90 text-white text-sm font-bold rounded-2xl transition-all shadow-lg active:scale-95 flex items-center justify-center gap-2">
-          <svg class="w-5 h-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3">
+          class="px-6 py-3 bg-gradient-to-r from-[#0E3A8A] to-[#C026D3] hover:opacity-90 text-white text-sm font-medium rounded-2xl transition-all shadow-sm active:scale-95 flex items-center justify-center gap-2">
+          <svg class="w-5 h-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
             <line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/>
           </svg>
           Registrar Año
@@ -31,15 +33,10 @@ import Swal from 'sweetalert2';
       </div>
 
       <!-- Stats -->
-      <div class="grid grid-cols-2 lg:grid-cols-4 gap-4">
-        <div class="bg-white border border-slate-100 rounded-[2rem] p-6 shadow-sm flex flex-col items-center justify-center text-center space-y-1 hover:border-blue-100 transition-all">
-          <span class="text-[10px] font-black text-slate-400 uppercase tracking-[0.2em] italic mb-1">Total Años</span>
-          <span class="text-3xl font-black text-[#0F172A]">{{ academicYears.length }}</span>
-        </div>
-        <div class="bg-white border border-slate-100 rounded-[2rem] p-6 shadow-sm flex flex-col items-center justify-center text-center space-y-1 hover:border-green-100 transition-all border-l-4 border-l-green-500">
-          <span class="text-[10px] font-black text-slate-400 uppercase tracking-[0.2em] italic mb-1">Año Activo</span>
-          <span class="text-3xl font-black text-green-600">{{ activeYear ? activeYear.year : 'Ninguno' }}</span>
-        </div>
+      <!-- Stats -->
+      <div class="flex flex-wrap gap-3 mt-2 mb-6">
+        <app-setting-metric-card label="Total Años" [value]="academicYears.length"></app-setting-metric-card>
+        <app-setting-metric-card label="Año Activo" [value]="activeYear ? activeYear.year : 'Ninguno'"></app-setting-metric-card>
       </div>
 
       <!-- Loading -->
@@ -56,23 +53,23 @@ import Swal from 'sweetalert2';
 
           <div class="flex items-start justify-between relative z-10 w-full">
             <div class="flex items-center gap-4">
-              <div class="w-16 h-16 bg-gradient-to-br from-[#0E3A8A] to-[#1D4ED8] rounded-2xl flex items-center justify-center shadow-lg group-hover:scale-110 transition-transform">
-                <svg class="w-8 h-8 text-white" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
+              <div class="w-16 h-16 bg-gradient-to-br from-[#0E3A8A] to-[#1D4ED8] rounded-2xl flex items-center justify-center shadow-sm group-hover:scale-105 transition-transform border border-blue-200">
+                <svg class="w-7 h-7 text-white" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
                   <rect x="3" y="4" width="18" height="18" rx="2" ry="2"/>
                   <line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/>
                 </svg>
               </div>
               <div class="space-y-1">
-                <h3 class="text-3xl font-black text-[#0F172A] tracking-tighter">{{ year.year }}</h3>
-                <div class="text-xs text-slate-500 font-semibold">
+                <h3 class="text-2xl font-medium text-[#0F172A] tracking-tight">{{ year.year }}</h3>
+                <div class="text-xs text-slate-500 font-normal">
                   {{ year.start_date | date:'dd/MM/yyyy' }} — {{ year.end_date | date:'dd/MM/yyyy' }}
                 </div>
                 <span *ngIf="year.is_active"
-                  class="inline-flex items-center px-3 py-1 rounded-full text-[9px] font-black bg-green-50 text-green-600 border border-green-100 uppercase tracking-widest">
+                  class="inline-flex items-center px-3 py-1 rounded-full text-[10px] font-medium bg-green-50 text-green-600 border border-green-100 uppercase tracking-widest mt-0.5">
                   Activo
                 </span>
                 <span *ngIf="!year.is_active"
-                  class="inline-flex items-center px-3 py-1 rounded-full text-[9px] font-black bg-slate-100 text-slate-500 border border-slate-200 uppercase tracking-widest">
+                  class="inline-flex items-center px-3 py-1 rounded-full text-[10px] font-medium bg-slate-100 text-slate-500 border border-slate-200 uppercase tracking-widest mt-0.5">
                   Inactivo
                 </span>
               </div>
@@ -333,7 +330,7 @@ export class AcademicYearsComponent implements OnInit {
 
   loadYears(): void {
     this.loading = true;
-    this.academicService.getAcademicYears().subscribe({
+    this.academicService.getAcademicYears({ per_page: 100 }).subscribe({
       next: (res) => {
         this.academicYears = res.data ?? res;
         this.loading = false;

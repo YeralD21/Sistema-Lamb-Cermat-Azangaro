@@ -3,21 +3,23 @@ import { CommonModule } from '@angular/common';
 import { ReactiveFormsModule, FormBuilder, FormGroup, Validators } from '@angular/forms';
 import { BackButtonComponent } from '@shared/components/back-button/back-button.component';
 import { AcademicService, GradeLevel } from '@core/services/academic.service';
+import { SettingMetricCardComponent } from '@shared/components/setting-metric-card/setting-metric-card.component';
 import Swal from 'sweetalert2';
 
 @Component({
   selector: 'app-grades-levels',
   standalone: true,
-  imports: [CommonModule, ReactiveFormsModule, BackButtonComponent],
+  imports: [CommonModule, ReactiveFormsModule, BackButtonComponent, SettingMetricCardComponent],
   template: `
     <div class="min-h-[calc(100vh-80px)] p-6 sm:p-10 max-w-7xl mx-auto space-y-8 animate-fade-in text-slate-700 relative">
-      <app-back-button></app-back-button>
-
       <!-- Header Section -->
-      <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-6">
-        <div class="space-y-1">
-          <h1 class="text-3xl font-bold text-[#0F172A] tracking-tight">Grados y Niveles</h1>
-          <p class="text-slate-500 text-sm font-medium">Gestiona los grados por nivel educativo</p>
+      <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-6 mb-2">
+        <div class="flex items-center gap-4">
+          <app-back-button></app-back-button>
+          <div class="space-y-1">
+            <h1 class="text-3xl font-bold text-[#0F172A] tracking-tight">Grados y Niveles</h1>
+            <p class="text-slate-500 text-sm font-medium">Gestiona los grados por nivel educativo</p>
+          </div>
         </div>
         <button 
           (click)="openModal()"
@@ -28,23 +30,11 @@ import Swal from 'sweetalert2';
       </div>
 
       <!-- Stats Cards -->
-      <div class="grid grid-cols-2 lg:grid-cols-4 gap-4">
-        <div class="bg-white border border-slate-100 rounded-[2rem] p-6 shadow-sm flex flex-col items-center justify-center text-center space-y-1 group transition-all hover:border-blue-100">
-          <span class="text-[10px] font-black text-slate-400 uppercase tracking-[0.2em] italic mb-1">Total Grados</span>
-          <span class="text-3xl font-black text-[#0F172A]">{{ grades.length }}</span>
-        </div>
-        <div class="bg-white border border-slate-100 rounded-[2rem] p-6 shadow-sm flex flex-col items-center justify-center text-center space-y-1 group transition-all hover:border-green-100">
-          <span class="text-[10px] font-black text-slate-400 uppercase tracking-[0.2em] italic mb-1">Primaria</span>
-          <span class="text-3xl font-black text-green-600">{{ countLevel('primaria') }}</span>
-        </div>
-        <div class="bg-white border border-slate-100 rounded-[2rem] p-6 shadow-sm flex flex-col items-center justify-center text-center space-y-1 group transition-all hover:border-indigo-100">
-          <span class="text-[10px] font-black text-slate-400 uppercase tracking-[0.2em] italic mb-1">Secundaria</span>
-          <span class="text-3xl font-black text-indigo-600">{{ countLevel('secundaria') }}</span>
-        </div>
-        <div class="bg-white border border-slate-100 rounded-[2rem] p-6 shadow-sm flex flex-col items-center justify-center text-center space-y-1 group transition-all hover:border-orange-100">
-          <span class="text-[10px] font-black text-slate-400 uppercase tracking-[0.2em] italic mb-1">Inicial</span>
-          <span class="text-3xl font-black text-orange-500">{{ countLevel('inicial') }}</span>
-        </div>
+      <div class="flex flex-wrap gap-3 mt-2">
+        <app-setting-metric-card label="Total Grados" [value]="grades.length"></app-setting-metric-card>
+        <app-setting-metric-card label="Primaria" [value]="countLevel('primaria')"></app-setting-metric-card>
+        <app-setting-metric-card label="Secundaria" [value]="countLevel('secundaria')"></app-setting-metric-card>
+        <app-setting-metric-card label="Inicial" [value]="countLevel('inicial')"></app-setting-metric-card>
       </div>
 
       <!-- Loading State -->
@@ -55,24 +45,24 @@ import Swal from 'sweetalert2';
       <!-- Levels and Grade Cards -->
       <div *ngIf="!loading" class="space-y-6">
         <div *ngFor="let levelGroup of groupedGrades" class="space-y-6">
-          <h2 class="text-xl font-bold text-[#0F172A] flex items-center gap-3 border-l-[3px] border-[#0E3A8A] pl-4 uppercase tracking-tighter italic">
-            {{ levelGroup.level }} <span class="bg-slate-100 text-slate-500 text-xs px-2 py-0.5 rounded-full no-italic">{{ levelGroup.grades.length }}</span>
+          <h2 class="text-xl font-semibold text-[#0F172A] flex items-center gap-3 border-l-[3px] border-[#0E3A8A] pl-4 uppercase tracking-wide">
+            {{ levelGroup.level }} <span class="bg-slate-100 text-slate-600 text-xs px-2.5 py-0.5 rounded-full">{{ levelGroup.grades.length }}</span>
           </h2>
           
           <div class="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-5 gap-6">
             <div *ngFor="let grade of levelGroup.grades" class="bg-white border border-slate-100 rounded-[2.2rem] p-6 shadow-sm hover:shadow-xl transition-all group flex flex-col items-center relative overflow-hidden">
               
               <div class="text-center w-full space-y-5 relative z-10">
-                <div class="w-20 h-20 mx-auto bg-gradient-to-br from-[#0E3A8A] to-[#1D4ED8] rounded-full flex items-center justify-center shadow-lg group-hover:scale-110 transition-transform">
-                  <span class="text-4xl font-black text-white tracking-tighter italic">{{ grade.name.split('')[0] }}</span>
+                <div class="w-20 h-20 mx-auto bg-gradient-to-br from-[#0E3A8A] to-[#1D4ED8] rounded-full flex items-center justify-center shadow-md group-hover:scale-110 transition-transform">
+                  <span class="text-4xl font-bold text-white tracking-normal leading-none">{{ grade.name.split('')[0] }}</span>
                 </div>
                 <div>
-                  <h3 class="text-sm md:text-md font-black text-[#0F172A] tracking-tighter uppercase italic break-words">{{ grade.name }}</h3>
+                  <h3 class="text-sm md:text-base font-semibold text-[#0F172A] tracking-wide uppercase break-words">{{ grade.name }}</h3>
                 </div>
               </div>
 
               <div class="mt-8 pt-5 border-t border-slate-50 flex gap-2 w-full relative z-10">
-                <button (click)="openModal(grade)" class="flex-1 py-3 bg-white text-[#0E3A8A] border-2 border-slate-100 hover:border-[#0E3A8A] text-[10px] font-black uppercase tracking-widest rounded-xl transition-all active:scale-95 shadow-sm flex items-center justify-center gap-1.5 px-2">
+                <button (click)="openModal(grade)" class="flex-1 py-3 bg-white text-[#0E3A8A] border-2 border-slate-100 hover:border-[#0E3A8A] text-[10px] font-bold uppercase tracking-widest rounded-xl transition-all active:scale-95 shadow-sm flex items-center justify-center gap-1.5 px-2">
                   <svg class="w-3.5 h-3.5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/></svg>
                   Editar
                 </button>
@@ -291,7 +281,7 @@ export class GradesLevelsComponent implements OnInit {
 
   loadData(): void {
     this.loading = true;
-    this.academicService.getGradeLevels().subscribe({
+    this.academicService.getGradeLevels({ per_page: 100 }).subscribe({
       next: (res) => {
         this.grades = res.data ?? res;
         this.groupGrades();

@@ -2,13 +2,15 @@ import { Component, OnInit } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule, ReactiveFormsModule, FormBuilder, FormGroup, Validators } from '@angular/forms';
 import { BackButtonComponent } from '@shared/components/back-button/back-button.component';
+import { SettingMetricCardComponent } from '@shared/components/setting-metric-card/setting-metric-card.component';
+import { SettingFilterDropdownComponent, FilterOption } from '@shared/components/setting-filter-dropdown/setting-filter-dropdown.component';
 import { AcademicService, Competency, Course } from '@core/services/academic.service';
 import Swal from 'sweetalert2';
 
 @Component({
   selector: 'app-competencies',
   standalone: true,
-  imports: [CommonModule, ReactiveFormsModule, FormsModule, BackButtonComponent],
+  imports: [CommonModule, ReactiveFormsModule, FormsModule, BackButtonComponent, SettingMetricCardComponent, SettingFilterDropdownComponent],
   template: `
     <div class="min-h-[calc(100vh-80px)] p-6 sm:p-10 max-w-7xl mx-auto space-y-8 animate-fade-in text-slate-700 relative">
       <app-back-button></app-back-button>
@@ -28,40 +30,22 @@ import Swal from 'sweetalert2';
       </div>
 
       <!-- Stats Cards -->
-      <div class="grid grid-cols-2 lg:grid-cols-4 gap-4">
-        <div class="bg-white border border-slate-100 rounded-[2rem] p-6 shadow-sm flex flex-col items-center justify-center text-center space-y-1 group transition-all hover:border-blue-100">
-          <span class="text-[10px] font-black text-slate-400 uppercase tracking-[0.2em] italic mb-1">Total Cursos</span>
-          <span class="text-3xl font-black text-[#0F172A]">{{ totalCourses }}</span>
-        </div>
-        <div class="bg-white border border-slate-100 rounded-[2rem] p-6 shadow-sm flex flex-col items-center justify-center text-center space-y-1 group transition-all hover:border-slate-200">
-          <span class="text-[10px] font-black text-slate-400 uppercase tracking-[0.2em] italic mb-1">Competencias</span>
-          <span class="text-3xl font-black text-[#0F172A]">{{ totalCompetencies }}</span>
-        </div>
-        <div class="bg-white border border-slate-100 rounded-[2rem] p-6 shadow-sm flex flex-col items-center justify-center text-center space-y-1 group transition-all hover:border-blue-100 border-l-4 border-l-blue-500">
-          <span class="text-[10px] font-black text-slate-400 uppercase tracking-[0.2em] italic mb-1">Cursos Config.</span>
-          <span class="text-3xl font-black text-[#0E3A8A]">{{ configuredCourses }}</span>
-        </div>
-        <div class="bg-white border border-slate-100 rounded-[2rem] p-6 shadow-sm flex flex-col items-center justify-center text-center space-y-1 group transition-all hover:border-orange-100">
-          <span class="text-[10px] font-black text-slate-400 uppercase tracking-[0.2em] italic mb-1">Prom. por Curso</span>
-          <span class="text-3xl font-black text-orange-600">{{ avgCompetencies | number:'1.0-1' }}</span>
-        </div>
+      <div class="flex flex-wrap gap-3 mt-2 mb-6">
+        <app-setting-metric-card label="Total Cursos" [value]="totalCourses"></app-setting-metric-card>
+        <app-setting-metric-card label="Competencias" [value]="totalCompetencies"></app-setting-metric-card>
+        <app-setting-metric-card label="Cursos Config." [value]="configuredCourses"></app-setting-metric-card>
+        <app-setting-metric-card label="Prom. por Curso" [value]="avgCompetencies | number:'1.0-1'"></app-setting-metric-card>
       </div>
 
       <!-- Filter Pill -->
-      <div class="bg-white border border-slate-100/50 rounded-[2rem] p-4 shadow-sm flex items-center gap-4 px-6 md:max-w-xl mx-auto">
-        <div class="text-slate-400">
-          <svg class="w-5 h-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M22 3H2l8 9.46V19l4 2v-8.54L22 3z"/></svg>
-        </div>
-        <select 
-          [ngModel]="selectedCourseFilter" 
-          (ngModelChange)="filterByCourse($event)"
-          class="flex-1 bg-transparent border-none text-[10px] font-black text-[#0F172A] uppercase tracking-[0.15em] focus:ring-0 cursor-pointer appearance-none italic">
-          <option value="">Todos los cursos</option>
-          <option *ngFor="let c of courses" [value]="c.id">{{ c.code }} - {{ c.name }}</option>
-        </select>
-        <div class="text-slate-400">
-          <svg class="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="6 9 12 15 18 9"/></svg>
-        </div>
+      <!-- Filter Pill -->
+      <div class="md:max-w-xl mx-auto">
+        <app-setting-filter-dropdown
+          [options]="courseFilterOptions"
+          [selectedId]="selectedCourseFilter"
+          placeholder="Todos los cursos"
+          (selectionChange)="filterByCourse($event)">
+        </app-setting-filter-dropdown>
       </div>
 
       <!-- Loading State -->
@@ -72,9 +56,9 @@ import Swal from 'sweetalert2';
       <!-- Competencies by Course -->
       <div *ngIf="!loading" class="space-y-6">
         <div *ngFor="let courseGroup of filteredGroupedCompetencies" class="space-y-6">
-          <h2 class="text-xl font-bold text-[#0F172A] flex items-center gap-3 border-l-[3px] border-[#0E3A8A] pl-4 italic tracking-tight uppercase leading-none">
+          <h2 class="text-xl font-bold text-[#0F172A] flex items-center gap-3 border-l-[3px] border-[#0E3A8A] pl-4 tracking-tight uppercase leading-none">
             {{ courseGroup.courseName }}
-            <span class="text-[10px] font-black text-slate-400 uppercase tracking-tighter ml-1">({{ courseGroup.courseCode }})</span>
+            <span class="text-[10px] font-bold text-slate-400 uppercase tracking-tighter ml-1">({{ courseGroup.courseCode }})</span>
           </h2>
           
           <div class="space-y-4">
@@ -86,15 +70,15 @@ import Swal from 'sweetalert2';
               <div class="flex items-start gap-4 flex-1 relative z-10">
                 <!-- Number Square -->
                 <div class="w-16 h-16 bg-gradient-to-br from-[#0E3A8A] to-[#1D4ED8] rounded-[1.25rem] flex items-center justify-center shadow-lg group-hover:scale-110 group-hover:-rotate-3 transition-all flex-shrink-0">
-                  <span class="text-2xl font-black text-white italic">C{{ i + 1 }}</span>
+                  <span class="text-2xl font-bold text-white">C{{ i + 1 }}</span>
                 </div>
 
                 <!-- Content -->
                 <div class="flex-1 space-y-2">
-                  <div class="px-3 py-1 bg-blue-50 text-[#0E3A8A] border border-blue-100 rounded-lg text-[10px] font-black uppercase tracking-widest inline-block shadow-sm">
-                    ORDEN: {{ competency.order || i + 1 }}
-                  </div>
-                  <p class="text-sm font-bold text-[#0F172A] leading-relaxed italic tracking-tight" [title]="competency.description">
+                  <h4 class="text-sm font-bold text-[#0F172A] leading-tight tracking-tight uppercase">
+                    {{ competency.name || ('Competencia ' + (i + 1)) }}
+                  </h4>
+                  <p class="text-xs text-slate-500 line-clamp-2 leading-relaxed">
                     {{ competency.description }}
                   </p>
                 </div>
@@ -145,8 +129,13 @@ import Swal from 'sweetalert2';
             </div>
 
             <div class="space-y-1.5 focus-within:text-blue-600">
-              <label class="text-[10px] font-bold uppercase tracking-widest text-slate-400 transition-colors">Descripción de la Competencia</label>
-              <textarea formControlName="description" rows="3" class="w-full bg-slate-50 border border-slate-200 text-slate-800 rounded-xl px-4 py-3 text-sm font-semibold transition-all focus:outline-none focus:border-blue-500 resize-none leading-relaxed" placeholder="Ej: Resuelve problemas de cantidad y regularidad en contextos reales..."></textarea>
+              <label class="text-[10px] font-bold uppercase tracking-widest text-slate-400">Título / Nombre de la Competencia</label>
+              <input type="text" formControlName="name" class="w-full bg-slate-50 border border-slate-200 text-slate-800 rounded-xl px-4 py-3 text-sm font-semibold focus:outline-none focus:border-blue-500" placeholder="Ej: Resuelve problemas de cantidad">
+            </div>
+
+            <div class="space-y-1.5 focus-within:text-blue-600">
+              <label class="text-[10px] font-bold uppercase tracking-widest text-slate-400 transition-colors">Descripción Detallada</label>
+              <textarea formControlName="description" rows="3" class="w-full bg-slate-50 border border-slate-200 text-slate-800 rounded-xl px-4 py-3 text-sm font-semibold transition-all focus:outline-none focus:border-blue-500 resize-none leading-relaxed" placeholder="Ej: Traduce cantidades a expresiones numéricas y comunica su comprensión..."></textarea>
             </div>
 
             <div class="space-y-1.5 focus-within:text-blue-600">
@@ -190,6 +179,7 @@ export class CompetenciesComponent implements OnInit {
   currentEditId: string | null = null;
   competencyForm: FormGroup;
   selectedCourseFilter: string = '';
+  courseFilterOptions: FilterOption[] = [];
 
   constructor(
     private fb: FormBuilder,
@@ -197,6 +187,7 @@ export class CompetenciesComponent implements OnInit {
   ) {
     this.competencyForm = this.fb.group({
       course_id: ['', Validators.required],
+      name: ['', [Validators.required, Validators.minLength(3)]],
       description: ['', [Validators.required, Validators.minLength(5)]],
       order: [1, [Validators.min(1)]]
     });
@@ -222,10 +213,11 @@ export class CompetenciesComponent implements OnInit {
 
   loadData() {
     this.loading = true;
-    this.academicService.getCourses().subscribe((resC) => {
+    this.academicService.getCourses({ per_page: 100 }).subscribe((resC) => {
       this.courses = resC.data || resC;
+      this.courseFilterOptions = this.courses.map(c => ({ id: c.id, name: c.name, level: c.code }));
       
-      this.academicService.getCompetencies().subscribe({
+      this.academicService.getCompetencies({ per_page: 200 }).subscribe({
         next: (resComp) => {
           this.competencies = resComp.data || resComp;
           this.groupCompetencies();
@@ -276,6 +268,7 @@ export class CompetenciesComponent implements OnInit {
       }
       this.competencyForm.reset({ 
         course_id: this.selectedCourseFilter || '', 
+        name: '',
         description: '', 
         order: nextOrder
       });

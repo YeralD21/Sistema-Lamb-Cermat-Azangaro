@@ -5,22 +5,24 @@ import { BackButtonComponent } from '@shared/components/back-button/back-button.
 import { Period } from '@core/services/academic.service';
 import { AcademicService } from '@core/services/academic.service';
 import { AcademicYear } from '@core/models/AcademicYear';
+import { SettingMetricCardComponent } from '@shared/components/setting-metric-card/setting-metric-card.component';
 
 import Swal from 'sweetalert2';
 
 @Component({
   selector: 'app-periods',
   standalone: true,
-  imports: [CommonModule, ReactiveFormsModule, BackButtonComponent],
+  imports: [CommonModule, ReactiveFormsModule, BackButtonComponent, SettingMetricCardComponent],
   template: `
     <div class="min-h-[calc(100vh-80px)] p-6 sm:p-10 max-w-7xl mx-auto space-y-8 animate-fade-in text-slate-700 relative">
-      <app-back-button></app-back-button>
-
       <!-- Header Section -->
-      <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-6">
-        <div class="space-y-1">
-          <h1 class="text-3xl font-bold text-[#0F172A] tracking-tight">Periodos Académicos</h1>
-          <p class="text-slate-500 text-sm font-medium">Gestiona los periodos (bimestres/trimestres) por año lectivo</p>
+      <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-6 mb-2">
+        <div class="flex items-center gap-4">
+          <app-back-button></app-back-button>
+          <div class="space-y-1">
+            <h1 class="text-3xl font-bold text-[#0F172A] tracking-tight">Periodos Académicos</h1>
+            <p class="text-slate-500 text-sm font-medium">Gestiona los periodos (bimestres/trimestres) por año lectivo</p>
+          </div>
         </div>
         <button 
           (click)="openModal()"
@@ -31,19 +33,10 @@ import Swal from 'sweetalert2';
       </div>
 
       <!-- Stats Cards -->
-      <div class="grid grid-cols-2 lg:grid-cols-4 gap-4">
-        <div class="bg-white border border-slate-100 rounded-[2rem] p-6 shadow-sm flex flex-col items-center justify-center text-center space-y-1 group transition-all hover:border-blue-100">
-          <span class="text-[10px] font-black text-slate-400 uppercase tracking-[0.2em] italic mb-1">Total Periodos</span>
-          <span class="text-3xl font-black text-[#0F172A]">{{ totalPeriods }}</span>
-        </div>
-        <div class="bg-white border border-slate-100 rounded-[2rem] p-6 shadow-sm flex flex-col items-center justify-center text-center space-y-1 group transition-all hover:border-green-100">
-          <span class="text-[10px] font-black text-slate-400 uppercase tracking-[0.2em] italic mb-1">Per. Abiertos</span>
-          <span class="text-3xl font-black text-green-600">{{ openPeriods }}</span>
-        </div>
-        <div class="bg-white border border-slate-100 rounded-[2rem] p-6 shadow-sm flex flex-col items-center justify-center text-center space-y-1 group transition-all hover:border-red-100">
-          <span class="text-[10px] font-black text-slate-400 uppercase tracking-[0.2em] italic mb-1">Cerrados</span>
-          <span class="text-3xl font-black text-red-600">{{ closedPeriods }}</span>
-        </div>
+      <div class="flex flex-wrap gap-3 mt-2">
+        <app-setting-metric-card label="Total Periodos" [value]="totalPeriods"></app-setting-metric-card>
+        <app-setting-metric-card label="Per. Abiertos" [value]="openPeriods"></app-setting-metric-card>
+        <app-setting-metric-card label="Cerrados" [value]="closedPeriods"></app-setting-metric-card>
       </div>
 
       <!-- Loading State -->
@@ -54,33 +47,35 @@ import Swal from 'sweetalert2';
       <!-- Year Sections -->
       <div *ngIf="!loading" class="space-y-6">
         <div *ngFor="let yearGroup of groupedPeriods" class="space-y-6">
-          <h2 class="text-xl font-bold text-[#0F172A] flex items-center gap-3 border-l-[3px] border-blue-600 pl-4 tracking-tight uppercase leading-none italic">
+          <h2 class="text-xl font-semibold text-[#0F172A] flex items-center gap-3 border-l-[3px] border-blue-600 pl-4 tracking-tight uppercase leading-none">
             Año Lectivo {{ yearGroup.year }}
           </h2>
           
           <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
-            <div *ngFor="let period of yearGroup.periods" class="bg-white border border-slate-100 rounded-[2.2rem] p-6 shadow-sm hover:shadow-xl transition-all group flex flex-col relative overflow-hidden">
+            <div *ngFor="let period of yearGroup.periods" class="bg-white border border-slate-100 rounded-[2rem] p-6 shadow-sm hover:shadow-xl transition-all group flex flex-col relative overflow-hidden">
               
               <!-- Card Header -->
               <div class="flex items-start justify-between relative z-10 w-full mb-2">
-                <div class="space-y-3">
-                  <div class="flex items-center gap-3">
-                    <div class="w-12 h-12 bg-gradient-to-br" [ngClass]="period.is_closed ? 'from-slate-400 to-slate-500' : 'from-[#0E3A8A] to-[#1D4ED8]'" class="rounded-2xl flex items-center justify-center shadow-lg group-hover:rotate-6 transition-all w-12 h-12">
-                      <span class="text-2xl font-black text-white italic">{{ period.period_number }}</span>
+                <div class="space-y-3 w-full">
+                  <div class="flex items-center gap-4">
+                    <div [ngClass]="period.is_closed ? 'from-slate-400 to-slate-500' : 'from-[#0E3A8A] to-[#1D4ED8]'" class="w-14 h-14 bg-gradient-to-br rounded-[1rem] flex items-center justify-center shadow-md group-hover:rotate-3 transition-all shrink-0">
+                      <span class="text-2xl font-bold text-white leading-none">{{ period.period_number }}</span>
                     </div>
-                    <div class="flex flex-col">
-                      <h3 class="text-lg font-black text-[#0F172A] leading-tight tracking-tighter uppercase italic">{{ period.name }}</h3>
-                      <span *ngIf="period.is_closed" class="inline-flex items-center text-[8px] font-black text-red-600 uppercase tracking-[0.2em] italic mt-0.5">Cerrado</span>
-                      <span *ngIf="!period.is_closed" class="inline-flex items-center text-[8px] font-black text-green-600 uppercase tracking-[0.2em] italic mt-0.5">Abierto</span>
+                    <div class="flex flex-col overflow-hidden">
+                      <h3 class="text-lg font-bold text-[#0F172A] tracking-wide uppercase truncate">{{ period.name }}</h3>
+                      <div class="mt-1">
+                        <span *ngIf="period.is_closed" class="inline-flex items-center text-[10px] font-bold text-red-600 uppercase tracking-widest mt-0.5">Cerrado</span>
+                        <span *ngIf="!period.is_closed" class="inline-flex items-center text-[10px] font-bold text-green-600 uppercase tracking-widest mt-0.5">Abierto</span>
+                      </div>
                     </div>
                   </div>
                 </div>
               </div>
 
               <!-- Card Body -->
-              <div class="mt-4 space-y-4 relative z-10">
+              <div class="mt-4 space-y-4 relative z-10 w-full">
                 <div class="bg-slate-50/50 p-4 rounded-2xl border border-slate-50 space-y-3 group-hover:bg-blue-50/50 transition-colors">
-                   <div class="flex justify-between items-center text-[10px] font-black uppercase tracking-widest text-slate-400 italic">
+                   <div class="flex justify-between items-center text-[10px] font-bold uppercase tracking-widest text-slate-400">
                       <span>Inicio</span>
                       <span>Fin</span>
                    </div>
@@ -92,7 +87,7 @@ import Swal from 'sweetalert2';
                 </div>
 
                 <div class="flex gap-2">
-                  <button (click)="openModal(period)" class="flex-1 py-3 bg-white text-[#0E3A8A] border-2 border-slate-100 hover:border-[#0E3A8A] text-[10px] font-black uppercase tracking-tight rounded-xl transition-all active:scale-95 shadow-sm flex items-center justify-center gap-1.5 px-2">
+                  <button (click)="openModal(period)" class="flex-1 py-3 bg-white text-[#0E3A8A] border-2 border-slate-100 hover:border-[#0E3A8A] text-[10px] font-bold uppercase tracking-widest rounded-xl transition-all active:scale-95 shadow-sm flex items-center justify-center gap-1.5 px-2">
                     <svg class="w-3.5 h-3.5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/></svg>
                     Editar
                   </button>
