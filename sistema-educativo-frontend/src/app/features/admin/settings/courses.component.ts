@@ -20,7 +20,7 @@ import Swal from 'sweetalert2';
           <p class="text-slate-500 text-sm font-medium">Gestiona los cursos y materias</p>
         </div>
         <div class="flex gap-3 mt-4 sm:mt-0">
-          <button 
+          <button
             (click)="openModal()"
             class="px-6 py-3 bg-gradient-to-r from-[#0E3A8A] via-[#1D4ED8] to-[#991B1B] hover:opacity-90 text-white text-sm font-bold rounded-2xl transition-all shadow-lg active:scale-95 flex items-center justify-center gap-2">
             <svg class="w-5 h-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
@@ -34,8 +34,8 @@ import Swal from 'sweetalert2';
         <div class="text-slate-400">
           <svg class="w-5 h-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M22 3H2l8 9.46V19l4 2v-8.54L22 3z"/></svg>
         </div>
-        <select 
-          [ngModel]="selectedGradeFilter" 
+        <select
+          [ngModel]="selectedGradeFilter"
           (ngModelChange)="filterByGrade($event)"
           class="flex-1 bg-transparent border-none text-[10px] font-bold text-[#0F172A] uppercase tracking-[0.15em] focus:ring-0 cursor-pointer appearance-none">
           <option value="">Todos los grados</option>
@@ -57,10 +57,10 @@ import Swal from 'sweetalert2';
           <h2 class="text-xl font-bold text-[#0F172A] flex items-center gap-3 border-l-[3px] border-blue-600 pl-4 tracking-tight uppercase leading-none">
             {{ gradeGroup.gradeName }} <span class="text-sm text-slate-400 ml-2 font-medium">({{gradeGroup.level}})</span>
           </h2>
-          
+
           <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
             <div *ngFor="let course of gradeGroup.courses" class="bg-white border border-slate-100 rounded-[2rem] p-6 shadow-sm hover:shadow-xl transition-all group flex flex-col gap-6 relative overflow-hidden">
-              
+
               <!-- Card Header: Icon + Info -->
               <div class="flex items-center gap-4 relative z-10 w-full">
                 <div [style.backgroundColor]="course.color || '#2563EB'" class="w-14 h-14 rounded-2xl flex items-center justify-center shadow-lg group-hover:scale-105 transition-transform shrink-0">
@@ -76,11 +76,7 @@ import Swal from 'sweetalert2';
               <div class="bg-slate-50/50 p-3 px-4 rounded-xl border border-slate-50 flex items-center gap-3 relative z-10">
                 <svg class="w-4 h-4 text-blue-500" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>
                 <div class="flex items-baseline gap-1.5 text-xs font-bold">
-<<<<<<< Updated upstream
-                  <span class="text-[#0F172A]">{{ course.weekly_hours }} horas</span>
-=======
                   <span class="text-[#0F172A] italic">{{ getCourseHours(course) }} horas</span>
->>>>>>> Stashed changes
                   <span class="text-slate-400 uppercase tracking-tighter">/ semana</span>
                 </div>
               </div>
@@ -121,7 +117,7 @@ import Swal from 'sweetalert2';
           </div>
 
           <form [formGroup]="courseForm" (ngSubmit)="saveCourse()" class="p-8 space-y-5">
-            
+
             <div class="space-y-1.5 focus-within:text-blue-600">
               <label class="text-[10px] font-bold uppercase tracking-widest text-slate-400">Grado Académico</label>
               <select formControlName="grade_level_id" class="w-full bg-slate-50 border border-slate-200 text-slate-800 rounded-xl px-4 py-3 text-sm font-semibold focus:outline-none focus:border-blue-500">
@@ -146,7 +142,7 @@ import Swal from 'sweetalert2';
                 <input type="number" formControlName="hours_per_week" class="w-full bg-slate-50 border border-slate-200 text-slate-800 rounded-xl px-4 py-3 text-sm font-semibold transition-all focus:outline-none focus:border-blue-500" placeholder="Ej: 4">
               </div>
             </div>
-            
+
             <div class="space-y-1.5 focus-within:text-blue-600">
               <label class="text-[10px] font-bold uppercase tracking-widest text-slate-400 transition-colors">Color Institucional (Opcional)</label>
               <div class="flex items-center gap-3">
@@ -184,7 +180,7 @@ export class CoursesComponent implements OnInit {
   gradeLevels: GradeLevel[] = [];
   groupedCourses: { gradeId: string, gradeName: string, level: string, courses: Course[] }[] = [];
   filteredGroupedCourses: any[] = [];
-  
+
   loading = false;
   showModal = false;
   isEditing = false;
@@ -223,7 +219,7 @@ export class CoursesComponent implements OnInit {
     this.loading = true;
     this.academicService.getGradeLevels().subscribe((resG) => {
       this.gradeLevels = resG.data || resG;
-      
+
       this.academicService.getCourses({ per_page: 100 }).subscribe({
         next: (resC) => {
           this.courses = resC.data || resC;
@@ -238,7 +234,7 @@ export class CoursesComponent implements OnInit {
 
   groupCourses() {
     const groups: { [key: string]: { gradeId: string, gradeName: string, level: string, courses: Course[] } } = {};
-    
+
     this.gradeLevels.forEach(gl => {
       groups[gl.id] = { gradeId: gl.id, gradeName: gl.name, level: gl.level, courses: [] };
     });
@@ -268,9 +264,9 @@ export class CoursesComponent implements OnInit {
       });
     } else {
       this.currentEditId = null;
-      this.courseForm.reset({ 
-        grade_level_id: this.selectedGradeFilter || '', 
-        name: '', 
+      this.courseForm.reset({
+        grade_level_id: this.selectedGradeFilter || '',
+        name: '',
         code: '',
         hours_per_week: 4,
         color: '#2563EB'
