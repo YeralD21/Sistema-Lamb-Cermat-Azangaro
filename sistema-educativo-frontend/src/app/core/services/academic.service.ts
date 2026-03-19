@@ -44,9 +44,11 @@ export interface Course {
 export interface Competency {
   id: string;
   course_id: string;
+  code?: string;
   name?: string;
   description: string;
   order?: number;
+  order_index?: number;
 }
 
 export interface TeacherCourseAssignment {
