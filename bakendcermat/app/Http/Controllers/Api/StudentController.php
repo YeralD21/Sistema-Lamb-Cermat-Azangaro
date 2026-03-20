@@ -13,6 +13,7 @@ class StudentController extends Controller
     public function index(Request $request)
     {
         $query = Student::query();
+        $perPage = (int) $request->integer('per_page', 20);
 
         if ($request->has('section_id'))
             $query->where('section_id', $request->section_id);
@@ -32,7 +33,12 @@ class StudentController extends Controller
             });
         }
 
-        return response()->json($query->orderBy('last_name')->orderBy('first_name')->paginate(20));
+        return response()->json(
+            $query
+                ->orderBy('last_name')
+                ->orderBy('first_name')
+                ->paginate($perPage)
+        );
     }
 
     public function store(StoreStudentRequest $request)

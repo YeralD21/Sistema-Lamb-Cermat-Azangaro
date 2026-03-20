@@ -13,6 +13,7 @@ class ProfileController extends Controller
     public function index(Request $request)
     {
         $query = Profile::query();
+        $perPage = (int) $request->integer('per_page', 20);
 
         if ($request->has('role') && $request->role !== 'todos') {
             $query->where('role', $request->role);
@@ -30,7 +31,11 @@ class ProfileController extends Controller
             });
         }
 
-        return response()->json($query->orderByDesc('created_at')->paginate(20));
+        return response()->json(
+            $query
+                ->orderByDesc('created_at')
+                ->paginate($perPage)
+        );
     }
 
     public function stats()

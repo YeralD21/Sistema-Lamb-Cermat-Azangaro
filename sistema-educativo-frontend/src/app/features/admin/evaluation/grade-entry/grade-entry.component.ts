@@ -18,6 +18,7 @@ interface EnrolledStudent {
   observation: string;
   evaluation_id?: string;
   status?: string;
+  dirty?: boolean;
   section_id?: string;
   section_label?: string;
   final_status?: string | null;
@@ -267,6 +268,7 @@ export class GradeEntryComponent implements OnInit {
             grade: null,
             observation: '',
             status: '',
+            dirty: false,
             section_id: item.section?.id || '',
             section_label: this.formatSectionLabel(item.section),
           });
@@ -313,6 +315,7 @@ export class GradeEntryComponent implements OnInit {
           student.observation = dashboardStudent.current_evaluation?.comments || student.observation;
           student.evaluation_id = dashboardStudent.current_evaluation?.id || student.evaluation_id;
           student.status = dashboardStudent.current_evaluation?.status || student.status;
+          student.dirty = false;
           student.summary = dashboardStudent.academic_summary;
           student.final_status = dashboardStudent.academic_summary.final_status || 'pendiente';
           student.pending_competencies_count = dashboardStudent.academic_summary.pending_competencies_count || 0;
@@ -342,15 +345,26 @@ export class GradeEntryComponent implements OnInit {
   setGrade(student: EnrolledStudent, grade: any) {
     if (student.status === 'publicada') return;
     student.grade = grade;
+    student.status = student.status || 'borrador';
+    student.dirty = true;
+    this.successMessage = '';
+  }
+
+  markObservationChanged(student: EnrolledStudent) {
+    if (student.status === 'publicada') return;
+    student.status = student.status || 'borrador';
+    student.dirty = true;
     this.successMessage = '';
   }
 
   canSave(): boolean {
-    return this.students.some((student) => student.grade !== null && student.status !== 'publicada');
+    return this.getStudentsPendingDraftSync().length > 0;
   }
 
   canPublish(): boolean {
-    return this.students.some((student) => student.grade !== null && student.status === 'borrador');
+    return this.students.some((student) =>
+      student.grade !== null && student.status !== 'publicada' && (!!student.evaluation_id || !!student.dirty)
+    );
   }
 
   canRecalculate(): boolean {
@@ -358,30 +372,14 @@ export class GradeEntryComponent implements OnInit {
   }
 
   saveDraft() {
-    const toSave = this.students.filter((student) => student.grade !== null && student.status !== 'publicada');
+    const toSave = this.getStudentsPendingDraftSync();
     if (toSave.length === 0) return;
 
     this.saving = true;
     this.errorMessage = '';
     this.successMessage = '';
 
-    const requests = toSave.map((student) => {
-      const data: Partial<Evaluation> = {
-        student_id: student.id,
-        course_id: this.selectedCourseId,
-        period_id: this.selectedPeriodId,
-        competency_id: this.selectedCompetencyId,
-        grade: student.grade || null,
-        comments: student.observation,
-        status: 'borrador'
-      };
-
-      return this.evaluationService.saveEvaluation(data).pipe(
-        catchError((error: HttpErrorResponse) => of({ __error: true, studentId: student.id, error }))
-      );
-    });
-
-    forkJoin(requests).pipe(
+    this.persistDrafts(toSave).pipe(
       finalize(() => {
         this.saving = false;
       })
@@ -396,39 +394,72 @@ export class GradeEntryComponent implements OnInit {
       }
 
       this.successMessage = 'Borradores sincronizados correctamente.';
-      this.loadStudents();
+      this.computeSectionDecisionStats();
     });
   }
 
   publishAll() {
-    const toPublish = this.students.filter((student) => student.status === 'borrador' && student.evaluation_id);
-    if (toPublish.length === 0) return;
-
     this.saving = true;
     this.errorMessage = '';
     this.successMessage = '';
 
-    const requests = toPublish.map((student) =>
-      this.evaluationService.publishEvaluation(student.evaluation_id!).pipe(
-        catchError((error: HttpErrorResponse) => of({ __error: true, studentId: student.id, error }))
-      )
-    );
+    const draftCandidates = this.getStudentsPendingDraftSync();
 
-    forkJoin(requests).pipe(
-      switchMap((results) => {
-        const failures = results.filter((result: any) => result?.__error);
+    const saveDrafts$ = draftCandidates.length > 0
+      ? this.persistDrafts(draftCandidates)
+      : of([]);
 
-        if (failures.length > 0) {
-          return of({ failures });
+    saveDrafts$.pipe(
+      switchMap((draftResults: any[]) => {
+        const draftFailures = draftResults.filter((result: any) => result?.__error) as Array<{ error: HttpErrorResponse }>;
+
+        if (draftFailures.length > 0) {
+          return of({ failures: draftFailures, stage: 'draft' });
         }
 
-        if (this.canRecalculate()) {
-          return this.evaluationService.recalculateSectionEvaluationSummary(this.activeAcademicYearId, this.currentSectionId).pipe(
-            catchError(() => of({ failures: [], recalculationFailed: true }))
-          );
+        const toPublish = this.students.filter((student) => student.status === 'borrador' && student.evaluation_id);
+        if (toPublish.length === 0) {
+          return of({ failures: [], stage: 'publish', emptyPublish: true });
         }
 
-        return of({ failures: [] });
+        const publishRequests = toPublish.map((student) =>
+          this.evaluationService.publishEvaluation(student.evaluation_id!).pipe(
+            catchError((error: HttpErrorResponse) => of({ __error: true, studentId: student.id, error }))
+          )
+        );
+
+        return forkJoin(publishRequests).pipe(
+          switchMap((publishResults) => {
+            const publishFailures = publishResults.filter((result: any) => result?.__error);
+
+            if (publishFailures.length > 0) {
+              return of({ failures: publishFailures, stage: 'publish' });
+            }
+
+            publishResults.forEach((result: any) => {
+              if (!result?.id || !result?.student_id) {
+                return;
+              }
+
+              const student = this.students.find((item) => item.id === result.student_id);
+              if (!student) {
+                return;
+              }
+
+              student.status = result.status || 'publicada';
+              student.evaluation_id = result.id;
+              student.dirty = false;
+            });
+
+            if (this.canRecalculate()) {
+              return this.evaluationService.recalculateSectionEvaluationSummary(this.activeAcademicYearId, this.currentSectionId).pipe(
+                catchError(() => of({ failures: [], recalculationFailed: true, stage: 'recalculate' }))
+              );
+            }
+
+            return of({ failures: [], stage: 'publish' });
+          })
+        );
       }),
       finalize(() => {
         this.saving = false;
@@ -437,7 +468,13 @@ export class GradeEntryComponent implements OnInit {
       const failures = (result?.failures || []) as Array<{ error: HttpErrorResponse }>;
 
       if (failures.length > 0) {
-        this.errorMessage = `No se pudieron publicar ${failures.length} registro(s). ${this.formatApiError(failures[0]?.error)}`;
+        const action = result?.stage === 'draft' ? 'guardar' : 'publicar';
+        this.errorMessage = `No se pudieron ${action} ${failures.length} registro(s). ${this.formatApiError(failures[0]?.error)}`;
+        return;
+      }
+
+      if (result?.emptyPublish) {
+        this.errorMessage = 'No hay evaluaciones en borrador para publicar.';
         return;
       }
 
@@ -605,5 +642,54 @@ export class GradeEntryComponent implements OnInit {
       : '';
 
     return validationErrors || error?.error?.message || 'Revise la matricula activa del estudiante y la relacion curso-competencia.';
+  }
+
+  private getStudentsPendingDraftSync(): EnrolledStudent[] {
+    return this.students.filter((student) =>
+      student.grade !== null
+      && student.status !== 'publicada'
+      && (student.dirty || !student.evaluation_id || student.status !== 'borrador')
+    );
+  }
+
+  private persistDrafts(students: EnrolledStudent[]) {
+    const requests = students.map((student) => {
+      const data: Partial<Evaluation> = {
+        student_id: student.id,
+        course_id: this.selectedCourseId,
+        period_id: this.selectedPeriodId,
+        competency_id: this.selectedCompetencyId,
+        grade: student.grade || null,
+        comments: student.observation,
+        status: 'borrador'
+      };
+
+      return this.evaluationService.saveEvaluation(data).pipe(
+        catchError((error: HttpErrorResponse) => of({ __error: true, studentId: student.id, error }))
+      );
+    });
+
+    return forkJoin(requests).pipe(
+      switchMap((results: any[]) => {
+        results.forEach((result) => {
+          if (result?.__error || !result?.student_id) {
+            return;
+          }
+
+          const student = this.students.find((item) => item.id === result.student_id);
+          if (!student) {
+            return;
+          }
+
+          student.evaluation_id = result.id;
+          student.status = result.status || 'borrador';
+          student.observation = result.comments || result.observations || student.observation;
+          student.grade = result.grade ?? student.grade;
+          student.dirty = false;
+        });
+
+        return of(results);
+      })
+    );
   }
 }

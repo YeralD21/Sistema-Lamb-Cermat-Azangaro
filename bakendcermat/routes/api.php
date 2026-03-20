@@ -203,7 +203,7 @@ Route::middleware('auth:sanctum')->group(function () {
         Route::apiResource('teacher-course-assignments', TeacherCourseAssignmentController::class);
 
         Route::apiResource('student-course-enrollments', StudentCourseEnrollmentController::class)
-            ->only(['index', 'show', 'update']);
+            ->only(['index', 'show', 'store', 'update']);
     });
 
     /*

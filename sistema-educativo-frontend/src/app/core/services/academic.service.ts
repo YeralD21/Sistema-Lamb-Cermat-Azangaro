@@ -16,6 +16,7 @@ export interface Section {
   id: string;
   name?: string;
   section_letter?: string;
+  academic_year_id: string;
   grade_level_id: string;
   capacity: number;
   vacancies?: number;
@@ -62,12 +63,19 @@ export interface TeacherCourseAssignment {
 
 export interface StudentCourseEnrollment {
   id: string;
-  user_id: string;
+  student_id: string;
+  user_id?: string;
   course_id: string;
+  section_id?: string;
   academic_year_id: string;
   status: string;
   enrollment_date?: string;
-  user?: any; // The backend usually includes the user object
+  student?: any;
+  user?: any;
+  course?: any;
+  section?: any;
+  academic_year?: any;
+  academicYear?: any;
 }
 
 @Injectable({
@@ -195,6 +203,10 @@ export class AcademicService {
 
   getStudentCourseEnrollments(params?: any): Observable<any> {
     return this.http.get(`${environment.apiUrl}/student-course-enrollments`, { params });
+  }
+
+  createStudentCourseEnrollment(data: any): Observable<any> {
+    return this.http.post(`${environment.apiUrl}/student-course-enrollments`, data);
   }
 
   getEnrolledStudents(params?: any): Observable<any> {

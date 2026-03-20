@@ -11,33 +11,59 @@ use App\Models\User;
 use Illuminate\Http\Request;
 use Illuminate\Routing\Controller as RoutingController;
 use Illuminate\Support\Facades\Hash;
+use Illuminate\Support\Facades\Log;
 
 class AuthController extends RoutingController
 {
     public function login(LoginRequest $request)
     {
         $credentials = $request->validated();
+        $normalizedEmail = strtolower(trim((string) $credentials['email']));
 
-        $user = User::where('email', $credentials['email'])->first();
+        $user = User::query()
+            ->whereRaw('lower(email) = ?', [$normalizedEmail])
+            ->first();
 
-        if (!$user || !Hash::check($credentials['password'], $user->password)) {
+        $hashMatches = $user ? Hash::check((string) $credentials['password'], (string) $user->password) : false;
+
+        Log::info('AuthController@login attempt', [
+            'email' => $normalizedEmail,
+            'user_found' => (bool) $user,
+            'user_id' => $user?->id,
+            'hash_matches' => $hashMatches,
+        ]);
+
+        if (!$user || !$hashMatches) {
             return response()->json([
                 'message' => 'Credenciales incorrectas.'
             ], 401);
         }
 
-        $profile = Profile::where('user_id', (string) $user->id)->first();
+        $profile = Profile::query()
+            ->where('user_id', (string) $user->id)
+            ->first();
 
-if (!$profile) {
-$profile = Profile::create([
-    'id' => (string) $user->id,
-    'user_id' => (string) $user->id,
-    'role' => 'admin',
-    'full_name' => $user->name ?? 'Sin nombre',
-    'email' => $user->email,
-    'is_active' => true,
-]);
-}
+        if (!$profile) {
+            $profile = Profile::query()
+                ->whereNull('user_id')
+                ->whereRaw('lower(email) = ?', [$normalizedEmail])
+                ->first();
+        }
+
+        if ($profile && !$profile->user_id) {
+            $profile->update(['user_id' => (string) $user->id]);
+        }
+
+        if (!$profile) {
+            $profile = Profile::create([
+                'id' => (string) $user->id,
+                'user_id' => (string) $user->id,
+                'role' => 'admin',
+                'full_name' => $user->name ?? 'Sin nombre',
+                'email' => $user->email,
+                'is_active' => true,
+            ]);
+        }
 
         $token = $user->createToken('api-token')->plainTextToken;
 

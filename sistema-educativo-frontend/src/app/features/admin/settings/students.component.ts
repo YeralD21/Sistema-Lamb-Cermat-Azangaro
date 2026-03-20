@@ -1,13 +1,23 @@
+//src/app/features/admin/settings/students.component.ts
 import { Component, OnInit } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { BackButtonComponent } from '@shared/components/back-button/back-button.component';
 import { SettingMetricCardComponent } from '@shared/components/setting-metric-card/setting-metric-card.component';
 import { SettingFilterDropdownComponent } from '@shared/components/setting-filter-dropdown/setting-filter-dropdown.component';
-import { AcademicService, StudentCourseEnrollment, Course } from '@core/services/academic.service';
+import { AcademicService, StudentCourseEnrollment } from '@core/services/academic.service';
 import { UserService, UserProfile } from '@core/services/user.service';
 import { forkJoin } from 'rxjs';
 import Swal from 'sweetalert2';
+
+interface StudentRecord {
+  id: string;
+  user_id?: string | null;
+  student_code?: string;
+  first_name?: string;
+  last_name?: string;
+  status?: string;
+}
 
 @Component({
   selector: 'app-students',
@@ -15,7 +25,7 @@ import Swal from 'sweetalert2';
   imports: [CommonModule, FormsModule, BackButtonComponent, SettingMetricCardComponent, SettingFilterDropdownComponent],
   template: `
     <div class="min-h-[calc(100vh-80px)] p-6 sm:p-10 max-w-7xl mx-auto space-y-8 animate-fade-in text-slate-700">
-      
+
       <app-back-button></app-back-button>
 
       <!-- Header Section -->
@@ -125,9 +135,10 @@ import Swal from 'sweetalert2';
 export class StudentsComponent implements OnInit {
   studentsData: { profile: UserProfile, enrollments: StudentCourseEnrollment[] }[] = [];
   filteredStudents: { profile: UserProfile, enrollments: StudentCourseEnrollment[] }[] = [];
-  
+
   enrollmentsList: StudentCourseEnrollment[] = [];
-  
+  studentRecords: StudentRecord[] = [];
+
   loading = false;
   searchTerm = '';
   statusFilter = '';
@@ -135,7 +146,7 @@ export class StudentsComponent implements OnInit {
   constructor(
     private userService: UserService,
     private academicService: AcademicService
-  ) {}
+  ) { }
 
   get totalStudents() { return this.studentsData.length; }
   get activeStudents() { return this.studentsData.filter(s => s.profile.is_active).length; }
@@ -153,16 +164,35 @@ export class StudentsComponent implements OnInit {
     this.loading = true;
     forkJoin({
       students: this.userService.getProfiles({ role: 'student', per_page: 100 } as any),
+      studentRows: this.academicService.getStudents({ per_page: 100 }),
       enrollments: this.academicService.getEnrolledStudents({ per_page: 100 })
     }).subscribe({
       next: (res: any) => {
-        const studentProfiles = res.students.data || res.students;
-        this.enrollmentsList = res.enrollments.data || res.enrollments;
+        const studentProfiles = this.extractCollection<UserProfile>(res.students);
+        this.studentRecords = this.extractCollection<StudentRecord>(res.studentRows);
+        this.enrollmentsList = this.extractCollection<StudentCourseEnrollment>(res.enrollments);
+
+        const studentByUserId = new Map<string, StudentRecord>();
+        const studentById = new Map<string, StudentRecord>();
+
+        this.studentRecords.forEach((student) => {
+          if (student.user_id) {
+            studentByUserId.set(student.user_id, student);
+          }
+          if (student.id) {
+            studentById.set(student.id, student);
+          }
+        });
 
         this.studentsData = studentProfiles.map((p: any) => ({
           profile: p,
-          enrollments: this.enrollmentsList.filter(e => e.user_id === p.user_id || e.user_id === p.id)
+          enrollments: this.resolveStudentEnrollments(p, studentByUserId, studentById)
         }));
+
+        console.log('[students] profiles:', studentProfiles.length);
+        console.log('[students] student rows:', this.studentRecords.length);
+        console.log('[students] enrollments:', this.enrollmentsList.length);
+        console.log('[students] mapped with enrollments:', this.studentsData.filter((item) => item.enrollments.length > 0).length);
 
         this.applyFilters();
         this.loading = false;
@@ -177,12 +207,12 @@ export class StudentsComponent implements OnInit {
 
   applyFilters() {
     this.filteredStudents = this.studentsData.filter(student => {
-      const matchSearch = this.searchTerm === '' || 
-                          student.profile.full_name.toLowerCase().includes(this.searchTerm.toLowerCase()) || 
-                          student.profile.email.toLowerCase().includes(this.searchTerm.toLowerCase());
-      
-      const matchStatus = this.statusFilter === '' || 
-                          student.profile.is_active.toString() === this.statusFilter;
+      const matchSearch = this.searchTerm === '' ||
+        student.profile.full_name.toLowerCase().includes(this.searchTerm.toLowerCase()) ||
+        student.profile.email.toLowerCase().includes(this.searchTerm.toLowerCase());
+
+      const matchStatus = this.statusFilter === '' ||
+        student.profile.is_active.toString() === this.statusFilter;
 
       return matchSearch && matchStatus;
     });
@@ -191,5 +221,35 @@ export class StudentsComponent implements OnInit {
   updateStatusFilter(val: string) {
     this.statusFilter = val;
     this.applyFilters();
+  }
+
+  private resolveStudentEnrollments(
+    profile: UserProfile,
+    studentByUserId: Map<string, StudentRecord>,
+    studentById: Map<string, StudentRecord>
+  ): StudentCourseEnrollment[] {
+    const student = studentByUserId.get(profile.user_id) || studentById.get(profile.id);
+
+    if (!student?.id) {
+      return [];
+    }
+
+    return this.enrollmentsList.filter((enrollment) => enrollment.student_id === student.id);
+  }
+
+  private extractCollection<T>(response: any): T[] {
+    if (Array.isArray(response)) {
+      return response;
+    }
+
+    if (Array.isArray(response?.data)) {
+      return response.data;
+    }
+
+    if (Array.isArray(response?.data?.data)) {
+      return response.data.data;
+    }
+
+    return [];
   }
 }

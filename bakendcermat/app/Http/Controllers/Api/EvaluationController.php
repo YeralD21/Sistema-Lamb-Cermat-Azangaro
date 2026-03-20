@@ -8,6 +8,8 @@ use App\Http\Requests\UpdateEvaluationRequest;
 use App\Models\Evaluation;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Log;
 
 class EvaluationController extends Controller
 {
@@ -112,8 +114,12 @@ class EvaluationController extends Controller
 
         unset($data['comments']);
 
-        if ($request->user()) {
-            $data['recorded_by'] = $request->user()->id;
+        $recorderId = $this->resolveRecorderId($request);
+        if ($recorderId) {
+            $data['recorded_by'] = $recorderId;
+        } else {
+            // Ensure recorded_by is not set if we can't resolve a valid user
+            unset($data['recorded_by']);
         }
 
         if (($data['status'] ?? null) === 'publicada' && empty($data['published_at'])) {
@@ -125,5 +131,64 @@ class EvaluationController extends Controller
         }
 
         return $data;
+    }
+
+    private function resolveRecorderId(Request $request): ?string
+    {
+        $authUser = $request->user();
+
+        if (!$authUser) {
+            return null;
+        }
+
+        $emailCandidates = array_values(array_filter([
+            $authUser->email ?? null,
+            $authUser->profile?->email ?? null,
+        ]));
+
+        foreach ($emailCandidates as $email) {
+            $authSchemaUserId = DB::table('auth.users')
+                ->whereRaw('lower(email) = ?', [strtolower((string) $email)])
+                ->value('id');
+
+            if ($authSchemaUserId) {
+                Log::info('EvaluationController: resolved recorded_by from auth.users', [
+                    'email' => (string) $email,
+                    'recorded_by' => (string) $authSchemaUserId,
+                ]);
+
+                return (string) $authSchemaUserId;
+            }
+        }
+
+        $candidates = array_values(array_filter([
+            $authUser->id ?? null,
+            $authUser->user_id ?? null,
+            $authUser->profile?->user_id ?? null,
+        ]));
+
+        foreach ($candidates as $candidate) {
+            $candidate = (string) $candidate;
+
+            if ($candidate !== '' && DB::table('auth.users')->where('id', $candidate)->exists()) {
+                Log::info('EvaluationController: resolved recorded_by from auth.users candidate', [
+                    'recorded_by' => $candidate,
+                ]);
+
+                return $candidate;
+            }
+        }
+
+        // Log the issue for debugging
+        Log::warning('EvaluationController: Could not resolve valid recorder_id', [
+            'auth_user_id' => $authUser->id ?? 'null',
+            'auth_user_user_id' => $authUser->user_id ?? 'null',
+            'auth_profile_user_id' => $authUser->profile?->user_id ?? 'null',
+            'auth_user_email' => $authUser->email ?? 'null',
+            'auth_profile_email' => $authUser->profile?->email ?? 'null',
+            'candidates' => $candidates,
+        ]);
+
+        return null;
     }
 }
