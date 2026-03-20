@@ -2,20 +2,28 @@
 
 namespace App\Models;
 
+use Illuminate\Database\Eloquent\Concerns\HasUuids;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 
 class AttendanceJustification extends Model
 {
+    use HasUuids;
+
     protected $table = 'attendance_justifications';
+    public $incrementing = false;
+    protected $keyType = 'string';
 
     protected $fillable = [
         'attendance_id',
+        'student_id',
         'guardian_id',
         'reason',
-        'status',       // enum justification_status (ej: pending/approved/rejected)
-        'reviewed_by',  // si existe; si no existe, quítalo
-        'reviewed_at',  // si existe; si no existe, quítalo
+        'attachment_url',
+        'status',
+        'reviewed_by',
+        'reviewed_at',
+        'review_notes',
     ];
 
     protected $casts = [

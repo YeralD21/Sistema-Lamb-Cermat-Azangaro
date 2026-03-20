@@ -5,6 +5,7 @@ namespace App\Http\Controllers\Api;
 use App\Http\Controllers\Controller;
 use App\Http\Requests\TeacherCourseAssignments\StoreTeacherCourseAssignmentRequest;
 use App\Http\Requests\TeacherCourseAssignments\UpdateTeacherCourseAssignmentRequest;
+use App\Models\Teacher;
 use App\Models\TeacherCourseAssignment;
 use App\Models\Profile;
 use Illuminate\Http\Request;
@@ -16,6 +17,19 @@ class TeacherCourseAssignmentController extends Controller
     {
         $q = TeacherCourseAssignment::query()
             ->with(['teacher', 'course', 'section', 'academicYear', 'assignedByProfile']);
+
+        $teacherId = $this->resolveAuthenticatedTeacherId($request);
+
+        if ($request->user()?->profile?->role === 'teacher') {
+            if (!$teacherId) {
+                return response()->json([
+                    'data' => [],
+                    'message' => 'No se encontró el docente asociado al usuario autenticado.',
+                ], 200);
+            }
+
+            $q->where('teacher_id', $teacherId);
+        }
 
         if ($request->filled('academic_year_id')) {
             $q->where('academic_year_id', $request->string('academic_year_id'));
@@ -74,6 +88,12 @@ class TeacherCourseAssignmentController extends Controller
         $assignment = TeacherCourseAssignment::with(['teacher', 'course', 'section', 'academicYear', 'assignedByProfile'])
             ->findOrFail($id);
 
+        $teacherId = $this->resolveAuthenticatedTeacherId(request());
+
+        if (request()->user()?->profile?->role === 'teacher' && (string) $assignment->teacher_id !== $teacherId) {
+            return response()->json(['message' => 'Forbidden'], 403);
+        }
+
         return response()->json($assignment);
     }
 
@@ -105,5 +125,12 @@ class TeacherCourseAssignmentController extends Controller
         return response()->json([
             'message' => 'Asignación eliminada'
         ]);
+    }
+
+    private function resolveAuthenticatedTeacherId(Request $request): ?string
+    {
+        return Teacher::query()
+            ->where('user_id', (string) $request->user()?->id)
+            ->value('id');
     }
 }

@@ -213,6 +213,26 @@ export interface SectionEvaluationDashboard {
   students: SectionEvaluationDashboardStudent[];
 }
 
+export interface TeacherEvaluationContext {
+  teacher: any | null;
+  active_academic_year: {
+    id: string;
+    year: number;
+    is_active: boolean;
+    start_date?: string;
+    end_date?: string;
+  } | null;
+  periods: Array<{
+    id: string;
+    name: string;
+    period_number?: number;
+    is_closed?: boolean;
+    academic_year_id?: string;
+  }>;
+  assignments: any[];
+  message?: string;
+}
+
 @Injectable({
   providedIn: 'root'
 })
@@ -222,6 +242,10 @@ export class EvaluationService {
 
   getEvaluations(params: any = {}): Observable<any> {
     return this.http.get<any>(this.apiUrl, { params });
+  }
+
+  getTeacherEvaluationContext(): Observable<TeacherEvaluationContext> {
+    return this.http.get<TeacherEvaluationContext>(`${this.apiUrl}/my-context`);
   }
 
   saveEvaluation(data: Partial<Evaluation>): Observable<Evaluation> {

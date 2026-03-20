@@ -7,11 +7,14 @@ use App\Models\AcademicYear;
 use App\Models\Guardian;
 use App\Models\Profile;
 use App\Models\Student;
+use App\Models\Teacher;
 use App\Models\User;
 use Illuminate\Http\Request;
 use Illuminate\Routing\Controller as RoutingController;
+use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Facades\Log;
+use RuntimeException;
 
 class AuthController extends RoutingController
 {
@@ -24,7 +27,13 @@ class AuthController extends RoutingController
             ->whereRaw('lower(email) = ?', [$normalizedEmail])
             ->first();
 
-        $hashMatches = $user ? Hash::check((string) $credentials['password'], (string) $user->password) : false;
+        if (!$user) {
+            $user = $this->syncUserFromAuthSchema($normalizedEmail, (string) $credentials['password']);
+        }
+
+        $hashMatches = $user
+            ? $this->passwordMatches((string) $credentials['password'], (string) $user->password)
+            : false;
 
         Log::info('AuthController@login attempt', [
             'email' => $normalizedEmail,
@@ -71,6 +80,98 @@ class AuthController extends RoutingController
             'token' => $token,
             'user' => $user->fresh()->load('profile'),
         ]);
+    }
+
+    private function syncUserFromAuthSchema(string $normalizedEmail, string $plainPassword): ?User
+    {
+        $authUser = DB::table('auth.users')
+            ->select(['id', 'email', 'encrypted_password', 'created_at', 'updated_at'])
+            ->whereRaw('lower(email) = ?', [$normalizedEmail])
+            ->first();
+
+        if (!$authUser || empty($authUser->encrypted_password)) {
+            return null;
+        }
+
+        $normalizedAuthHash = $this->normalizeLegacyBcryptHash((string) $authUser->encrypted_password);
+
+        if (!$this->passwordMatches($plainPassword, (string) $authUser->encrypted_password)) {
+            Log::info('AuthController@login auth.users fallback password mismatch', [
+                'email' => $normalizedEmail,
+                'auth_user_id' => $authUser->id ?? null,
+            ]);
+
+            return null;
+        }
+
+        $profile = Profile::query()
+            ->where(function ($query) use ($authUser, $normalizedEmail) {
+                $query->where('user_id', (string) $authUser->id)
+                    ->orWhereRaw('lower(email) = ?', [$normalizedEmail]);
+            })
+            ->orderByRaw("CASE WHEN user_id = ? THEN 0 ELSE 1 END", [(string) $authUser->id])
+            ->first();
+
+        $teacher = Teacher::query()
+            ->where(function ($query) use ($authUser, $normalizedEmail) {
+                $query->where('user_id', (string) $authUser->id)
+                    ->orWhereRaw('lower(email) = ?', [$normalizedEmail]);
+            })
+            ->first();
+
+        $resolvedName = $profile?->full_name
+            ?: trim(implode(' ', array_filter([
+                $teacher?->first_name,
+                $teacher?->last_name,
+            ])))
+            ?: strtok((string) $authUser->email, '@')
+            ?: 'Usuario';
+
+        DB::table('users')->updateOrInsert(
+            ['id' => (string) $authUser->id],
+            [
+                'name' => $resolvedName,
+                'email' => strtolower((string) $authUser->email),
+                'password' => $normalizedAuthHash,
+                'created_at' => $authUser->created_at ?? now(),
+                'updated_at' => now(),
+            ]
+        );
+
+        Log::info('AuthController@login synced auth.users into public.users', [
+            'email' => $normalizedEmail,
+            'user_id' => (string) $authUser->id,
+        ]);
+
+        return User::query()->find((string) $authUser->id);
+    }
+
+    private function passwordMatches(string $plainPassword, ?string $hashedPassword): bool
+    {
+        if (!$hashedPassword) {
+            return false;
+        }
+
+        try {
+            return Hash::check($plainPassword, $hashedPassword);
+        } catch (RuntimeException $exception) {
+            $normalizedHash = $this->normalizeLegacyBcryptHash($hashedPassword);
+
+            if ($normalizedHash === $hashedPassword) {
+                throw $exception;
+            }
+
+            return password_verify($plainPassword, $normalizedHash);
+        }
+    }
+
+    private function normalizeLegacyBcryptHash(string $hashedPassword): string
+    {
+        if (str_starts_with($hashedPassword, '$2a$')) {
+            return '$2y$' . substr($hashedPassword, 4);
+        }
+
+        return $hashedPassword;
     }
 
     public function me(Request $request)

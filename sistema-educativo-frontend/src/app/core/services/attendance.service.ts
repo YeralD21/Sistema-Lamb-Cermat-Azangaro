@@ -12,6 +12,12 @@ export interface AttendanceJustification {
   created_at: string;
 }
 
+export interface TeacherAttendanceContextResponse {
+  teacher: any;
+  assignments: any[];
+  message?: string;
+}
+
 @Injectable({
   providedIn: 'root'
 })
@@ -41,9 +47,13 @@ export class AttendanceService {
 
   // --- Attendance Management ---
 
+  getTeacherAttendanceContext(): Observable<TeacherAttendanceContextResponse> {
+    return this.http.get<TeacherAttendanceContextResponse>(`${this.apiUrl}/attendance/my-context`);
+  }
+
   getStudentsForAttendance(courseId: string, sectionId: string): Observable<any> {
     return this.http.get(`${this.apiUrl}/student-course-enrollments`, {
-      params: { course_id: courseId, section_id: sectionId, status: 'active' }
+      params: { course_id: courseId, section_id: sectionId, status: 'active', per_page: 200 }
     });
   }
 

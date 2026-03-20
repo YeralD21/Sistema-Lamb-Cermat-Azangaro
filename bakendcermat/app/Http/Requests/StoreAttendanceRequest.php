@@ -20,11 +20,8 @@ class StoreAttendanceRequest extends FormRequest
             'section_id' => ['required', 'uuid', 'exists:sections,id'],
 
             'date'   => ['required', 'date'],
-
-            // Ajusta a tu enum real:
-            // Ejemplos comunes: present, absent, late, justified
-     'status' => ['required', 'string', Rule::in(['presente','tarde','falta','justificado'])],
-            'notes'  => ['nullable', 'string', 'max:1000'],
+            'status' => ['required', 'string', Rule::in(['presente','tarde','falta','justificado'])],
+            'justification'  => ['nullable', 'string', 'max:1000'],
         ];
     }
 

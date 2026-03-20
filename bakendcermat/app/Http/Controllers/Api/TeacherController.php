@@ -13,6 +13,11 @@ class TeacherController extends Controller
     public function index(Request $request)
     {
         $query = Teacher::query();
+        $role = $request->user()?->profile?->role;
+
+        if ($role === 'teacher') {
+            $query->where('user_id', (string) $request->user()->id);
+        }
 
         if ($request->has('status')) {
             $query->where('status', $request->status);
@@ -61,12 +66,16 @@ class TeacherController extends Controller
         ], 201);
     }
 
-    public function show($id)
+    public function show(Request $request, $id)
     {
         $row = Teacher::find($id);
 
         if (!$row) {
             return response()->json(['message' => 'Docente no encontrado'], 404);
+        }
+
+        if ($request->user()?->profile?->role === 'teacher' && (string) $row->user_id !== (string) $request->user()->id) {
+            return response()->json(['message' => 'Forbidden'], 403);
         }
 
         return response()->json($row);

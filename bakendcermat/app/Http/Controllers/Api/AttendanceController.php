@@ -6,45 +6,116 @@ use App\Http\Controllers\Controller;
 use App\Http\Requests\StoreAttendanceRequest;
 use App\Http\Requests\UpdateAttendanceRequest;
 use App\Models\Attendance;
+use App\Models\Teacher;
+use App\Models\TeacherCourseAssignment;
+use Illuminate\Database\Eloquent\Builder;
+use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Validation\ValidationException;
 
 class AttendanceController extends Controller
 {
-    public function index(Request $request)
+    public function myContext(Request $request): JsonResponse
     {
-        $q = Attendance::query();
+        $role = $request->user()?->profile?->role;
+        $teacher = null;
+        $teacherId = null;
 
-        // Filtros útiles
-        if ($request->filled('date')) {
-            $q->whereDate('date', $request->date);
-        }
-        if ($request->filled('student_id')) {
-            $q->where('student_id', $request->student_id);
-        }
-        if ($request->filled('course_id')) {
-            $q->where('course_id', $request->course_id);
-        }
-        if ($request->filled('section_id')) {
-            $q->where('section_id', $request->section_id);
-        }
-        if ($request->filled('status')) {
-            $q->where('status', $request->status);
+        if ($role === 'teacher') {
+            $teacher = Teacher::query()
+                ->where('user_id', (string) $request->user()->id)
+                ->first();
+
+            if (!$teacher) {
+                return response()->json([
+                    'teacher' => null,
+                    'assignments' => [],
+                    'message' => 'No se encontró el docente asociado al usuario autenticado.',
+                ]);
+            }
+
+            $teacherId = (string) $teacher->id;
         }
 
-        return $q->orderByDesc('date')->paginate(30);
+        $assignments = TeacherCourseAssignment::query()
+            ->with(['teacher', 'course', 'section.gradeLevel', 'academicYear'])
+            ->when($teacherId, fn (Builder $query) => $query->where('teacher_id', $teacherId))
+            ->where('is_active', true)
+            ->orderByDesc('assigned_at')
+            ->orderByDesc('created_at')
+            ->get()
+            ->values();
+
+        return response()->json([
+            'teacher' => $teacher,
+            'assignments' => $assignments,
+        ]);
     }
 
-    public function store(StoreAttendanceRequest $request)
+    public function index(Request $request): JsonResponse
+    {
+        $query = Attendance::query()
+            ->with([
+                'student',
+                'course',
+                'section.gradeLevel',
+                'justifications.guardian',
+            ]);
+
+        $this->applyTeacherScope($query, $request);
+
+        if ($request->filled('date')) {
+            $query->whereDate('date', $request->date);
+        }
+        if ($request->filled('date_from')) {
+            $query->whereDate('date', '>=', $request->date_from);
+        }
+        if ($request->filled('date_to')) {
+            $query->whereDate('date', '<=', $request->date_to);
+        }
+        if ($request->filled('student_id')) {
+            $query->where('student_id', $request->student_id);
+        }
+        if ($request->filled('course_id')) {
+            $query->where('course_id', $request->course_id);
+        }
+        if ($request->filled('section_id')) {
+            $query->where('section_id', $request->section_id);
+        }
+        if ($request->filled('status')) {
+            $query->where('status', $request->status);
+        }
+
+        $perPage = (int) $request->integer('per_page', 30);
+
+        return response()->json(
+            $query->orderByDesc('date')
+                ->orderByDesc('updated_at')
+                ->paginate($perPage)
+        );
+    }
+
+    public function store(StoreAttendanceRequest $request): JsonResponse
     {
         $data = $request->validated();
 
-        $data = $request->validated();
+        $this->ensureTeacherCanManageAttendance($request, $data['course_id'], $data['section_id']);
+        $this->validateJustificationRequirement($data['status'], $data['justification'] ?? null);
 
-        $data['recorded_by'] = $request->user()->id;
+        $existingAttendance = Attendance::query()
+            ->where('student_id', $data['student_id'])
+            ->where('course_id', $data['course_id'])
+            ->whereDate('date', $data['date'])
+            ->first();
 
-        // Importante: en tu BD hay UNIQUE(student_id, course_id, date)
-        // Si quieres "upsert" en vez de error:
+        $this->preventApprovedJustificationOverride($existingAttendance, $data['status']);
+
+        $recorderId = $this->resolveRecorderId($request);
+        if ($recorderId) {
+            $data['recorded_by'] = $recorderId;
+        }
+
         $attendance = Attendance::updateOrCreate(
             [
                 'student_id' => $data['student_id'],
@@ -54,63 +125,234 @@ class AttendanceController extends Controller
             $data
         );
 
-        return response()->json($attendance, 201);
+        return response()->json(
+            $attendance->fresh()->load(['student', 'course', 'section.gradeLevel', 'justifications.guardian']),
+            201
+        );
     }
 
-    public function batchStore(Request $request)
+    public function batchStore(Request $request): JsonResponse
     {
-        $request->validate([
+        $validated = $request->validate([
             'date'       => 'required|date',
             'course_id'  => 'required|uuid|exists:courses,id',
             'section_id' => 'required|uuid|exists:sections,id',
-            'records'    => 'required|array',
+            'records'    => 'required|array|min:1',
             'records.*.student_id'    => 'required|uuid|exists:students,id',
             'records.*.status'        => 'required|string|in:presente,tarde,falta,justificado',
-            'records.*.justification' => 'nullable|string',
+            'records.*.justification' => 'nullable|string|max:1000',
         ]);
 
-        $recordedBy = $request->user()->id;
-        $createdCount = 0;
+        $this->ensureTeacherCanManageAttendance($request, $validated['course_id'], $validated['section_id']);
 
-        DB::transaction(function() use ($request, $recordedBy, &$createdCount) {
-            foreach ($request->records as $record) {
+        $recordedBy = $this->resolveRecorderId($request);
+        $processedCount = 0;
+
+        DB::transaction(function () use ($validated, $recordedBy, &$processedCount) {
+            foreach ($validated['records'] as $record) {
+                $this->validateJustificationRequirement($record['status'], $record['justification'] ?? null);
+
+                $existingAttendance = Attendance::query()
+                    ->where('student_id', $record['student_id'])
+                    ->where('course_id', $validated['course_id'])
+                    ->whereDate('date', $validated['date'])
+                    ->first();
+
+                $this->preventApprovedJustificationOverride($existingAttendance, $record['status']);
+
                 Attendance::updateOrCreate(
                     [
                         'student_id' => $record['student_id'],
-                        'course_id'  => $request->course_id,
-                        'date'       => $request->date,
+                        'course_id'  => $validated['course_id'],
+                        'date'       => $validated['date'],
                     ],
                     [
-                        'section_id'    => $request->section_id,
+                        'section_id'    => $validated['section_id'],
                         'status'        => $record['status'],
                         'justification' => $record['justification'] ?? null,
                         'recorded_by'   => $recordedBy,
                     ]
                 );
-                $createdCount++;
+
+                $processedCount++;
             }
         });
 
         return response()->json([
-            'message' => "Se procesaron {$createdCount} registros de asistencia.",
-            'count'   => $createdCount
+            'message' => "Se procesaron {$processedCount} registros de asistencia.",
+            'count' => $processedCount,
         ]);
     }
 
-    public function show(Attendance $attendance)
+    public function show(Request $request, Attendance $attendance): JsonResponse
     {
-        return $attendance->load(['student', 'course', 'section', 'justifications']);
+        $this->ensureTeacherOwnsAttendance($request, $attendance);
+
+        return response()->json(
+            $attendance->load(['student', 'course', 'section.gradeLevel', 'justifications.guardian'])
+        );
     }
 
-    public function update(UpdateAttendanceRequest $request, Attendance $attendance)
+    public function update(UpdateAttendanceRequest $request, Attendance $attendance): JsonResponse
     {
-        $attendance->update($request->validated());
-        return $attendance;
+        $this->ensureTeacherOwnsAttendance($request, $attendance);
+
+        $data = $request->validated();
+        $nextStatus = $data['status'] ?? (string) $attendance->status;
+        $nextJustification = array_key_exists('justification', $data)
+            ? $data['justification']
+            : $attendance->justification;
+
+        $this->validateJustificationRequirement($nextStatus, $nextJustification);
+        $this->preventApprovedJustificationOverride($attendance, $nextStatus);
+
+        $recorderId = $this->resolveRecorderId($request);
+        if ($recorderId) {
+            $data['recorded_by'] = $recorderId;
+        }
+
+        $attendance->update($data);
+
+        return response()->json(
+            $attendance->fresh()->load(['student', 'course', 'section.gradeLevel', 'justifications.guardian'])
+        );
     }
 
-    public function destroy(Attendance $attendance)
+    public function destroy(Request $request, Attendance $attendance): JsonResponse
     {
+        $this->ensureTeacherOwnsAttendance($request, $attendance);
         $attendance->delete();
-        return response()->noContent();
+
+        return response()->json(['message' => 'Registro de asistencia eliminado.']);
+    }
+
+    private function applyTeacherScope(Builder $query, Request $request): void
+    {
+        if ($request->user()?->profile?->role !== 'teacher') {
+            return;
+        }
+
+        $teacherId = $this->resolveTeacherId($request);
+
+        if (!$teacherId) {
+            $query->whereRaw('1 = 0');
+            return;
+        }
+
+        $query->whereExists(function ($subQuery) use ($teacherId) {
+            $subQuery->select(DB::raw(1))
+                ->from('teacher_course_assignments as tca')
+                ->whereColumn('tca.course_id', 'attendance.course_id')
+                ->whereColumn('tca.section_id', 'attendance.section_id')
+                ->where('tca.teacher_id', $teacherId)
+                ->where('tca.is_active', true);
+        });
+    }
+
+    private function ensureTeacherCanManageAttendance(Request $request, string $courseId, string $sectionId): void
+    {
+        if ($request->user()?->profile?->role !== 'teacher') {
+            return;
+        }
+
+        $teacherId = $this->resolveTeacherId($request);
+
+        if (!$teacherId) {
+            throw ValidationException::withMessages([
+                'teacher' => 'No se encontró el docente asociado al usuario autenticado.',
+            ]);
+        }
+
+        $isAssigned = TeacherCourseAssignment::query()
+            ->where('teacher_id', $teacherId)
+            ->where('course_id', $courseId)
+            ->where('section_id', $sectionId)
+            ->where('is_active', true)
+            ->exists();
+
+        if (!$isAssigned) {
+            throw ValidationException::withMessages([
+                'assignment' => 'No tienes una asignación activa para registrar asistencia en este curso y sección.',
+            ]);
+        }
+    }
+
+    private function ensureTeacherOwnsAttendance(Request $request, Attendance $attendance): void
+    {
+        $this->ensureTeacherCanManageAttendance($request, (string) $attendance->course_id, (string) $attendance->section_id);
+    }
+
+    private function resolveTeacherId(Request $request): ?string
+    {
+        return Teacher::query()
+            ->where('user_id', (string) $request->user()?->id)
+            ->value('id');
+    }
+
+    private function resolveRecorderId(Request $request): ?string
+    {
+        $authUser = $request->user();
+
+        if (!$authUser) {
+            return null;
+        }
+
+        $emailCandidates = array_values(array_filter([
+            $authUser->email ?? null,
+            $authUser->profile?->email ?? null,
+        ]));
+
+        foreach ($emailCandidates as $email) {
+            $authSchemaUserId = DB::table('auth.users')
+                ->whereRaw('lower(email) = ?', [strtolower((string) $email)])
+                ->value('id');
+
+            if ($authSchemaUserId) {
+                return (string) $authSchemaUserId;
+            }
+        }
+
+        $candidateIds = array_values(array_filter([
+            $authUser->id ?? null,
+            $authUser->user_id ?? null,
+            $authUser->profile?->user_id ?? null,
+        ]));
+
+        foreach ($candidateIds as $candidateId) {
+            $candidateId = (string) $candidateId;
+
+            if (DB::table('auth.users')->where('id', $candidateId)->exists()) {
+                return $candidateId;
+            }
+        }
+
+        return null;
+    }
+
+    private function validateJustificationRequirement(string $status, ?string $justification): void
+    {
+        if (in_array($status, ['falta', 'justificado'], true) && blank($justification)) {
+            throw ValidationException::withMessages([
+                'justification' => 'Debes registrar un comentario cuando el estado es falta o justificado.',
+            ]);
+        }
+    }
+
+    private function preventApprovedJustificationOverride(?Attendance $attendance, string $incomingStatus): void
+    {
+        if (!$attendance) {
+            return;
+        }
+
+        $hasApprovedJustification = DB::table('attendance_justifications')
+            ->where('attendance_id', $attendance->id)
+            ->where('status', 'aprobada')
+            ->exists();
+
+        if ($hasApprovedJustification && $incomingStatus !== 'justificado') {
+            throw ValidationException::withMessages([
+                'status' => 'Este registro tiene una justificación aprobada y debe permanecer como justificado.',
+            ]);
+        }
     }
 }

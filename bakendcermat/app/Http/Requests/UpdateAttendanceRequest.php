@@ -15,8 +15,8 @@ class UpdateAttendanceRequest extends FormRequest
     public function rules(): array
     {
         return [
-           'status' => ['sometimes', 'string', Rule::in(['presente','tarde','falta','justificado'])],
-            'notes'  => ['sometimes', 'nullable', 'string', 'max:1000'],
+            'status' => ['sometimes', 'string', Rule::in(['presente','tarde','falta','justificado'])],
+            'justification'  => ['sometimes', 'nullable', 'string', 'max:1000'],
         ];
     }
 }

@@ -144,11 +144,21 @@ Route::middleware('auth:sanctum')->group(function () {
         Route::get('profiles/stats', [ProfileController::class, 'stats']);
         Route::apiResource('profiles', ProfileController::class);
         Route::apiResource('students', StudentController::class);
-        Route::apiResource('teachers', TeacherController::class);
         Route::apiResource('guardians', GuardianController::class);
         Route::apiResource('student-guardians', StudentGuardianController::class);
         Route::get('users', [UserController::class, 'index']);
         Route::post('users', [UserController::class, 'store']);
+    });
+
+    Route::get('teachers', [TeacherController::class, 'index'])
+        ->middleware('role:admin,director,coordinator,secretary,teacher');
+    Route::get('teachers/{id}', [TeacherController::class, 'show'])
+        ->middleware('role:admin,director,coordinator,secretary,teacher');
+    Route::middleware('role:admin,director,coordinator,secretary')->group(function () {
+        Route::post('teachers', [TeacherController::class, 'store']);
+        Route::put('teachers/{id}', [TeacherController::class, 'update']);
+        Route::patch('teachers/{id}', [TeacherController::class, 'update']);
+        Route::delete('teachers/{id}', [TeacherController::class, 'destroy']);
     });
 
     /*
@@ -195,15 +205,28 @@ Route::middleware('auth:sanctum')->group(function () {
     | - matrículas del estudiante en cursos
     |--------------------------------------------------------------------------
     */
+    Route::get('teacher-course-assignments', [TeacherCourseAssignmentController::class, 'index'])
+        ->middleware('role:admin,director,coordinator,secretary,teacher');
+    Route::get('teacher-course-assignments/{id}', [TeacherCourseAssignmentController::class, 'show'])
+        ->middleware('role:admin,director,coordinator,secretary,teacher');
+    Route::get('student-course-enrollments', [StudentCourseEnrollmentController::class, 'index'])
+        ->middleware('role:admin,director,coordinator,secretary,teacher');
+    Route::get('student-course-enrollments/{id}', [StudentCourseEnrollmentController::class, 'show'])
+        ->middleware('role:admin,director,coordinator,secretary,teacher');
+
     Route::middleware('role:admin,director,coordinator,secretary')->group(function () {
         Route::apiResource('enrollment-applications', EnrollmentApplicationController::class);
         Route::post('enrollment-applications/{id}/approve', [EnrollmentApplicationController::class, 'approve']);
         Route::post('enrollment-applications/{id}/reject', [EnrollmentApplicationController::class, 'reject']);
 
-        Route::apiResource('teacher-course-assignments', TeacherCourseAssignmentController::class);
+        Route::post('teacher-course-assignments', [TeacherCourseAssignmentController::class, 'store']);
+        Route::put('teacher-course-assignments/{id}', [TeacherCourseAssignmentController::class, 'update']);
+        Route::patch('teacher-course-assignments/{id}', [TeacherCourseAssignmentController::class, 'update']);
+        Route::delete('teacher-course-assignments/{id}', [TeacherCourseAssignmentController::class, 'destroy']);
 
-        Route::apiResource('student-course-enrollments', StudentCourseEnrollmentController::class)
-            ->only(['index', 'show', 'store', 'update']);
+        Route::post('student-course-enrollments', [StudentCourseEnrollmentController::class, 'store']);
+        Route::put('student-course-enrollments/{id}', [StudentCourseEnrollmentController::class, 'update']);
+        Route::patch('student-course-enrollments/{id}', [StudentCourseEnrollmentController::class, 'update']);
     });
 
     /*
@@ -276,8 +299,11 @@ Route::middleware('auth:sanctum')->group(function () {
     | Registro y mantenimiento de asistencia.
     |--------------------------------------------------------------------------
     */
+    Route::middleware('role:admin,director,coordinator,secretary,teacher')->group(function () {
+        Route::get('attendance/my-context', [AttendanceController::class, 'myContext']);
         Route::post('attendance/batch', [AttendanceController::class, 'batchStore']);
         Route::apiResource('attendance', AttendanceController::class);
+    });
 
     /*
     |--------------------------------------------------------------------------
@@ -318,6 +344,7 @@ Route::middleware('auth:sanctum')->group(function () {
     |--------------------------------------------------------------------------
     */
     Route::middleware('role:admin,director,coordinator,secretary,teacher')->group(function () {
+        Route::get('evaluations/my-context', [EvaluationController::class, 'myContext']);
         Route::get('evaluations', [EvaluationController::class, 'index']);
         Route::post('evaluations', [EvaluationController::class, 'store']);
         Route::get('evaluations/{evaluation}', [EvaluationController::class, 'show']);

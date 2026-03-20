@@ -7,7 +7,9 @@ use App\Models\Course;
 use App\Models\Section;
 use App\Models\Student;
 use App\Models\StudentCourseEnrollment;
+use App\Models\Teacher;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\DB;
 
 class StudentCourseEnrollmentController extends Controller
 {
@@ -16,6 +18,29 @@ class StudentCourseEnrollmentController extends Controller
     {
         $q = StudentCourseEnrollment::query()
             ->with(['student', 'course', 'section.gradeLevel', 'academicYear']);
+
+        if ($request->user()?->profile?->role === 'teacher') {
+            $teacherId = Teacher::query()
+                ->where('user_id', (string) $request->user()->id)
+                ->value('id');
+
+            if (!$teacherId) {
+                return response()->json([
+                    'data' => [],
+                    'message' => 'No se encontró el docente asociado al usuario autenticado.',
+                ], 200);
+            }
+
+            $q->whereExists(function ($subQuery) use ($teacherId) {
+                $subQuery->select(DB::raw(1))
+                    ->from('teacher_course_assignments as tca')
+                    ->whereColumn('tca.course_id', 'student_course_enrollments.course_id')
+                    ->whereColumn('tca.section_id', 'student_course_enrollments.section_id')
+                    ->whereColumn('tca.academic_year_id', 'student_course_enrollments.academic_year_id')
+                    ->where('tca.teacher_id', $teacherId)
+                    ->where('tca.is_active', true);
+            });
+        }
 
         if ($request->filled('student_id')) {
             $q->where('student_id', $request->string('student_id'));
@@ -103,10 +128,28 @@ class StudentCourseEnrollmentController extends Controller
     }
 
     // GET /api/student-course-enrollments/{id}
-    public function show(string $id)
+    public function show(Request $request, string $id)
     {
         $row = StudentCourseEnrollment::with(['student', 'course', 'section.gradeLevel', 'academicYear'])
             ->findOrFail($id);
+
+        if ($request->user()?->profile?->role === 'teacher') {
+            $teacherId = Teacher::query()
+                ->where('user_id', (string) $request->user()->id)
+                ->value('id');
+
+            $isAllowed = DB::table('teacher_course_assignments')
+                ->where('teacher_id', $teacherId)
+                ->where('course_id', $row->course_id)
+                ->where('section_id', $row->section_id)
+                ->where('academic_year_id', $row->academic_year_id)
+                ->where('is_active', true)
+                ->exists();
+
+            if (!$isAllowed) {
+                return response()->json(['message' => 'Forbidden'], 403);
+            }
+        }
 
         return response()->json($row);
     }
