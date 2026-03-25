@@ -4,166 +4,46 @@ import { FormsModule } from '@angular/forms';
 import { DomSanitizer, SafeHtml } from '@angular/platform-browser';
 import { RouterModule } from '@angular/router';
 import { ICONS } from '@core/constants/icons';
+import { AcademicContextStudent, AuthService } from '@core/services/auth.service';
+import {
+  ReportService,
+  StudentAttendanceJustificationData,
+  StudentAttendanceRecord,
+  StudentAttendanceSummaryResponse,
+} from '@core/services/report.service';
 import localeEsPe from '@angular/common/locales/es-PE';
 
 registerLocaleData(localeEsPe);
 
-interface AttendanceRecord {
+type AttendanceStatus = 'presente' | 'tarde' | 'falta' | 'justificado';
+
+interface AttendanceRecordView {
   id: string;
   date: string;
-  status: 'presente' | 'tarde' | 'falta' | 'justificado';
+  status: AttendanceStatus;
   justification: string | null;
   course: {
+    id: string;
     name: string;
     code: string;
   };
-  justification_data?: {
-    id: string;
-    status: 'pendiente' | 'aprobada' | 'rechazada';
-    reason: string;
-    review_notes: string | null;
-  };
+  justification_data?: StudentAttendanceJustificationData | null;
+}
+
+interface CalendarDay {
+  date: string;
+  dayNumber: number;
+  inCurrentMonth: boolean;
+  isToday: boolean;
+  records: AttendanceRecordView[];
+  dominantStatus: AttendanceStatus | null;
 }
 
 @Component({
   selector: 'app-attendance-student',
   standalone: true,
   imports: [CommonModule, FormsModule, RouterModule],
-  template: `
-    <div class="min-h-[calc(100vh-80px)] p-4 sm:p-6 lg:p-8 max-w-7xl mx-auto space-y-6">
-      <!-- Go Back Button -->
-      <a routerLink="/app/dashboard/student" class="inline-flex items-center gap-2 text-slate-500 hover:text-slate-700 transition-colors text-sm font-medium group">
-        <div class="p-1.5 bg-white border border-slate-200 rounded-lg group-hover:bg-slate-50 transition-colors shadow-sm">
-          <svg class="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M19 12H5M12 19l-7-7 7-7"/></svg>
-        </div>
-        Volver al Panel
-      </a>
-
-      <!-- Header -->
-      <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
-        <div>
-          <h1 class="text-3xl font-extrabold text-slate-900 tracking-tight">Mi Asistencia</h1>
-          <p class="text-slate-500 mt-1">Revisa tu historial detallado de asistencia y puntualidad</p>
-        </div>
-      </div>
-
-      <!-- Month Selector -->
-      <div class="bg-white border border-slate-200 rounded-2xl p-5 shadow-sm">
-        <div class="flex flex-col sm:flex-row sm:items-center gap-4">
-          <div class="flex items-center gap-3">
-            <div class="w-10 h-10 bg-blue-50 text-blue-600 rounded-xl flex items-center justify-center">
-              <div [innerHTML]="getSafeIcon('calendar')" class="w-5 h-5"></div>
-            </div>
-            <div>
-              <p class="text-[10px] font-bold text-slate-400 uppercase tracking-widest">Periodo de consulta</p>
-              <p class="text-sm font-bold text-slate-700">Selecciona un mes</p>
-            </div>
-          </div>
-          <div class="flex-1">
-            <select [(ngModel)]="selectedMonth" (change)="loadAttendance()" class="w-full bg-slate-50 border border-slate-200 text-slate-700 rounded-xl px-4 py-3 text-sm font-semibold focus:outline-none focus:ring-4 focus:ring-blue-500/10 focus:border-blue-500 transition-all cursor-pointer">
-              <option *ngFor="let m of months" [value]="m.value">{{ m.label }}</option>
-            </select>
-          </div>
-        </div>
-      </div>
-
-      <!-- Stats -->
-      <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
-        <div *ngFor="let stat of statCards" class="bg-white p-6 rounded-2xl border border-slate-100 shadow-sm relative overflow-hidden group hover:shadow-md transition-all duration-300">
-          <div [class]="'absolute top-0 left-0 w-1.5 h-full ' + stat.color"></div>
-          <div class="flex items-center justify-between mb-4">
-            <div class="flex flex-col">
-              <span class="text-3xl font-black text-slate-900">{{ stat.value }}</span>
-              <p class="text-[10px] font-bold text-slate-400 uppercase tracking-widest">{{ stat.label }}</p>
-            </div>
-            <div [class]="'p-3 rounded-2xl ' + stat.bgColor">
-              <div [innerHTML]="getSafeIcon(stat.icon)" [class]="'w-6 h-6 ' + stat.textColor"></div>
-            </div>
-          </div>
-        </div>
-      </div>
-
-      <!-- Attendance List -->
-      <div class="bg-white rounded-3xl border border-slate-200 shadow-sm overflow-hidden">
-        <div class="px-8 py-6 border-b border-slate-100 flex items-center justify-between bg-slate-50/50">
-          <h3 class="text-lg font-bold text-slate-900">Historial de Registros</h3>
-          <span class="px-3 py-1 bg-white border border-slate-200 rounded-full text-[10px] font-bold text-slate-500 uppercase tracking-wider shadow-sm">
-            {{ attendance.length }} total
-          </span>
-        </div>
-        
-        <div class="p-4 sm:p-8">
-          <div *ngIf="loading" class="flex flex-col items-center justify-center py-20 gap-4">
-            <div class="w-12 h-12 border-4 border-blue-600 border-t-transparent rounded-full animate-spin"></div>
-            <p class="text-sm font-bold text-slate-400 animate-pulse">CARGANDO HISTORIAL...</p>
-          </div>
-
-          <div *ngIf="!loading && attendance.length === 0" class="text-center py-24">
-            <div class="w-24 h-24 bg-slate-50 rounded-full flex items-center justify-center mx-auto mb-6">
-               <div [innerHTML]="getSafeIcon('calendar')" class="w-12 h-12 text-slate-200"></div>
-            </div>
-            <h3 class="text-xl font-bold text-slate-900 mb-2">Sin registros este mes</h3>
-            <p class="text-slate-400 max-w-sm mx-auto font-medium">No se encontraron registros de asistencia para el periodo seleccionado. Intenta cambiar el mes.</p>
-          </div>
-
-          <div *ngIf="!loading && attendance.length > 0" class="space-y-4">
-            <div *ngFor="let record of attendance" 
-                 [class]="'p-5 rounded-2xl border-2 transition-all hover:shadow-xl hover:-translate-y-1 duration-300 ' + getStatusStyles(record.status).border">
-              <div class="flex flex-col md:flex-row md:items-start justify-between gap-6">
-                <div class="flex items-start gap-5">
-                  <div [class]="'w-12 h-12 rounded-2xl flex items-center justify-center shrink-0 shadow-sm ' + getStatusStyles(record.status).bg">
-                    <div [innerHTML]="getSafeIcon(getStatusStyles(record.status).icon)" [class]="'w-6 h-6 ' + getStatusStyles(record.status).text"></div>
-                  </div>
-                  <div>
-                    <div class="flex items-center gap-3 mb-1.5 flex-wrap">
-                      <span class="text-lg font-bold text-slate-900 leading-none">
-                        {{ record.date | date:'EEEE, d MMMM yyyy':'':'es-PE' | titlecase }}
-                      </span>
-                    </div>
-                    
-                    <div class="flex items-center gap-2 mb-3">
-                      <span class="px-2 py-0.5 bg-white border border-slate-200 text-slate-500 rounded-md text-[10px] font-black uppercase tracking-widest shadow-sm">
-                        {{ record.course.code }}
-                      </span>
-                      <span class="text-sm font-bold text-slate-600">{{ record.course.name }}</span>
-                    </div>
-                    
-                    <div *ngIf="record.justification" class="flex items-start gap-2 p-3 bg-white/60 rounded-xl border border-white/50 shadow-inner">
-                       <div [innerHTML]="getSafeIcon('fileText')" class="w-4 h-4 text-slate-400 mt-0.5"></div>
-                       <p class="text-sm text-slate-600 italic font-medium">Nota: {{ record.justification }}</p>
-                    </div>
-
-                    <!-- Justification Feedback -->
-                    <div *ngIf="record.justification_data" class="mt-4 p-5 bg-white rounded-2xl border border-slate-100 shadow-sm">
-                      <div class="flex items-center gap-3 mb-3">
-                        <div class="w-8 h-8 rounded-lg bg-slate-50 flex items-center justify-center">
-                          <div [innerHTML]="getSafeIcon('fileText')" class="w-4 h-4 text-slate-400"></div>
-                        </div>
-                        <span class="text-xs font-black text-slate-400 uppercase tracking-widest">Justificación Formal</span>
-                        <span [class]="'px-3 py-1 rounded-full text-[10px] font-black uppercase tracking-widest shadow-sm ml-auto ' + getJustificationStyles(record.justification_data.status)">
-                          {{ record.justification_data.status }}
-                        </span>
-                      </div>
-                      <p class="text-sm text-slate-800 font-bold mb-2">{{ record.justification_data.reason }}</p>
-                      <div *ngIf="record.justification_data.review_notes" class="mt-3 text-xs text-blue-600 bg-blue-50 p-3 rounded-lg border-l-4 border-blue-500 font-bold italic">
-                        REVISIÓN: {{ record.justification_data.review_notes }}
-                      </div>
-                    </div>
-                  </div>
-                </div>
-                
-                <div class="md:text-right shrink-0">
-                  <span [class]="'px-4 py-2 rounded-full text-xs font-black uppercase tracking-widest shadow-lg inline-block text-white ' + getStatusStyles(record.status).badgeColor">
-                    {{ getStatusLabel(record.status) }}
-                  </span>
-                </div>
-              </div>
-            </div>
-          </div>
-        </div>
-      </div>
-    </div>
-  `,
+  templateUrl: './student-attendance.component.html',
   styles: [`
     :host { display: block; background: #F8FAFC; min-h: 100vh; }
     select { appearance: none; background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' fill='none' viewBox='0 0 24 24' stroke='%2364748b'%3E%3Cpath stroke-linecap='round' stroke-linejoin='round' stroke-width='2.5' d='M19 9l-7 7-7-7'%3E%3C/path%3E%3C/svg%3E"); background-repeat: no-repeat; background-position: right 1rem center; background-size: 1.25rem; }
@@ -171,19 +51,163 @@ interface AttendanceRecord {
 })
 export class AttendanceStudentComponent implements OnInit {
   private sanitizer = inject(DomSanitizer);
-  
+  private authService = inject(AuthService);
+  private reportService = inject(ReportService);
+
+  readonly dayLabels = ['Lun', 'Mar', 'Mie', 'Jue', 'Vie', 'Sab', 'Dom'];
+
   loading = false;
+  error = '';
   selectedMonth = new Date().toISOString().slice(0, 7);
+  selectedCourseId = 'all';
+  selectedCalendarDate = '';
   months: { value: string, label: string }[] = [];
-  attendance: AttendanceRecord[] = [];
-  stats = { presente: 0, tarde: 0, falta: 0, justificado: 0 };
+  attendance: AttendanceRecordView[] = [];
+  studentContext: AcademicContextStudent | null = null;
+  lastSummary: StudentAttendanceSummaryResponse | null = null;
 
   constructor() {
     this.generateMonths();
   }
 
   ngOnInit() {
-    this.loadAttendance();
+    this.loadAcademicContext();
+  }
+
+  get filteredAttendance(): AttendanceRecordView[] {
+    const records = this.selectedCourseId === 'all'
+      ? this.attendance
+      : this.attendance.filter((record) => record.course.id === this.selectedCourseId);
+
+    return records.slice().sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime());
+  }
+
+  get availableCourses(): Array<{ id: string; name: string; code: string }> {
+    const courseMap = new Map<string, { id: string; name: string; code: string }>();
+    this.attendance.forEach((record) => {
+      if (!courseMap.has(record.course.id)) {
+        courseMap.set(record.course.id, record.course);
+      }
+    });
+    return Array.from(courseMap.values()).sort((a, b) => a.name.localeCompare(b.name));
+  }
+
+  get selectedDateRecords(): AttendanceRecordView[] {
+    if (!this.selectedCalendarDate) {
+      return [];
+    }
+    return this.filteredAttendance.filter((record) => this.toDateString(new Date(record.date)) === this.selectedCalendarDate);
+  }
+
+  get totalRecords(): number {
+    return this.filteredAttendance.length;
+  }
+
+  get presentCount(): number {
+    return this.countByStatus('presente');
+  }
+
+  get lateCount(): number {
+    return this.countByStatus('tarde');
+  }
+
+  get absentCount(): number {
+    return this.countByStatus('falta');
+  }
+
+  get justifiedCount(): number {
+    return this.countByStatus('justificado');
+  }
+
+  get effectiveAttendanceCount(): number {
+    return this.presentCount + this.justifiedCount;
+  }
+
+  get effectiveAttendanceRate(): number {
+    return this.getPercentage(this.effectiveAttendanceCount, this.totalRecords);
+  }
+
+  get lateRate(): number {
+    return this.getPercentage(this.lateCount, this.totalRecords);
+  }
+
+  get absentRate(): number {
+    return this.getPercentage(this.absentCount, this.totalRecords);
+  }
+
+  get justifiedRate(): number {
+    return this.getPercentage(this.justifiedCount, this.totalRecords);
+  }
+
+  get monthLabel(): string {
+    const [year, month] = this.selectedMonth.split('-').map(Number);
+    return new Date(year, month - 1, 1).toLocaleDateString('es-PE', { month: 'long', year: 'numeric' });
+  }
+
+  get riskAlert(): { title: string; message: string; icon: string; containerClass: string } | null {
+    if (this.totalRecords === 0) {
+      return null;
+    }
+
+    if (this.absentCount >= 3 || this.effectiveAttendanceRate < 80) {
+      return {
+        title: 'Seguimiento urgente',
+        message: `Acumulas ${this.absentCount} faltas y una asistencia efectiva de ${this.effectiveAttendanceRate}%.`,
+        icon: 'alertCircle',
+        containerClass: 'bg-rose-50 border-rose-200 text-rose-700',
+      };
+    }
+
+    if (this.lateCount >= 4 || this.effectiveAttendanceRate < 90) {
+      return {
+        title: 'Riesgo de inasistencias',
+        message: `Llevas ${this.lateCount} tardanzas en el periodo filtrado. Conviene mejorar tu puntualidad.`,
+        icon: 'clock',
+        containerClass: 'bg-amber-50 border-amber-200 text-amber-700',
+      };
+    }
+
+    return {
+      title: 'Buen seguimiento',
+      message: `Tu asistencia efectiva va en ${this.effectiveAttendanceRate}%. Mantén este ritmo durante el mes.`,
+      icon: 'checkCircle2',
+      containerClass: 'bg-emerald-50 border-emerald-200 text-emerald-700',
+    };
+  }
+
+  get calendarDays(): CalendarDay[] {
+    const [year, month] = this.selectedMonth.split('-').map(Number);
+    const firstDay = new Date(year, month - 1, 1);
+    const lastDay = new Date(year, month, 0);
+    const offset = (firstDay.getDay() + 6) % 7;
+    const totalCells = Math.ceil((offset + lastDay.getDate()) / 7) * 7;
+    const startDate = new Date(firstDay);
+    startDate.setDate(firstDay.getDate() - offset);
+
+    return Array.from({ length: totalCells }, (_, index) => {
+      const current = new Date(startDate);
+      current.setDate(startDate.getDate() + index);
+      const dateKey = this.toDateString(current);
+      const records = this.filteredAttendance.filter((record) => this.toDateString(new Date(record.date)) === dateKey);
+
+      return {
+        date: dateKey,
+        dayNumber: current.getDate(),
+        inCurrentMonth: current.getMonth() === month - 1,
+        isToday: dateKey === this.toDateString(new Date()),
+        records,
+        dominantStatus: this.resolveDominantStatus(records),
+      };
+    });
+  }
+
+  get statCards() {
+    return [
+      { label: 'Asistencia efectiva', value: `${this.effectiveAttendanceRate}%`, helper: `${this.effectiveAttendanceCount} registros presentes o justificados`, icon: 'checkCircle2', color: 'bg-green-500', bgColor: 'bg-green-50', textColor: 'text-green-600' },
+      { label: 'Tardanzas', value: this.lateCount, helper: `${this.lateRate}% del total mensual`, icon: 'clock', color: 'bg-yellow-400', bgColor: 'bg-yellow-50', textColor: 'text-yellow-600' },
+      { label: 'Faltas', value: this.absentCount, helper: `${this.absentRate}% del total mensual`, icon: 'xCircle', color: 'bg-red-500', bgColor: 'bg-red-50', textColor: 'text-red-600' },
+      { label: 'Justificadas', value: this.justifiedCount, helper: `${this.justifiedRate}% con sustento registrado`, icon: 'fileText', color: 'bg-blue-600', bgColor: 'bg-blue-50', textColor: 'text-blue-600' },
+    ];
   }
 
   generateMonths() {
@@ -192,75 +216,46 @@ export class AttendanceStudentComponent implements OnInit {
       date.setMonth(date.getMonth() - i);
       const value = date.toISOString().slice(0, 7);
       const label = date.toLocaleDateString('es-PE', { year: 'numeric', month: 'long' });
-      this.months.push({ 
-        value, 
-        label: label.charAt(0).toUpperCase() + label.slice(1) 
-      });
+      this.months.push({ value, label: label.charAt(0).toUpperCase() + label.slice(1) });
     }
   }
 
   loadAttendance() {
+    if (!this.studentContext?.id) {
+      return;
+    }
+
     this.loading = true;
-    // Mock simulation
-    setTimeout(() => {
-      this.attendance = [
-        {
-          id: '1',
-          date: new Date().toISOString(),
-          status: 'presente',
-          justification: null,
-          course: { name: 'Matemática Avanzada', code: 'MAT-SEC-01' }
-        },
-        {
-          id: '2',
-          date: new Date(Date.now() - 86400000).toISOString(),
-          status: 'tarde',
-          justification: 'Retraso por transporte escolar',
-          course: { name: 'Comunicación y Literatura', code: 'COM-SEC-01' }
-        },
-        {
-          id: '3',
-          date: new Date(Date.now() - 172800000).toISOString(),
-          status: 'falta',
-          justification: null,
-          course: { name: 'Biología y Anatomía', code: 'BIO-SEC-02' },
-          justification_data: {
-            id: 'j1',
-            status: 'pendiente',
-            reason: 'Descanso médico solicitado',
-            review_notes: null
-          }
-        },
-        {
-          id: '4',
-          date: new Date(Date.now() - 259200000).toISOString(),
-          status: 'justificado',
-          justification: null,
-          course: { name: 'Historia Universal', code: 'HIS-SEC-01' },
-          justification_data: {
-            id: 'j2',
-            status: 'aprobada',
-            reason: 'Participación en olimpiada regional',
-            review_notes: 'Mérito académico reconocido. Asistencia justificada.'
-          }
-        }
-      ];
-      this.calculateStats();
-      this.loading = false;
-    }, 1200);
+    this.error = '';
+    const { dateFrom, dateTo } = this.getMonthRange(this.selectedMonth);
+
+    this.reportService.getAttendanceSummary(this.studentContext.id, dateFrom, dateTo).subscribe({
+      next: (response) => {
+        this.lastSummary = response;
+        this.attendance = (response.records || []).map((record) => this.mapRecord(record));
+        this.syncSelectedCourse();
+        this.syncSelectedCalendarDate();
+        this.loading = false;
+      },
+      error: () => {
+        this.attendance = [];
+        this.lastSummary = null;
+        this.selectedCalendarDate = '';
+        this.error = 'No se pudo cargar tu historial de asistencia.';
+        this.loading = false;
+      }
+    });
   }
 
-  calculateStats() {
-    const newStats: Record<string, number> = { presente: 0, tarde: 0, falta: 0, justificado: 0 };
-    this.attendance.forEach(r => {
-      newStats[r.status] = (newStats[r.status] || 0) + 1;
-    });
-    this.stats = {
-      presente: newStats['presente'],
-      tarde: newStats['tarde'],
-      falta: newStats['falta'],
-      justificado: newStats['justificado']
-    };
+  onCourseChange(): void {
+    this.syncSelectedCalendarDate();
+  }
+
+  selectCalendarDate(day: CalendarDay): void {
+    if (!day.inCurrentMonth) {
+      return;
+    }
+    this.selectedCalendarDate = day.date;
   }
 
   getSafeIcon(name: string): SafeHtml {
@@ -281,7 +276,7 @@ export class AttendanceStudentComponent implements OnInit {
   getStatusLabel(status: string) {
     const labels: Record<string, string> = {
       presente: 'Presente',
-      tarde: 'Tardanza',
+      tarde: 'Tarde',
       falta: 'Falta',
       justificado: 'Justificado'
     };
@@ -294,12 +289,135 @@ export class AttendanceStudentComponent implements OnInit {
     return 'bg-blue-500 text-white';
   }
 
-  get statCards() {
-    return [
-      { label: 'Presentes', value: this.stats.presente, icon: 'checkCircle2', color: 'bg-green-500', bgColor: 'bg-green-50', textColor: 'text-green-600' },
-      { label: 'Tardanzas', value: this.stats.tarde, icon: 'clock', color: 'bg-yellow-400', bgColor: 'bg-yellow-50', textColor: 'text-yellow-600' },
-      { label: 'Faltas', value: this.stats.falta, icon: 'xCircle', color: 'bg-red-500', bgColor: 'bg-red-50', textColor: 'text-red-600' },
-      { label: 'Justificadas', value: this.stats.justificado, icon: 'fileText', color: 'bg-blue-600', bgColor: 'bg-blue-50', textColor: 'text-blue-600' },
+  getCalendarDayClass(day: CalendarDay): string {
+    const base = [
+      day.inCurrentMonth ? 'bg-white border-slate-200 text-slate-700 hover:border-slate-300 hover:bg-slate-50' : 'bg-slate-50 border-slate-100 text-slate-300',
+      day.isToday ? 'ring-2 ring-cyan-400/50' : '',
+      this.selectedCalendarDate === day.date ? 'border-cyan-500 ring-4 ring-cyan-500/10 bg-cyan-50' : '',
+      day.dominantStatus ? this.getStatusStyles(day.dominantStatus).border : '',
     ];
+
+    return base.filter(Boolean).join(' ');
+  }
+
+  getCalendarBadgeClass(status: AttendanceStatus): string {
+    return {
+      presente: 'bg-green-50 text-green-700 border border-green-100',
+      tarde: 'bg-yellow-50 text-yellow-700 border border-yellow-100',
+      falta: 'bg-red-50 text-red-700 border border-red-100',
+      justificado: 'bg-blue-50 text-blue-700 border border-blue-100',
+    }[status];
+  }
+
+  private loadAcademicContext(): void {
+    this.loading = true;
+    this.error = '';
+
+    this.authService.getAcademicContext().subscribe({
+      next: (context) => {
+        this.studentContext = context.students?.[0] || null;
+        if (!this.studentContext) {
+          this.error = 'Tu usuario no tiene un estudiante vinculado.';
+          this.loading = false;
+          return;
+        }
+        this.loadAttendance();
+      },
+      error: () => {
+        this.error = 'No se pudo obtener el contexto academico del estudiante.';
+        this.loading = false;
+      }
+    });
+  }
+
+  private getMonthRange(monthValue: string): { dateFrom: string; dateTo: string } {
+    const [year, month] = monthValue.split('-').map(Number);
+    const start = new Date(year, month - 1, 1);
+    const end = new Date(year, month, 0);
+
+    return {
+      dateFrom: this.toDateString(start),
+      dateTo: this.toDateString(end),
+    };
+  }
+
+  private toDateString(date: Date): string {
+    const year = date.getFullYear();
+    const month = String(date.getMonth() + 1).padStart(2, '0');
+    const day = String(date.getDate()).padStart(2, '0');
+    return `${year}-${month}-${day}`;
+  }
+
+  private countByStatus(status: AttendanceStatus): number {
+    return this.filteredAttendance.filter((record) => record.status === status).length;
+  }
+
+  private getPercentage(value: number, total: number): number {
+    if (!total) {
+      return 0;
+    }
+    return Math.round((value / total) * 100);
+  }
+
+  private resolveDominantStatus(records: AttendanceRecordView[]): AttendanceStatus | null {
+    if (records.some((record) => record.status === 'falta')) return 'falta';
+    if (records.some((record) => record.status === 'tarde')) return 'tarde';
+    if (records.some((record) => record.status === 'justificado')) return 'justificado';
+    if (records.some((record) => record.status === 'presente')) return 'presente';
+    return null;
+  }
+
+  private syncSelectedCourse(): void {
+    if (this.selectedCourseId === 'all') {
+      return;
+    }
+
+    const exists = this.availableCourses.some((course) => course.id === this.selectedCourseId);
+    if (!exists) {
+      this.selectedCourseId = 'all';
+    }
+  }
+
+  private syncSelectedCalendarDate(): void {
+    const availableDates = new Set(this.filteredAttendance.map((record) => this.toDateString(new Date(record.date))));
+    if (this.selectedCalendarDate && availableDates.has(this.selectedCalendarDate)) {
+      return;
+    }
+    this.selectedCalendarDate = this.filteredAttendance[0]
+      ? this.toDateString(new Date(this.filteredAttendance[0].date))
+      : '';
+  }
+
+  private mapRecord(record: StudentAttendanceRecord): AttendanceRecordView {
+    return {
+      id: record.id,
+      date: record.date,
+      status: record.status,
+      justification: record.justification,
+      course: {
+        id: record.course_id,
+        name: record.course_name,
+        code: record.course_code,
+      },
+      justification_data: this.parseJustificationData(record.justification_data),
+    };
+  }
+
+  private parseJustificationData(
+    value: StudentAttendanceRecord['justification_data']
+  ): StudentAttendanceJustificationData | null {
+    if (!value) {
+      return null;
+    }
+
+    if (typeof value === 'string') {
+      try {
+        return JSON.parse(value) as StudentAttendanceJustificationData;
+      } catch {
+        return null;
+      }
+    }
+
+    return value;
   }
 }

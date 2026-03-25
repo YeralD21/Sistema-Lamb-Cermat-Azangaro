@@ -96,6 +96,171 @@ class AttendanceController extends Controller
         );
     }
 
+    public function adminOverview(Request $request): JsonResponse
+    {
+        $validated = $request->validate([
+            'date' => 'nullable|date',
+            'course_id' => 'nullable|uuid|exists:courses,id',
+            'section_id' => 'nullable|uuid|exists:sections,id',
+            'teacher_id' => 'nullable|uuid|exists:teachers,id',
+        ]);
+
+        $date = $validated['date'] ?? now()->toDateString();
+
+        $assignments = TeacherCourseAssignment::query()
+            ->with(['teacher', 'course', 'section.gradeLevel', 'academicYear'])
+            ->where('is_active', true)
+            ->when(
+                !empty($validated['course_id']),
+                fn (Builder $query) => $query->where('course_id', $validated['course_id'])
+            )
+            ->when(
+                !empty($validated['section_id']),
+                fn (Builder $query) => $query->where('section_id', $validated['section_id'])
+            )
+            ->when(
+                !empty($validated['teacher_id']),
+                fn (Builder $query) => $query->where('teacher_id', $validated['teacher_id'])
+            )
+            ->orderByDesc('assigned_at')
+            ->orderByDesc('created_at')
+            ->get();
+
+        $studentCounts = DB::table('student_course_enrollments')
+            ->selectRaw('course_id, section_id, academic_year_id, count(*) as student_count')
+            ->where('status', 'active')
+            ->whereIn('course_id', $assignments->pluck('course_id')->filter()->unique()->values())
+            ->whereIn('section_id', $assignments->pluck('section_id')->filter()->unique()->values())
+            ->groupBy('course_id', 'section_id', 'academic_year_id')
+            ->get()
+            ->keyBy(fn ($row) => $this->buildAssignmentKey($row->course_id, $row->section_id, $row->academic_year_id));
+
+        $attendanceTotals = DB::table('attendance')
+            ->selectRaw("
+                course_id,
+                section_id,
+                count(*) as recorded_count,
+                sum(case when status = 'presente' then 1 else 0 end) as present_count,
+                sum(case when status = 'tarde' then 1 else 0 end) as late_count,
+                sum(case when status = 'falta' then 1 else 0 end) as absent_count,
+                sum(case when status = 'justificado' then 1 else 0 end) as justified_count,
+                max(updated_at) as last_recorded_at
+            ")
+            ->whereDate('date', $date)
+            ->when(
+                !empty($validated['course_id']),
+                fn ($query) => $query->where('course_id', $validated['course_id'])
+            )
+            ->when(
+                !empty($validated['section_id']),
+                fn ($query) => $query->where('section_id', $validated['section_id'])
+            )
+            ->groupBy('course_id', 'section_id')
+            ->get()
+            ->keyBy(fn ($row) => $this->buildAssignmentKey($row->course_id, $row->section_id));
+
+        $pendingJustifications = DB::table('attendance_justifications as aj')
+            ->join('attendance as a', 'a.id', '=', 'aj.attendance_id')
+            ->selectRaw('a.course_id, a.section_id, count(*) as pending_count')
+            ->whereDate('a.date', $date)
+            ->where('aj.status', 'pendiente')
+            ->when(
+                !empty($validated['course_id']),
+                fn ($query) => $query->where('a.course_id', $validated['course_id'])
+            )
+            ->when(
+                !empty($validated['section_id']),
+                fn ($query) => $query->where('a.section_id', $validated['section_id'])
+            )
+            ->groupBy('a.course_id', 'a.section_id')
+            ->get()
+            ->keyBy(fn ($row) => $this->buildAssignmentKey($row->course_id, $row->section_id));
+
+        $assignmentSummaries = $assignments->map(function (TeacherCourseAssignment $assignment) use ($studentCounts, $attendanceTotals, $pendingJustifications) {
+            $studentRow = $studentCounts->get(
+                $this->buildAssignmentKey($assignment->course_id, $assignment->section_id, $assignment->academic_year_id)
+            );
+            $attendanceRow = $attendanceTotals->get(
+                $this->buildAssignmentKey($assignment->course_id, $assignment->section_id)
+            );
+            $pendingRow = $pendingJustifications->get(
+                $this->buildAssignmentKey($assignment->course_id, $assignment->section_id)
+            );
+
+            $studentCount = (int) ($studentRow->student_count ?? 0);
+            $recordedCount = (int) ($attendanceRow->recorded_count ?? 0);
+
+            return [
+                'assignment_id' => $assignment->id,
+                'teacher_id' => $assignment->teacher_id,
+                'teacher' => $assignment->teacher,
+                'course_id' => $assignment->course_id,
+                'course' => $assignment->course,
+                'section_id' => $assignment->section_id,
+                'section' => $assignment->section,
+                'academic_year_id' => $assignment->academic_year_id,
+                'academic_year' => $assignment->academicYear,
+                'student_count' => $studentCount,
+                'recorded_count' => $recordedCount,
+                'present_count' => (int) ($attendanceRow->present_count ?? 0),
+                'late_count' => (int) ($attendanceRow->late_count ?? 0),
+                'absent_count' => (int) ($attendanceRow->absent_count ?? 0),
+                'justified_count' => (int) ($attendanceRow->justified_count ?? 0),
+                'pending_justifications_count' => (int) ($pendingRow->pending_count ?? 0),
+                'is_registered' => $recordedCount > 0,
+                'completion_rate' => $studentCount > 0
+                    ? round(($recordedCount / $studentCount) * 100, 1)
+                    : 0,
+                'last_recorded_at' => $attendanceRow->last_recorded_at ?? null,
+            ];
+        })->values();
+
+        $teacherSummaries = $assignmentSummaries
+            ->groupBy('teacher_id')
+            ->map(function ($rows) {
+                $first = $rows->first();
+                $pendingAssignments = $rows->where('is_registered', false)->values();
+
+                return [
+                    'teacher_id' => $first['teacher_id'],
+                    'teacher' => $first['teacher'],
+                    'total_assignments' => $rows->count(),
+                    'registered_assignments' => $rows->where('is_registered', true)->count(),
+                    'pending_assignments' => $pendingAssignments->count(),
+                    'is_complete' => $pendingAssignments->isEmpty(),
+                    'pending_details' => $pendingAssignments->map(fn ($row) => [
+                        'assignment_id' => $row['assignment_id'],
+                        'course' => $row['course'],
+                        'section' => $row['section'],
+                        'student_count' => $row['student_count'],
+                    ])->values(),
+                ];
+            })
+            ->sortByDesc('pending_assignments')
+            ->values();
+
+        return response()->json([
+            'date' => $date,
+            'summary' => [
+                'assignments_total' => $assignmentSummaries->count(),
+                'assignments_registered' => $assignmentSummaries->where('is_registered', true)->count(),
+                'assignments_pending' => $assignmentSummaries->where('is_registered', false)->count(),
+                'students_expected' => $assignmentSummaries->sum('student_count'),
+                'records_captured' => $assignmentSummaries->sum('recorded_count'),
+                'present_count' => $assignmentSummaries->sum('present_count'),
+                'late_count' => $assignmentSummaries->sum('late_count'),
+                'absent_count' => $assignmentSummaries->sum('absent_count'),
+                'justified_count' => $assignmentSummaries->sum('justified_count'),
+                'pending_justifications_count' => $assignmentSummaries->sum('pending_justifications_count'),
+                'coverage_rate' => $assignmentSummaries->sum('student_count') > 0
+                    ? round(($assignmentSummaries->sum('recorded_count') / $assignmentSummaries->sum('student_count')) * 100, 1)
+                    : 0,
+            ],
+            'teacher_statuses' => $teacherSummaries,
+            'assignment_statuses' => $assignmentSummaries,
+        ]);
+    }
+
     public function store(StoreAttendanceRequest $request): JsonResponse
     {
         $data = $request->validated();
@@ -354,5 +519,13 @@ class AttendanceController extends Controller
                 'status' => 'Este registro tiene una justificación aprobada y debe permanecer como justificado.',
             ]);
         }
+    }
+    private function buildAssignmentKey(?string $courseId, ?string $sectionId, ?string $academicYearId = null): string
+    {
+        return implode('|', [
+            (string) $courseId,
+            (string) $sectionId,
+            (string) ($academicYearId ?? ''),
+        ]);
     }
 }

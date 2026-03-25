@@ -55,10 +55,18 @@ export interface Competency {
 
 export interface TeacherCourseAssignment {
   id: string;
-  user_id: string;
+  user_id?: string;
+  teacher_id?: string;
   course_id: string;
   section_id: string;
   academic_year_id: string;
+  is_active?: boolean;
+  assigned_at?: string;
+  teacher?: any;
+  course?: Course;
+  section?: Section;
+  academic_year?: any;
+  academicYear?: any;
 }
 
 export interface StudentCourseEnrollment {

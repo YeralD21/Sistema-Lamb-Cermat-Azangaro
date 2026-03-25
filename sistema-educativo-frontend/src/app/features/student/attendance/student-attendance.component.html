@@ -1,40 +1,29 @@
 <div class="min-h-[calc(100vh-80px)] p-4 sm:p-6 lg:p-8 max-w-7xl mx-auto space-y-6">
-  <a routerLink="/app/dashboard/apoderado" class="inline-flex items-center gap-2 text-slate-500 hover:text-slate-700 transition-colors text-sm font-medium group">
+  <a routerLink="/app/dashboard/student" class="inline-flex items-center gap-2 text-slate-500 hover:text-slate-700 transition-colors text-sm font-medium group">
     <div class="p-1.5 bg-white border border-slate-200 rounded-lg group-hover:bg-slate-50 transition-colors shadow-sm">
       <svg class="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M19 12H5M12 19l-7-7 7-7"/></svg>
     </div>
-    Volver al panel
+    Volver al Panel
   </a>
 
   <div class="flex flex-col xl:flex-row xl:items-center justify-between gap-4">
     <div>
-      <h1 class="text-3xl font-extrabold text-slate-900 tracking-tight">Asistencia del Estudiante</h1>
-      <p class="text-slate-500 mt-1">Consulta por hijo, revisa el calendario y envia justificaciones desde el mismo modulo.</p>
-      <div *ngIf="selectedStudent" class="mt-3 flex flex-wrap items-center gap-2 text-[10px] font-black uppercase tracking-widest">
+      <h1 class="text-3xl font-extrabold text-slate-900 tracking-tight">Mi Asistencia</h1>
+      <p class="text-slate-500 mt-1">Consulta tu avance mensual, calendario de clases y alertas de seguimiento.</p>
+      <div *ngIf="studentContext" class="mt-3 flex flex-wrap items-center gap-2 text-[10px] font-black uppercase tracking-widest">
         <span class="px-3 py-2 rounded-2xl bg-white border border-slate-200 text-slate-700">
-          {{ selectedStudent.full_name }}
+          {{ studentContext.full_name }}
         </span>
-        <span *ngIf="selectedStudent.section?.grade_level" class="px-3 py-2 rounded-2xl bg-slate-100 text-slate-600">
-          {{ selectedStudent.section?.grade_level?.grade }}&deg; {{ selectedStudent.section?.grade_level?.level }}
-          {{ selectedStudent.section?.section_letter ? '- ' + selectedStudent.section?.section_letter : '' }}
+        <span *ngIf="studentContext.section?.grade_level" class="px-3 py-2 rounded-2xl bg-slate-100 text-slate-600">
+          {{ studentContext.section?.grade_level?.grade }}° {{ studentContext.section?.grade_level?.level }}
+          {{ studentContext.section?.section_letter ? '- ' + studentContext.section?.section_letter : '' }}
         </span>
       </div>
-    </div>
-
-    <div *ngIf="actionableRecords.length > 0 && !loading" class="rounded-3xl border border-blue-100 bg-blue-50 px-5 py-4 shadow-sm max-w-md">
-      <p class="text-[10px] font-black uppercase tracking-widest text-blue-500">Acciones pendientes</p>
-      <p class="mt-2 text-sm font-semibold text-blue-900">
-        Tienes {{ actionableRecords.length }} registros listos para justificar en el filtro actual.
-      </p>
     </div>
   </div>
 
   <div *ngIf="error" class="bg-rose-50 border border-rose-200 text-rose-700 p-4 rounded-2xl text-sm font-medium">
     {{ error }}
-  </div>
-
-  <div *ngIf="successMessage" class="bg-emerald-50 border border-emerald-200 text-emerald-700 p-4 rounded-2xl text-sm font-medium">
-    {{ successMessage }}
   </div>
 
   <div *ngIf="riskAlert && !loading" [class]="'rounded-3xl border px-5 py-4 shadow-sm ' + riskAlert.containerClass">
@@ -50,19 +39,7 @@
   </div>
 
   <div class="bg-white border border-slate-200 rounded-2xl p-5 shadow-sm">
-    <div class="grid xl:grid-cols-3 gap-4">
-      <div class="flex items-center gap-3">
-        <div class="w-10 h-10 bg-cyan-50 text-cyan-600 rounded-xl flex items-center justify-center">
-          <div [innerHTML]="getSafeIcon('users')" class="w-5 h-5"></div>
-        </div>
-        <div class="flex-1">
-          <p class="text-[10px] font-bold text-slate-400 uppercase tracking-widest">Estudiante</p>
-          <select [(ngModel)]="selectedStudentId" (change)="onStudentChange()" class="mt-2 w-full bg-slate-50 border border-slate-200 text-slate-700 rounded-xl px-4 py-3 text-sm font-semibold focus:outline-none focus:ring-4 focus:ring-cyan-500/10 focus:border-cyan-500 transition-all cursor-pointer">
-            <option *ngFor="let student of students" [value]="student.id">{{ student.full_name }}</option>
-          </select>
-        </div>
-      </div>
-
+    <div class="grid xl:grid-cols-[1fr,1fr] gap-4">
       <div class="flex items-center gap-3">
         <div class="w-10 h-10 bg-blue-50 text-blue-600 rounded-xl flex items-center justify-center">
           <div [innerHTML]="getSafeIcon('calendar')" class="w-5 h-5"></div>
@@ -108,45 +85,11 @@
     </div>
   </div>
 
-  <div *ngIf="!loading && actionableRecords.length > 0" class="bg-white rounded-3xl border border-slate-200 shadow-sm overflow-hidden">
-    <div class="px-6 py-5 border-b border-slate-100 bg-slate-50/50">
-      <h3 class="text-lg font-bold text-slate-900">Registros por justificar</h3>
-      <p class="text-xs text-slate-500 font-medium mt-1">Faltas y tardanzas sin sustento aprobado en el filtro actual.</p>
-    </div>
-
-    <div class="p-5 grid md:grid-cols-2 xl:grid-cols-3 gap-4">
-      <div *ngFor="let record of actionableRecords" class="rounded-2xl border border-blue-100 bg-blue-50/50 p-4">
-        <div class="flex items-start justify-between gap-3">
-          <div>
-            <p class="text-sm font-black text-slate-900">{{ record.date | date:'dd/MM/yyyy' }}</p>
-            <p class="mt-1 text-xs font-bold uppercase tracking-widest text-slate-500">{{ record.course.code || 'CURSO' }}</p>
-          </div>
-          <span [class]="'px-3 py-1 rounded-full text-[10px] font-black uppercase tracking-widest text-white ' + getStatusStyles(record.status).badgeColor">
-            {{ getStatusLabel(record.status) }}
-          </span>
-        </div>
-
-        <p class="mt-3 text-sm font-semibold text-slate-700">{{ record.course.name }}</p>
-        <p *ngIf="record.justification_data?.review_notes" class="mt-3 text-xs text-rose-700 bg-rose-50 border border-rose-100 rounded-xl p-3 font-bold">
-          Observacion previa: {{ record.justification_data?.review_notes }}
-        </p>
-
-        <button
-          type="button"
-          (click)="openJustificationModal(record)"
-          class="mt-4 inline-flex items-center justify-center gap-2 px-4 py-2.5 rounded-xl bg-blue-600 text-white text-sm font-bold hover:bg-blue-700 transition-colors w-full">
-          <div [innerHTML]="getSafeIcon('fileText')" class="w-4 h-4"></div>
-          {{ getJustificationActionLabel(record) }}
-        </button>
-      </div>
-    </div>
-  </div>
-
   <div class="grid xl:grid-cols-[1.2fr,1fr] gap-6">
     <div class="bg-white rounded-3xl border border-slate-200 shadow-sm overflow-hidden">
       <div class="px-6 py-5 border-b border-slate-100 bg-slate-50/50 flex items-center justify-between">
         <div>
-          <h3 class="text-lg font-bold text-slate-900">Calendario del mes</h3>
+          <h3 class="text-lg font-bold text-slate-900">Calendario del Mes</h3>
           <p class="text-xs text-slate-500 font-medium mt-1">
             {{ monthLabel }} · {{ filteredAttendance.length }} registros filtrados
           </p>
@@ -186,9 +129,9 @@
         </div>
 
         <div class="mt-5 flex flex-wrap gap-2 text-[10px] font-black uppercase tracking-widest text-slate-500">
-          <span class="px-3 py-1 rounded-full bg-emerald-50 text-emerald-700 border border-emerald-100">Presente</span>
-          <span class="px-3 py-1 rounded-full bg-amber-50 text-amber-700 border border-amber-100">Tarde</span>
-          <span class="px-3 py-1 rounded-full bg-rose-50 text-rose-700 border border-rose-100">Falta</span>
+          <span class="px-3 py-1 rounded-full bg-green-50 text-green-700 border border-green-100">Presente</span>
+          <span class="px-3 py-1 rounded-full bg-yellow-50 text-yellow-700 border border-yellow-100">Tarde</span>
+          <span class="px-3 py-1 rounded-full bg-red-50 text-red-700 border border-red-100">Falta</span>
           <span class="px-3 py-1 rounded-full bg-blue-50 text-blue-700 border border-blue-100">Justificado</span>
         </div>
       </div>
@@ -196,7 +139,7 @@
 
     <div class="bg-white rounded-3xl border border-slate-200 shadow-sm overflow-hidden">
       <div class="px-6 py-5 border-b border-slate-100 bg-slate-50/50">
-        <h3 class="text-lg font-bold text-slate-900">Detalle del dia</h3>
+        <h3 class="text-lg font-bold text-slate-900">Detalle del Día</h3>
         <p class="text-xs text-slate-500 font-medium mt-1">
           {{ selectedCalendarDate ? (selectedCalendarDate | date:'dd/MM/yyyy') : 'Selecciona una fecha del calendario' }}
         </p>
@@ -204,7 +147,7 @@
 
       <div class="p-5">
         <div *ngIf="!selectedCalendarDate" class="text-sm text-slate-500 font-medium">
-          Selecciona un dia para ver los registros.
+          Selecciona un día para ver el detalle de los registros.
         </div>
 
         <div *ngIf="selectedCalendarDate && selectedDateRecords.length === 0" class="text-sm text-slate-500 font-medium">
@@ -224,7 +167,7 @@
             </div>
 
             <p *ngIf="record.justification" class="mt-3 text-sm text-slate-600 italic font-medium">
-              Nota interna: {{ record.justification }}
+              Nota: {{ record.justification }}
             </p>
 
             <div *ngIf="record.justification_data" class="mt-3 rounded-2xl bg-white border border-slate-200 p-3">
@@ -241,15 +184,6 @@
                 Revision: {{ record.justification_data.review_notes }}
               </p>
             </div>
-
-            <button
-              *ngIf="canJustify(record)"
-              type="button"
-              (click)="openJustificationModal(record)"
-              class="mt-4 inline-flex items-center justify-center gap-2 px-4 py-2.5 rounded-xl bg-blue-600 text-white text-sm font-bold hover:bg-blue-700 transition-colors w-full">
-              <div [innerHTML]="getSafeIcon('fileText')" class="w-4 h-4"></div>
-              {{ getJustificationActionLabel(record) }}
-            </button>
           </div>
         </div>
       </div>
@@ -259,7 +193,7 @@
   <div class="bg-white rounded-3xl border border-slate-200 shadow-sm overflow-hidden">
     <div class="px-8 py-6 border-b border-slate-100 flex items-center justify-between bg-slate-50/50">
       <div>
-        <h3 class="text-lg font-bold text-slate-900">Historial de registros</h3>
+        <h3 class="text-lg font-bold text-slate-900">Historial de Registros</h3>
         <p class="text-xs text-slate-500 font-medium mt-1" *ngIf="lastSummary">
           {{ lastSummary.filters.date_from }} a {{ lastSummary.filters.date_to }}
         </p>
@@ -268,7 +202,7 @@
         {{ filteredAttendance.length }} visibles
       </span>
     </div>
-
+    
     <div class="p-4 sm:p-8">
       <div *ngIf="loading" class="flex flex-col items-center justify-center py-20 gap-4">
         <div class="w-12 h-12 border-4 border-blue-600 border-t-transparent rounded-full animate-spin"></div>
@@ -277,14 +211,14 @@
 
       <div *ngIf="!loading && filteredAttendance.length === 0" class="text-center py-24">
         <div class="w-24 h-24 bg-slate-50 rounded-full flex items-center justify-center mx-auto mb-6">
-          <div [innerHTML]="getSafeIcon('calendar')" class="w-12 h-12 text-slate-200"></div>
+           <div [innerHTML]="getSafeIcon('calendar')" class="w-12 h-12 text-slate-200"></div>
         </div>
         <h3 class="text-xl font-bold text-slate-900 mb-2">Sin registros este mes</h3>
-        <p class="text-slate-400 max-w-sm mx-auto font-medium">No se encontraron registros para el estudiante, periodo o curso seleccionado.</p>
+        <p class="text-slate-400 max-w-sm mx-auto font-medium">No se encontraron registros para el periodo o curso seleccionado.</p>
       </div>
 
       <div *ngIf="!loading && filteredAttendance.length > 0" class="space-y-4">
-        <div *ngFor="let record of filteredAttendance"
+        <div *ngFor="let record of filteredAttendance" 
              [class]="'p-5 rounded-2xl border-2 transition-all hover:shadow-xl hover:-translate-y-1 duration-300 ' + getStatusStyles(record.status).border">
           <div class="flex flex-col md:flex-row md:items-start justify-between gap-6">
             <div class="flex items-start gap-5">
@@ -297,17 +231,17 @@
                     {{ record.date | date:'EEEE, d MMMM yyyy':'':'es-PE' | titlecase }}
                   </span>
                 </div>
-
+                
                 <div class="flex items-center gap-2 mb-3">
                   <span class="px-2 py-0.5 bg-white border border-slate-200 text-slate-500 rounded-md text-[10px] font-black uppercase tracking-widest shadow-sm">
                     {{ record.course.code || 'CURSO' }}
                   </span>
                   <span class="text-sm font-bold text-slate-600">{{ record.course.name || 'Curso' }}</span>
                 </div>
-
+                
                 <div *ngIf="record.justification" class="flex items-start gap-2 p-3 bg-white/60 rounded-xl border border-white/50 shadow-inner">
-                  <div [innerHTML]="getSafeIcon('fileText')" class="w-4 h-4 text-slate-400 mt-0.5"></div>
-                  <p class="text-sm text-slate-600 italic font-medium">Nota interna: {{ record.justification }}</p>
+                   <div [innerHTML]="getSafeIcon('fileText')" class="w-4 h-4 text-slate-400 mt-0.5"></div>
+                   <p class="text-sm text-slate-600 italic font-medium">Nota: {{ record.justification }}</p>
                 </div>
 
                 <div *ngIf="record.justification_data" class="mt-4 p-5 bg-white rounded-2xl border border-slate-100 shadow-sm">
@@ -315,7 +249,7 @@
                     <div class="w-8 h-8 rounded-lg bg-slate-50 flex items-center justify-center">
                       <div [innerHTML]="getSafeIcon('fileText')" class="w-4 h-4 text-slate-400"></div>
                     </div>
-                    <span class="text-xs font-black text-slate-400 uppercase tracking-widest">Justificacion formal</span>
+                    <span class="text-xs font-black text-slate-400 uppercase tracking-widest">Justificacion Formal</span>
                     <span [class]="'px-3 py-1 rounded-full text-[10px] font-black uppercase tracking-widest shadow-sm ml-auto ' + getJustificationStyles(record.justification_data.status)">
                       {{ record.justification_data.status }}
                     </span>
@@ -330,86 +264,15 @@
                 </div>
               </div>
             </div>
-
-            <div class="md:text-right shrink-0 space-y-3">
+            
+            <div class="md:text-right shrink-0">
               <span [class]="'px-4 py-2 rounded-full text-xs font-black uppercase tracking-widest shadow-lg inline-block text-white ' + getStatusStyles(record.status).badgeColor">
                 {{ getStatusLabel(record.status) }}
               </span>
-
-              <button
-                *ngIf="canJustify(record)"
-                type="button"
-                (click)="openJustificationModal(record)"
-                class="block w-full md:w-auto px-4 py-2.5 rounded-xl bg-blue-600 text-white text-sm font-bold hover:bg-blue-700 transition-colors">
-                {{ getJustificationActionLabel(record) }}
-              </button>
             </div>
           </div>
         </div>
       </div>
-    </div>
-  </div>
-</div>
-
-<div *ngIf="isModalOpen" class="fixed inset-0 z-[100] flex items-center justify-center p-4">
-  <div class="absolute inset-0 bg-slate-950/60 backdrop-blur-sm" (click)="closeModal()"></div>
-
-  <div class="relative w-full max-w-lg rounded-3xl bg-white shadow-2xl border border-slate-200 overflow-hidden">
-    <div class="px-6 py-5 border-b border-slate-100 bg-slate-50/60 flex items-start justify-between gap-4">
-      <div>
-        <h3 class="text-xl font-black text-slate-900">Enviar justificacion</h3>
-        <p class="text-sm text-slate-500 mt-1">Se registrara para el estudiante y el control de asistencia seleccionado.</p>
-      </div>
-      <button type="button" (click)="closeModal()" class="w-10 h-10 rounded-2xl bg-white border border-slate-200 text-slate-500 hover:text-slate-700 hover:bg-slate-50 transition-colors">
-        x
-      </button>
-    </div>
-
-    <div class="p-6 space-y-5">
-      <div class="grid sm:grid-cols-2 gap-4">
-        <div class="rounded-2xl border border-slate-200 bg-slate-50 p-4">
-          <p class="text-[10px] font-black uppercase tracking-widest text-slate-400">Fecha</p>
-          <p class="mt-2 text-sm font-bold text-slate-900">{{ justificationDraft.date | date:'dd/MM/yyyy' }}</p>
-        </div>
-        <div class="rounded-2xl border border-slate-200 bg-slate-50 p-4">
-          <p class="text-[10px] font-black uppercase tracking-widest text-slate-400">Curso</p>
-          <p class="mt-2 text-sm font-bold text-slate-900">{{ justificationDraft.courseCode || 'CURSO' }}</p>
-          <p class="text-xs text-slate-500 mt-1">{{ justificationDraft.courseName }}</p>
-        </div>
-      </div>
-
-      <div *ngIf="justificationDraft.rejectedReviewNote" class="rounded-2xl border border-rose-100 bg-rose-50 p-4 text-sm text-rose-700 font-medium">
-        Observacion previa del revisor: {{ justificationDraft.rejectedReviewNote }}
-      </div>
-
-      <div *ngIf="modalError" class="rounded-2xl border border-rose-200 bg-rose-50 p-4 text-sm text-rose-700 font-medium">
-        {{ modalError }}
-      </div>
-
-      <div>
-        <label class="block text-[10px] font-black uppercase tracking-widest text-slate-400 mb-2">Motivo detallado</label>
-        <textarea
-          [(ngModel)]="justificationDraft.reason"
-          rows="5"
-          class="w-full rounded-2xl border border-slate-200 bg-slate-50 px-4 py-3 text-sm text-slate-700 font-medium resize-none focus:outline-none focus:ring-4 focus:ring-blue-500/10 focus:border-blue-500"
-          placeholder="Describe el motivo de la falta o tardanza, por ejemplo cita medica, enfermedad o una situacion familiar."></textarea>
-      </div>
-    </div>
-
-    <div class="px-6 py-5 border-t border-slate-100 bg-slate-50/60 flex flex-col sm:flex-row gap-3">
-      <button
-        type="button"
-        (click)="closeModal()"
-        class="flex-1 px-5 py-3 rounded-2xl bg-white border border-slate-200 text-slate-600 font-bold hover:bg-slate-50 transition-colors">
-        Cancelar
-      </button>
-      <button
-        type="button"
-        (click)="submitJustification()"
-        [disabled]="isSubmittingJustification"
-        class="flex-1 px-5 py-3 rounded-2xl bg-blue-600 text-white font-bold hover:bg-blue-700 transition-colors disabled:opacity-60 disabled:cursor-not-allowed">
-        {{ isSubmittingJustification ? 'Enviando...' : 'Enviar justificacion' }}
-      </button>
     </div>
   </div>
 </div>

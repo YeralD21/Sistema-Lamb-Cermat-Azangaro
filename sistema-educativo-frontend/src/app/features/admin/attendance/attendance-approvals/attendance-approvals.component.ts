@@ -1,135 +1,620 @@
-import { Component, OnInit, inject } from '@angular/core';
+import { AfterViewInit, Component, OnInit, inject } from '@angular/core';
 import { CommonModule } from '@angular/common';
-import { RouterModule } from '@angular/router';
+import { FormsModule } from '@angular/forms';
+import { createIcons, icons } from 'lucide';
+import Swal from 'sweetalert2';
+import {
+  AdminAttendanceOverview,
+  AdminAttendanceTeacherStatus,
+  AttendanceAssignment,
+  AttendanceJustification,
+  AttendanceRecord,
+  AttendanceService,
+  AttendanceStatus,
+  JustificationStatus,
+  StudentSummary,
+  TeacherAttendanceContextResponse,
+} from '@core/services/attendance.service';
 import { BackButtonComponent } from '@shared/components/back-button/back-button.component';
-import { AttendanceService, AttendanceJustification } from '@core/services/attendance.service';
+
+interface AttendanceState {
+  attendanceId?: string;
+  status: AttendanceStatus;
+  justification: string;
+  lockedByApprovedJustification: boolean;
+  approvedJustificationReason?: string | null;
+  updatedAt?: string | null;
+  history: AttendanceRecord[];
+  historyOpen: boolean;
+  historyLoading: boolean;
+}
 
 @Component({
   selector: 'app-attendance-approvals',
   standalone: true,
-  imports: [CommonModule, RouterModule, BackButtonComponent],
-  template: `
-    <div class="min-h-[calc(100vh-80px)] p-6 sm:p-10 max-w-7xl mx-auto space-y-8 text-slate-700">
-      <app-back-button></app-back-button>
-      
-      <!-- Header -->
-      <div class="flex items-center gap-4">
-        <div class="p-3 bg-blue-50 rounded-2xl border border-blue-100 shadow-sm">
-          <svg class="w-6 h-6 text-blue-700" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><rect width="18" height="18" x="3" y="4" rx="2" ry="2"/><line x1="16" x2="16" y1="2" y2="6"/><line x1="8" x2="8" y1="2" y2="6"/><line x1="3" x2="21" y1="10" y2="10"/><path d="m9 16 2 2 4-4"/></svg>
-        </div>
-        <div>
-          <h1 class="text-3xl font-semibold text-slate-900 tracking-tight">Aprobación de Justificaciones</h1>
-          <p class="text-slate-500 text-sm font-medium">Revisión y validación de inasistencias justificadas</p>
-        </div>
-      </div>
-
-      <!-- Filter bar -->
-      <div class="bg-white border border-slate-100 rounded-2xl p-4 shadow-sm flex items-center gap-4">
-        <div class="flex-1 relative">
-          <svg class="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polygon points="22 3 2 3 10 12.46 10 19 14 21 14 12.46 22 3"/></svg>
-          <select 
-            (change)="onStatusChange($event)"
-            class="w-full bg-slate-50 border border-slate-200 text-slate-700 rounded-xl px-10 py-2.5 text-xs font-bold uppercase tracking-widest focus:outline-none focus:ring-2 focus:ring-blue-500/10 focus:border-blue-500 transition-all cursor-pointer">
-            <option value="pendiente">Justificaciones Pendientes</option>
-            <option value="aprobada">Historial de Aprobados</option>
-            <option value="rechazada">Justificaciones Rechazadas</option>
-            <option value="">Todos los registros</option>
-          </select>
-        </div>
-        <button 
-          (click)="loadJustifications()"
-          class="px-6 py-2.5 bg-blue-700 hover:bg-blue-600 text-white text-xs font-bold uppercase tracking-widest rounded-xl transition-all shadow-md active:scale-95">
-          Actualizar Lista
-        </button>
-      </div>
-
-      <!-- Justifications List -->
-      <div class="space-y-4">
-        <div *ngFor="let item of justifications" class="bg-white border border-slate-100 rounded-2xl p-6 shadow-sm hover:shadow-md transition-all">
-          <div class="flex flex-col md:flex-row md:items-center justify-between gap-6">
-            <div class="space-y-2 flex-1">
-              <div class="flex items-center gap-3">
-                <span class="px-3 py-1 bg-slate-100 text-slate-500 rounded-full text-[10px] font-bold uppercase tracking-tighter">
-                  Justificación
-                </span>
-                <span class="text-slate-400 text-xs font-medium italic">
-                  {{ item.created_at | date:'dd/MM/yyyy HH:mm' }}
-                </span>
-                <span 
-                  [class]="getStatusBadgeClass(item.status)"
-                  class="px-3 py-1 rounded-full text-[10px] font-bold uppercase tracking-widest border">
-                  {{ item.status }}
-                </span>
-              </div>
-              <p class="text-slate-700 font-medium leading-relaxed">{{ item.reason }}</p>
-            </div>
-            
-            <div *ngIf="item.status === 'pendiente'" class="flex items-center gap-3 shrink-0">
-              <button 
-                (click)="approve(item.id)"
-                class="px-5 py-2.5 bg-green-50 text-green-700 hover:bg-green-600 hover:text-white border border-green-200 rounded-xl text-[10px] font-bold uppercase tracking-widest transition-all">
-                Aprobar
-              </button>
-              <button 
-                (click)="reject(item.id)"
-                class="px-5 py-2.5 bg-red-50 text-red-700 hover:bg-red-600 hover:text-white border border-red-200 rounded-xl text-[10px] font-bold uppercase tracking-widest transition-all">
-                Rechazar
-              </button>
-            </div>
-          </div>
-        </div>
-
-        <!-- Empty state -->
-        <div *ngIf="justifications.length === 0" class="bg-white border border-slate-100 rounded-3xl py-24 text-center shadow-sm">
-          <div class="w-20 h-20 bg-slate-50 rounded-full flex items-center justify-center mx-auto mb-6">
-            <svg class="w-10 h-10 text-slate-200" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M14.5 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V7.5L14.5 2z"/><polyline points="14 2 14 8 20 8"/></svg>
-          </div>
-          <h3 class="text-slate-900 font-semibold text-xl mb-2">Sin registros</h3>
-          <p class="text-slate-500 text-sm max-w-xs mx-auto font-medium">No se encontraron solicitudes de justificación para el filtro seleccionado.</p>
-        </div>
-      </div>
-    </div>
-  `
+  imports: [CommonModule, FormsModule, BackButtonComponent],
+  templateUrl: './attendance-approvals.component.html',
 })
-export class AttendanceApprovalsComponent implements OnInit {
+export class AttendanceApprovalsComponent implements OnInit, AfterViewInit {
   private attendanceService = inject(AttendanceService);
-  
-  justifications: AttendanceJustification[] = [];
-  selectedStatus = 'pendiente';
 
-  ngOnInit() {
-    this.loadJustifications();
+  loading = false;
+  saving = false;
+  justificationsLoading = false;
+  overviewLoading = false;
+
+  selectedCourseId = '';
+  selectedSectionId = '';
+  selectedDate = new Date().toISOString().split('T')[0];
+  searchTerm = '';
+  error = '';
+  success = '';
+
+  statusFilter: 'todos' | AttendanceStatus = 'todos';
+  selectedJustificationStatus: JustificationStatus | '' = 'pendiente';
+
+  context: TeacherAttendanceContextResponse | null = null;
+  adminOverview: AdminAttendanceOverview | null = null;
+  assignments: AttendanceAssignment[] = [];
+  selectedAssignment: AttendanceAssignment | null = null;
+  students: StudentSummary[] = [];
+  justifications: AttendanceJustification[] = [];
+  attendanceRecords: Record<string, AttendanceState> = {};
+
+  ngOnInit(): void {
+    this.loadContext();
   }
 
-  loadJustifications() {
-    this.attendanceService.getJustifications({ status: this.selectedStatus }).subscribe({
-      next: (res) => this.justifications = res.data,
-      error: (err) => console.error(err)
+  ngAfterViewInit(): void {
+    this.initIcons();
+  }
+
+  get filteredStudents(): StudentSummary[] {
+    return this.students.filter((student) => {
+      const fullName = this.studentFullName(student).toLowerCase();
+      const code = (student.student_code || '').toLowerCase();
+      const term = this.searchTerm.trim().toLowerCase();
+
+      const matchesSearch = !term || fullName.includes(term) || code.includes(term);
+      const matchesStatus = this.statusFilter === 'todos' || this.attendanceRecords[student.id]?.status === this.statusFilter;
+
+      return matchesSearch && matchesStatus;
     });
   }
 
-  onStatusChange(event: any) {
-    this.selectedStatus = event.target.value;
+  get presentCount(): number {
+    return this.students.filter((student) => this.attendanceRecords[student.id]?.status === 'presente').length;
+  }
+
+  get lateCount(): number {
+    return this.students.filter((student) => this.attendanceRecords[student.id]?.status === 'tarde').length;
+  }
+
+  get absentCount(): number {
+    return this.students.filter((student) => this.attendanceRecords[student.id]?.status === 'falta').length;
+  }
+
+  get justifiedCount(): number {
+    return this.students.filter((student) => this.attendanceRecords[student.id]?.status === 'justificado').length;
+  }
+
+  get pendingJustificationsCount(): number {
+    return this.justifications.filter((item) => item.status === 'pendiente').length;
+  }
+
+  get pendingTeacherStatuses(): AdminAttendanceTeacherStatus[] {
+    return (this.adminOverview?.teacher_statuses || []).filter((item) => !item.is_complete);
+  }
+
+  recordFor(studentId: string): AttendanceState {
+    return this.attendanceRecords[studentId] ?? {
+      status: 'presente',
+      justification: '',
+      lockedByApprovedJustification: false,
+      approvedJustificationReason: null,
+      updatedAt: null,
+      history: [],
+      historyOpen: false,
+      historyLoading: false,
+    };
+  }
+
+  needsJustification(studentId: string): boolean {
+    return ['falta', 'justificado'].includes(this.recordFor(studentId).status);
+  }
+
+  loadContext(): void {
+    this.loading = true;
+    this.error = '';
+
+    this.attendanceService.getTeacherAttendanceContext().subscribe({
+      next: (response) => {
+        this.context = response;
+        this.assignments = response.assignments || [];
+        this.loadAdminOverview();
+
+        if (this.assignments.length === 0) {
+          this.error = 'No hay asignaciones activas para gestionar asistencia.';
+          this.loading = false;
+          this.justifications = [];
+          return;
+        }
+
+        this.selectedAssignment = this.assignments[0];
+        this.selectedCourseId = this.selectedAssignment.course_id;
+        this.selectedSectionId = this.selectedAssignment.section_id;
+
+        this.loadStudents();
+        this.loadJustifications();
+      },
+      error: (err) => {
+        this.error = err.error?.message || 'Error al cargar el contexto de asistencia.';
+        this.loading = false;
+      }
+    });
+  }
+
+  onAssignmentChange(event: Event): void {
+    const id = (event.target as HTMLSelectElement).value;
+    this.selectedAssignment = this.assignments.find((assignment) => assignment.id === id) || null;
+
+    if (!this.selectedAssignment) {
+      this.selectedCourseId = '';
+      this.selectedSectionId = '';
+      this.students = [];
+      this.attendanceRecords = {};
+      this.justifications = [];
+      return;
+    }
+
+    this.selectedCourseId = this.selectedAssignment.course_id;
+    this.selectedSectionId = this.selectedAssignment.section_id;
+    this.loadStudents();
     this.loadJustifications();
   }
 
-  approve(id: string) {
-    if (confirm('¿Estás seguro de aprobar esta justificación?')) {
-      this.attendanceService.approveJustification(id).subscribe(() => this.loadJustifications());
+  onDateChange(): void {
+    if (!this.selectedAssignment) {
+      this.loadAdminOverview();
+      return;
     }
+
+    this.loadAdminOverview();
+    this.loadStudents();
+    this.loadJustifications();
   }
 
-  reject(id: string) {
-    if (confirm('¿Estás seguro de rechazar esta justificación?')) {
-      this.attendanceService.rejectJustification(id).subscribe(() => this.loadJustifications());
+  loadStudents(): void {
+    if (!this.selectedCourseId || !this.selectedSectionId) {
+      return;
     }
+
+    this.loading = true;
+    this.error = '';
+    this.success = '';
+
+    this.attendanceService
+      .getStudentsForAttendance(this.selectedCourseId, this.selectedSectionId, this.selectedAssignment?.academic_year_id)
+      .subscribe({
+        next: (res) => {
+          this.students = (res.data || [])
+            .map((enrollment: any) => enrollment.student ?? null)
+            .filter((student: StudentSummary | null) => !!student) as StudentSummary[];
+
+          this.initRecords();
+          this.loadExistingAttendance();
+        },
+        error: (err) => {
+          this.error = err.error?.message || 'Error al cargar estudiantes.';
+          this.loading = false;
+        }
+      });
   }
 
-  getStatusBadgeClass(status: string): string {
-    switch (status) {
-      case 'aprobada': return 'bg-green-50 text-green-600 border-green-100';
-      case 'rechazada': return 'bg-red-50 text-red-600 border-red-100';
-      default: return 'bg-yellow-50 text-yellow-600 border-yellow-100';
+  loadAdminOverview(): void {
+    this.overviewLoading = true;
+
+    this.attendanceService.getAdminOverview({
+      date: this.selectedDate || undefined,
+    }).subscribe({
+      next: (response) => {
+        this.adminOverview = response;
+        this.overviewLoading = false;
+      },
+      error: () => {
+        this.adminOverview = null;
+        this.overviewLoading = false;
+      }
+    });
+  }
+
+  loadJustifications(): void {
+    this.justificationsLoading = true;
+
+    this.attendanceService.getJustifications({
+      status: this.selectedJustificationStatus,
+      course_id: this.selectedCourseId || undefined,
+      section_id: this.selectedSectionId || undefined,
+      date: this.selectedDate || undefined,
+      per_page: 100,
+    }).subscribe({
+      next: (res) => {
+        this.justifications = res.data || [];
+        this.justificationsLoading = false;
+        this.refreshIcons();
+      },
+      error: () => {
+        this.justifications = [];
+        this.justificationsLoading = false;
+      }
+    });
+  }
+
+  updateAttendance(studentId: string, field: 'status' | 'justification', value: string): void {
+    const current = this.attendanceRecords[studentId];
+
+    if (!current) {
+      return;
     }
+
+    if (current.lockedByApprovedJustification && field === 'status') {
+      return;
+    }
+
+    this.attendanceRecords[studentId] = {
+      ...current,
+      [field]: value,
+    };
+  }
+
+  markFilteredStudentsPresent(): void {
+    this.filteredStudents.forEach((student) => {
+      if (this.attendanceRecords[student.id]?.lockedByApprovedJustification) {
+        return;
+      }
+
+      this.updateAttendance(student.id, 'status', 'presente');
+      this.updateAttendance(student.id, 'justification', '');
+    });
+  }
+
+  toggleHistory(studentId: string): void {
+    const record = this.attendanceRecords[studentId];
+
+    if (!record) {
+      return;
+    }
+
+    record.historyOpen = !record.historyOpen;
+
+    if (!record.historyOpen || record.history.length > 0) {
+      this.refreshIcons();
+      return;
+    }
+
+    record.historyLoading = true;
+
+    this.attendanceService.getAttendanceHistory({
+      student_id: studentId,
+      course_id: this.selectedCourseId,
+      section_id: this.selectedSectionId,
+      date_to: this.selectedDate,
+      per_page: 5,
+    }).subscribe({
+      next: (res) => {
+        record.history = (res.data || []).filter((item) => item.student_id === studentId);
+        record.historyLoading = false;
+        this.refreshIcons();
+      },
+      error: () => {
+        record.historyLoading = false;
+        record.history = [];
+      }
+    });
+  }
+
+  handleSaveAttendance(): void {
+    if (!this.selectedCourseId || !this.selectedSectionId || !this.selectedDate) {
+      void Swal.fire('Atencion', 'Selecciona curso, seccion y fecha.', 'warning');
+      return;
+    }
+
+    const invalidStudent = this.students.find((student) => {
+      const record = this.attendanceRecords[student.id];
+      return ['falta', 'justificado'].includes(record?.status) && !record?.justification?.trim();
+    });
+
+    if (invalidStudent) {
+      void Swal.fire(
+        'Comentario requerido',
+        `Debes registrar un comentario para ${this.studentFullName(invalidStudent)}.`,
+        'warning'
+      );
+      return;
+    }
+
+    this.saving = true;
+    this.success = '';
+
+    const payload = {
+      date: this.selectedDate,
+      course_id: this.selectedCourseId,
+      section_id: this.selectedSectionId,
+      records: this.students.map((student) => ({
+        student_id: student.id,
+        status: this.attendanceRecords[student.id]?.status ?? 'presente',
+        justification: this.attendanceRecords[student.id]?.justification ?? '',
+      })),
+    };
+
+    this.attendanceService.saveBatchAttendance(payload).subscribe({
+      next: (res) => {
+        this.saving = false;
+        this.success = 'Asistencia guardada correctamente.';
+        void Swal.fire('Guardado', res.message || 'Asistencia guardada correctamente.', 'success');
+        this.loadAdminOverview();
+        this.loadExistingAttendance();
+        this.loadJustifications();
+      },
+      error: (err) => {
+        this.saving = false;
+        void Swal.fire('Error', err.error?.message || 'Error al guardar asistencia.', 'error');
+      }
+    });
+  }
+
+  approve(item: AttendanceJustification): void {
+    void Swal.fire({
+      title: 'Aprobar justificacion',
+      text: `Se marcara como justificada la asistencia de ${this.studentFullName(item.attendance?.student || null)}.`,
+      input: 'textarea',
+      inputLabel: 'Comentario de revision (opcional)',
+      inputValue: item.review_notes || '',
+      icon: 'question',
+      showCancelButton: true,
+      confirmButtonText: 'Aprobar',
+      cancelButtonText: 'Cancelar',
+      confirmButtonColor: '#059669',
+    }).then((result) => {
+      if (!result.isConfirmed) {
+        return;
+      }
+
+      const reviewNotes = typeof result.value === 'string' ? result.value.trim() : '';
+
+      this.attendanceService.approveJustification(item.id, {
+        review_notes: reviewNotes || null,
+      }).subscribe({
+        next: () => {
+          void Swal.fire('Aprobada', 'La justificacion fue aprobada.', 'success');
+          this.loadAdminOverview();
+          this.loadJustifications();
+          this.loadExistingAttendance();
+        },
+        error: (err) => {
+          void Swal.fire('Error', err.error?.message || 'No se pudo aprobar la justificacion.', 'error');
+        }
+      });
+    });
+  }
+
+  reject(item: AttendanceJustification): void {
+    void Swal.fire({
+      title: 'Rechazar justificacion',
+      text: `La solicitud de ${this.studentFullName(item.attendance?.student || null)} quedara rechazada.`,
+      input: 'textarea',
+      inputLabel: 'Motivo de rechazo',
+      inputValue: item.review_notes || '',
+      inputValidator: (value) => value?.trim() ? null : 'Debes ingresar un motivo de rechazo.',
+      icon: 'warning',
+      showCancelButton: true,
+      confirmButtonText: 'Rechazar',
+      cancelButtonText: 'Cancelar',
+      confirmButtonColor: '#dc2626',
+    }).then((result) => {
+      if (!result.isConfirmed) {
+        return;
+      }
+
+      this.attendanceService.rejectJustification(item.id, {
+        review_notes: String(result.value || '').trim(),
+      }).subscribe({
+        next: () => {
+          void Swal.fire('Rechazada', 'La justificacion fue rechazada.', 'success');
+          this.loadAdminOverview();
+          this.loadJustifications();
+          this.loadExistingAttendance();
+        },
+        error: (err) => {
+          void Swal.fire('Error', err.error?.message || 'No se pudo rechazar la justificacion.', 'error');
+        }
+      });
+    });
+  }
+
+  exportCurrentAttendance(): void {
+    if (!this.filteredStudents.length) {
+      void Swal.fire('Sin datos', 'No hay estudiantes para exportar con los filtros actuales.', 'info');
+      return;
+    }
+
+    const rows = [
+      ['Fecha', 'Curso', 'Seccion', 'Codigo', 'Estudiante', 'Estado', 'Comentario', 'Ultima actualizacion'],
+      ...this.filteredStudents.map((student) => {
+        const record = this.attendanceRecords[student.id];
+        return [
+          this.selectedDate,
+          this.selectedAssignment?.course?.name || '',
+          this.sectionLabel(this.selectedAssignment?.section || null),
+          student.student_code || '',
+          this.studentFullName(student),
+          this.getStatusLabel(record?.status || 'presente'),
+          record?.justification || '',
+          this.formatDateTime(record?.updatedAt || null),
+        ];
+      }),
+    ];
+
+    const csv = rows
+      .map((row) => row.map((cell) => `"${String(cell ?? '').replace(/"/g, '""')}"`).join(','))
+      .join('\n');
+
+    const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' });
+    const url = URL.createObjectURL(blob);
+    const link = document.createElement('a');
+    link.href = url;
+    link.download = `asistencia-admin-${this.selectedDate}.csv`;
+    link.click();
+    URL.revokeObjectURL(url);
+  }
+
+  canEditStudent(studentId: string): boolean {
+    return !this.attendanceRecords[studentId]?.lockedByApprovedJustification;
+  }
+
+  getStatusLabel(status: AttendanceStatus): string {
+    return {
+      presente: 'Presente',
+      tarde: 'Tarde',
+      falta: 'Falta',
+      justificado: 'Justificado',
+    }[status];
+  }
+
+  getStatusBadgeClass(status: AttendanceStatus): string {
+    return {
+      presente: 'bg-emerald-50 text-emerald-700 border-emerald-200',
+      tarde: 'bg-amber-50 text-amber-700 border-amber-200',
+      falta: 'bg-rose-50 text-rose-700 border-rose-200',
+      justificado: 'bg-indigo-50 text-indigo-700 border-indigo-200',
+    }[status];
+  }
+
+  getJustificationStatusBadgeClass(status: JustificationStatus): string {
+    return {
+      pendiente: 'bg-amber-50 text-amber-700 border-amber-200',
+      aprobada: 'bg-emerald-50 text-emerald-700 border-emerald-200',
+      rechazada: 'bg-rose-50 text-rose-700 border-rose-200',
+    }[status];
+  }
+
+  assignmentLabel(assignment: AttendanceAssignment | null | undefined): string {
+    if (!assignment) {
+      return 'Sin asignacion';
+    }
+
+    const course = assignment.course?.code
+      ? `${assignment.course.code} - ${assignment.course?.name || 'Curso'}`
+      : assignment.course?.name || 'Curso';
+
+    const teacherName = [assignment.teacher?.first_name, assignment.teacher?.last_name]
+      .filter(Boolean)
+      .join(' ')
+      .trim();
+
+    const parts = [
+      course,
+      this.sectionLabel(assignment.section || null),
+      teacherName ? `Docente: ${teacherName}` : '',
+    ].filter(Boolean);
+
+    return parts.join(' | ');
+  }
+
+  sectionLabel(section: AttendanceAssignment['section'] | AttendanceRecord['section'] | null | undefined): string {
+    const grade = section?.grade_level?.name || 'Sin grado';
+    const letter = section?.section_letter || '';
+    return `${grade} ${letter}`.trim();
+  }
+
+  studentFullName(student: StudentSummary | null | undefined): string {
+    if (!student) {
+      return 'Sin estudiante';
+    }
+
+    return [student.last_name, student.first_name].filter(Boolean).join(', ') || 'Sin nombre';
+  }
+
+  teacherFullName(status: AdminAttendanceTeacherStatus | AttendanceAssignment | null | undefined): string {
+    const teacher = status?.teacher;
+    return [teacher?.first_name, teacher?.last_name].filter(Boolean).join(' ') || 'Sin docente';
+  }
+
+  guardianFullName(item: AttendanceJustification): string {
+    return [item.guardian?.first_name, item.guardian?.last_name].filter(Boolean).join(' ') || 'Sin apoderado';
+  }
+
+  formatDateTime(value?: string | null): string {
+    if (!value) {
+      return 'Sin cambios';
+    }
+
+    return new Intl.DateTimeFormat('es-PE', {
+      dateStyle: 'short',
+      timeStyle: 'short',
+    }).format(new Date(value));
+  }
+
+  private initIcons(): void {
+    createIcons({ icons });
+  }
+
+  private refreshIcons(): void {
+    setTimeout(() => this.initIcons(), 0);
+  }
+
+  private initRecords(): void {
+    this.attendanceRecords = {};
+
+    this.students.forEach((student) => {
+      this.attendanceRecords[student.id] = {
+        status: 'presente',
+        justification: '',
+        lockedByApprovedJustification: false,
+        approvedJustificationReason: null,
+        updatedAt: null,
+        history: [],
+        historyOpen: false,
+        historyLoading: false,
+      };
+    });
+  }
+
+  private loadExistingAttendance(): void {
+    this.attendanceService.getAttendanceHistory({
+      course_id: this.selectedCourseId,
+      section_id: this.selectedSectionId,
+      date: this.selectedDate,
+      per_page: 200,
+    }).subscribe({
+      next: (res) => {
+        const rows = res.data || [];
+
+        rows.forEach((attendance) => {
+          const approvedJustification = (attendance.justifications || []).find(
+            (justification) => justification.status === 'aprobada'
+          );
+
+          this.attendanceRecords[attendance.student_id] = {
+            attendanceId: attendance.id,
+            status: attendance.status,
+            justification: attendance.justification || approvedJustification?.reason || '',
+            lockedByApprovedJustification: !!approvedJustification,
+            approvedJustificationReason: approvedJustification?.reason || null,
+            updatedAt: attendance.updated_at || attendance.created_at || null,
+            history: this.attendanceRecords[attendance.student_id]?.history || [],
+            historyOpen: false,
+            historyLoading: false,
+          };
+        });
+
+        this.loading = false;
+        this.refreshIcons();
+      },
+      error: (err) => {
+        this.error = err.error?.message || 'Error al cargar la asistencia existente.';
+        this.loading = false;
+      }
+    });
   }
 }

@@ -25,7 +25,7 @@ class Assignment extends Model
         'due_date',
         'max_score',
         'attachment_url',
-        'created_by'    ];
+    ];
 
     public function submissions(): HasMany
     {

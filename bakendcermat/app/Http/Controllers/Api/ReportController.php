@@ -4,6 +4,7 @@ namespace App\Http\Controllers\Api;
 
 use App\Http\Controllers\Controller;
 use App\Models\Student;
+use App\Models\StudentCourseEnrollment;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Schema;
@@ -17,7 +18,12 @@ class ReportController extends Controller
     public function reportCard(Student $student, Request $request)
     {
         $periodId = $request->query('period_id');
+        $role = $request->user()?->profile?->role;
         $commentsColumn = Schema::hasColumn('evaluations', 'observations') ? 'observations' : 'comments';
+        $competencyLabelColumn = Schema::hasColumn('competencies', 'name') ? 'name' : 'description';
+        $academicYearId = $periodId
+            ? DB::table('periods')->where('id', $periodId)->value('academic_year_id')
+            : DB::table('academic_years')->where('is_active', true)->value('id');
 
         $q = DB::table('evaluations as e')
             ->join('courses as c', 'c.id', '=', 'e.course_id')
@@ -28,8 +34,9 @@ class ReportController extends Controller
                 'e.student_id',
                 'e.course_id',
                 'c.name as course_name',
+                'c.code as course_code',
                 'e.competency_id',
-                'comp.name as competency_name',
+                DB::raw("COALESCE(comp.{$competencyLabelColumn}, '') as competency_name"),
                 'e.period_id',
                 'p.name as period_name',
                 'e.grade',
@@ -39,22 +46,49 @@ class ReportController extends Controller
             ])
             ->where('e.student_id', $student->id);
 
+        if (in_array($role, ['student', 'guardian'], true)) {
+            $q->whereIn('e.status', ['publicada', 'cerrada']);
+        }
+
         if ($periodId) {
             $q->where('e.period_id', $periodId);
         }
 
         $rows = $q->orderBy('c.name')
-            ->orderBy('comp.name')
+            ->orderBy("comp.{$competencyLabelColumn}")
             ->get();
 
         // Agrupar: Curso -> Competencias
         $grouped = [];
+        $enrolledCourses = StudentCourseEnrollment::query()
+            ->with('course')
+            ->where('student_id', $student->id)
+            ->where('status', 'active')
+            ->when($academicYearId, fn ($query) => $query->where('academic_year_id', $academicYearId))
+            ->get()
+            ->filter(fn (StudentCourseEnrollment $enrollment) => $enrollment->course)
+            ->unique('course_id')
+            ->sortBy(fn (StudentCourseEnrollment $enrollment) => $enrollment->course?->name ?? '')
+            ->values();
+
+        foreach ($enrolledCourses as $enrollment) {
+            $grouped[$enrollment->course_id] = [
+                'course_id' => $enrollment->course->id,
+                'course_name' => $enrollment->course->name,
+                'course_code' => $enrollment->course->code,
+                'period_id' => $periodId,
+                'period_name' => null,
+                'competencies' => [],
+            ];
+        }
+
         foreach ($rows as $r) {
             $courseKey = $r->course_id;
             if (!isset($grouped[$courseKey])) {
                 $grouped[$courseKey] = [
                     'course_id' => $r->course_id,
                     'course_name' => $r->course_name,
+                    'course_code' => $r->course_code,
                     'period_id' => $r->period_id,
                     'period_name' => $r->period_name,
                     'competencies' => [],
@@ -95,22 +129,40 @@ class ReportController extends Controller
         $dateTo = $request->query('date_to');
 
         $q = DB::table('attendance')
-            ->where('student_id', $student->id);
+            ->where('attendance.student_id', $student->id);
 
-        if ($dateFrom) $q->whereDate('date', '>=', $dateFrom);
-        if ($dateTo) $q->whereDate('date', '<=', $dateTo);
+        if ($dateFrom) $q->whereDate('attendance.date', '>=', $dateFrom);
+        if ($dateTo) $q->whereDate('attendance.date', '<=', $dateTo);
 
         // Conteo por estado (presente/tarde/falta/justificado)
         $counts = (clone $q)
-            ->select('status', DB::raw('COUNT(*)::int as total'))
-            ->groupBy('status')
-            ->orderBy('status')
+            ->select('attendance.status', DB::raw('COUNT(*)::int as total'))
+            ->groupBy('attendance.status')
+            ->orderBy('attendance.status')
             ->get();
 
         // últimos registros
-        $recent = (clone $q)
-            ->orderByDesc('date')
-            ->limit(30)
+        $records = (clone $q)
+            ->leftJoin('courses', 'courses.id', '=', 'attendance.course_id')
+            ->leftJoin('attendance_justifications as aj', 'aj.attendance_id', '=', 'attendance.id')
+            ->select([
+                'attendance.id',
+                'attendance.date',
+                'attendance.status',
+                'attendance.justification',
+                'attendance.course_id',
+                DB::raw("COALESCE(courses.name, '') as course_name"),
+                DB::raw("COALESCE(courses.code, '') as course_code"),
+                DB::raw("case when aj.id is null then null else json_build_object(
+                    'id', aj.id,
+                    'status', aj.status,
+                    'reason', aj.reason,
+                    'review_notes', aj.review_notes,
+                    'reviewed_at', aj.reviewed_at
+                ) end as justification_data"),
+            ])
+            ->orderByDesc('attendance.date')
+            ->orderByDesc('attendance.updated_at')
             ->get();
 
         return response()->json([
@@ -120,7 +172,8 @@ class ReportController extends Controller
                 'date_to' => $dateTo,
             ],
             'counts_by_status' => $counts,
-            'recent' => $recent,
+            'records' => $records,
+            'recent' => $records->take(30)->values(),
         ]);
     }
 

@@ -48,8 +48,7 @@ class Student extends Model
     public function guardians()
     {
         return $this->belongsToMany(Guardian::class, 'student_guardians')
-            ->withPivot(['id', 'is_primary', 'created_at'])
-            ->withTimestamps(); // ojo: pivot solo tiene created_at, pero no afecta si no actualizas
+            ->withPivot(['id', 'is_primary', 'created_at']);
     }
 
     public function studentDiscounts()

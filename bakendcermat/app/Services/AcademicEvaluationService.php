@@ -84,6 +84,8 @@ class AcademicEvaluationService
             ->orderBy('period_id')
             ->get();
 
+        $enrolledCourses = $this->loadEnrolledCourses($student, $academicYear);
+
         return [
             'student' => [
                 'id' => $student->id,
@@ -108,6 +110,7 @@ class AcademicEvaluationService
                 'b' => $finalResults->where('final_level', 'B')->count(),
                 'c' => $finalResults->where('final_level', 'C')->count(),
             ],
+            'enrolled_courses' => $enrolledCourses,
             'areas' => array_values($this->buildAreaSummaries($finalResults)),
             'final_results' => $finalResults->values(),
             'descriptive_conclusions' => $conclusions,
@@ -563,6 +566,26 @@ class AcademicEvaluationService
                 ];
             })
             ->values()
+            ->all();
+    }
+
+    private function loadEnrolledCourses(Student $student, AcademicYear $academicYear): array
+    {
+        return StudentCourseEnrollment::query()
+            ->with('course')
+            ->where('student_id', $student->id)
+            ->where('academic_year_id', $academicYear->id)
+            ->where('status', 'active')
+            ->get()
+            ->filter(fn (StudentCourseEnrollment $enrollment) => $enrollment->course)
+            ->unique('course_id')
+            ->sortBy(fn (StudentCourseEnrollment $enrollment) => $enrollment->course?->name ?? '')
+            ->values()
+            ->map(fn (StudentCourseEnrollment $enrollment) => [
+                'id' => $enrollment->course->id,
+                'code' => $enrollment->course->code,
+                'name' => $enrollment->course->name,
+            ])
             ->all();
     }
 

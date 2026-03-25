@@ -120,11 +120,19 @@ Route::middleware('auth:sanctum')->group(function () {
     | - cursos
     |--------------------------------------------------------------------------
     */
+    Route::get('periods', [PeriodController::class, 'index'])
+        ->middleware('role:admin,director,coordinator,secretary,teacher,student,guardian');
+    Route::get('periods/{id}', [PeriodController::class, 'show'])
+        ->middleware('role:admin,director,coordinator,secretary,teacher,student,guardian');
+
     Route::middleware('role:admin,director,coordinator,secretary')->group(function () {
         Route::apiResource('academic-years', AcademicYearController::class);
         Route::apiResource('grade-levels', GradeLevelController::class);
         Route::apiResource('sections', SectionController::class);
-        Route::apiResource('periods', PeriodController::class);
+        Route::post('periods', [PeriodController::class, 'store']);
+        Route::put('periods/{id}', [PeriodController::class, 'update']);
+        Route::patch('periods/{id}', [PeriodController::class, 'update']);
+        Route::delete('periods/{id}', [PeriodController::class, 'destroy']);
         Route::apiResource('courses', CourseController::class);
     });
 
@@ -242,6 +250,8 @@ Route::middleware('auth:sanctum')->group(function () {
         ->middleware('role:admin,director,coordinator,secretary,teacher,student,guardian');
     Route::get('assignments/{assignment}', [AssignmentController::class, 'show'])
         ->middleware('role:admin,director,coordinator,secretary,teacher,student,guardian');
+    Route::get('assignments/{assignment}/submissions-summary', [AssignmentController::class, 'submissionsSummary'])
+        ->middleware('role:admin,director,coordinator,secretary,teacher');
 
     // Escritura de tareas
     Route::post('assignments', [AssignmentController::class, 'store'])
@@ -259,9 +269,9 @@ Route::middleware('auth:sanctum')->group(function () {
     |--------------------------------------------------------------------------
     */
     Route::get('task-submissions', [TaskSubmissionController::class, 'index'])
-        ->middleware('role:admin,director,coordinator,secretary,teacher,student');
+        ->middleware('role:admin,director,coordinator,secretary,teacher,student,guardian');
     Route::get('task-submissions/{taskSubmission}', [TaskSubmissionController::class, 'show'])
-        ->middleware('role:admin,director,coordinator,secretary,teacher,student');
+        ->middleware('role:admin,director,coordinator,secretary,teacher,student,guardian');
 
     Route::post('task-submissions', [TaskSubmissionController::class, 'store'])
         ->middleware('role:admin,student');
@@ -300,6 +310,8 @@ Route::middleware('auth:sanctum')->group(function () {
     |--------------------------------------------------------------------------
     */
     Route::middleware('role:admin,director,coordinator,secretary,teacher')->group(function () {
+        Route::get('attendance/admin-overview', [AttendanceController::class, 'adminOverview'])
+            ->middleware('role:admin,director,coordinator,secretary');
         Route::get('attendance/my-context', [AttendanceController::class, 'myContext']);
         Route::post('attendance/batch', [AttendanceController::class, 'batchStore']);
         Route::apiResource('attendance', AttendanceController::class);

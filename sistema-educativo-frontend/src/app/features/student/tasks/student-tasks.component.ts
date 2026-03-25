@@ -1,322 +1,607 @@
 import { Component, OnInit, inject } from '@angular/core';
 import { CommonModule } from '@angular/common';
-import { BackButtonComponent } from '@shared/components/back-button/back-button.component';
 import { FormsModule } from '@angular/forms';
-import { DomSanitizer, SafeHtml } from '@angular/platform-browser';
-import { RouterModule } from '@angular/router';
-import { ICONS } from '@core/constants/icons';
+import { BackButtonComponent } from '@shared/components/back-button/back-button.component';
+import { AuthService, AcademicContextStudent } from '@core/services/auth.service';
+import { Assignment, TaskService, TaskSubmission } from '@core/services/task.service';
+import { forkJoin } from 'rxjs';
 
-interface Task {
-  id: string;
+type StudentTaskFilter = 'all' | 'today' | 'week' | 'overdue' | 'submitted';
+type StudentTaskStatus = 'pendiente' | 'entregada' | 'calificada' | 'vencida';
+
+interface StudentTaskView {
+  assignment: Assignment;
+  submission: TaskSubmission | null;
+  status: StudentTaskStatus;
   title: string;
   description: string;
-  due_date: string;
-  status: 'pendiente' | 'entregada' | 'calificada' | 'vencida';
-  priority: 'alta' | 'media' | 'baja';
-  course: {
-    name: string;
-    code: string;
-    color: string;
-  };
-  has_attachment: boolean;
-  score?: number;
-  max_score?: number;
+  due_date?: string | null;
+  courseName: string;
+  courseCode: string;
+  sectionLabel: string;
+  score?: number | null;
+  max_score?: number | null;
+  feedback?: string | null;
 }
 
 @Component({
   selector: 'app-tasks-student',
   standalone: true,
-  imports: [CommonModule, FormsModule, RouterModule, BackButtonComponent],
+  imports: [CommonModule, FormsModule, BackButtonComponent],
   template: `
     <div class="min-h-[calc(100vh-80px)] p-4 sm:p-6 lg:p-8 max-w-7xl mx-auto space-y-8">
       <app-back-button link="/app/dashboard/student"></app-back-button>
 
-      <!-- Header -->
-      <div>
-        <h1 class="text-3xl font-black text-slate-900 tracking-tight mb-2">Mis Tareas</h1>
-        <p class="text-slate-500 font-medium leading-relaxed">Organiza y entrega tus trabajos a tiempo</p>
-      </div>
+      <section class="bg-white border border-slate-100 rounded-3xl p-6 shadow-sm">
+        <p class="text-[10px] font-black uppercase tracking-[0.3em] text-slate-400">Alumno</p>
+        <h1 class="mt-2 text-3xl font-black tracking-tight text-slate-900">Mis tareas</h1>
+        <p class="mt-2 text-sm font-medium text-slate-500">
+          Revisa tus actividades pendientes, entrega a tiempo y consulta tus devoluciones.
+        </p>
+      </section>
 
-      <!-- Quick Filter Cards (React Design) -->
-      <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
-        <!-- Today's Tasks -->
-        <button (click)="activeFilter = 'today'; filterTasks()"
-           [class]="'bg-white border rounded-[32px] p-6 text-left transition-all duration-300 group ' + (activeFilter === 'today' ? 'border-indigo-600 ring-2 ring-indigo-50 shadow-xl shadow-indigo-100' : 'border-slate-200 hover:border-indigo-300 hover:shadow-lg')">
-          <div class="flex items-center justify-between mb-4">
-            <div [innerHTML]="getSafeIcon('calendar')" class="w-10 h-10 text-indigo-700 group-hover:scale-110 transition-transform"></div>
-            <span class="text-4xl font-black text-slate-900">{{ getFilterCount('today') }}</span>
-          </div>
-          <p class="text-sm font-black text-slate-500 uppercase tracking-widest">Para hoy</p>
-        </button>
-
-        <!-- Week's Tasks -->
-        <button (click)="activeFilter = 'week'; filterTasks()"
-           [class]="'bg-white border rounded-[32px] p-6 text-left transition-all duration-300 group ' + (activeFilter === 'week' ? 'border-blue-600 ring-2 ring-blue-50 shadow-xl shadow-blue-100' : 'border-slate-200 hover:border-blue-300 hover:shadow-lg')">
-          <div class="flex items-center justify-between mb-4">
-            <div [innerHTML]="getSafeIcon('clock')" class="w-10 h-10 text-blue-500 group-hover:scale-110 transition-transform"></div>
-            <span class="text-4xl font-black text-slate-900">{{ getFilterCount('week') }}</span>
-          </div>
-          <p class="text-sm font-black text-slate-500 uppercase tracking-widest">Esta semana</p>
-        </button>
-
-        <!-- Overdue Tasks -->
-        <button (click)="activeFilter = 'overdue'; filterTasks()"
-           [class]="'bg-white border rounded-[32px] p-6 text-left transition-all duration-300 group ' + (activeFilter === 'overdue' ? 'border-red-600 ring-2 ring-red-50 shadow-xl shadow-red-100' : 'border-slate-200 hover:border-red-300 hover:shadow-lg')">
-          <div class="flex items-center justify-between mb-4">
-            <div [innerHTML]="getSafeIcon('alertCircle')" class="w-10 h-10 text-red-500 group-hover:scale-110 transition-transform"></div>
-            <span class="text-4xl font-black text-red-600">{{ getFilterCount('overdue') }}</span>
-          </div>
-          <p class="text-sm font-black text-slate-500 uppercase tracking-widest">Atrasadas</p>
-        </button>
-
-        <!-- All Tasks -->
-        <button (click)="activeFilter = 'all'; filterTasks()"
-           [class]="'bg-white border rounded-[32px] p-6 text-left transition-all duration-300 group ' + (activeFilter === 'all' ? 'border-indigo-600 ring-2 ring-indigo-50 shadow-xl shadow-indigo-100' : 'border-slate-200 hover:border-indigo-300 hover:shadow-lg')">
-          <div class="flex items-center justify-between mb-4">
-            <div [innerHTML]="getSafeIcon('bookOpen')" class="w-10 h-10 text-indigo-800 group-hover:scale-110 transition-transform"></div>
-            <span class="text-4xl font-black text-slate-900">{{ allTasks.length }}</span>
-          </div>
-          <p class="text-sm font-black text-slate-500 uppercase tracking-widest">Todas</p>
-        </button>
-      </div>
-
-      <!-- Loading State -->
-      <div *ngIf="loading" class="flex flex-col items-center justify-center py-32 gap-6 bg-white rounded-[40px] border border-slate-200 shadow-sm">
-        <div class="relative w-16 h-16">
-          <div class="absolute inset-0 border-4 border-indigo-100 rounded-full"></div>
-          <div class="absolute inset-0 border-4 border-indigo-600 border-t-transparent rounded-full animate-spin"></div>
+      <div *ngIf="student" class="bg-white border border-slate-100 rounded-3xl p-5 shadow-sm flex flex-col md:flex-row md:items-center justify-between gap-4">
+        <div>
+          <p class="text-[10px] font-black uppercase tracking-widest text-slate-400">Contexto academico</p>
+          <h2 class="mt-2 text-xl font-black text-slate-900">{{ student.full_name }}</h2>
+          <p class="mt-1 text-sm font-medium text-slate-500">
+            {{ student.student_code }} | {{ getStudentSectionLabel() }}
+          </p>
         </div>
-        <p class="text-[10px] font-black text-slate-400 uppercase tracking-[0.2em] animate-pulse">Buscando tareas...</p>
-      </div>
-
-      <!-- Empty State (React Design) -->
-      <div *ngIf="!loading && filteredTasks.length === 0" class="text-center py-24 bg-white rounded-[40px] border border-slate-200 shadow-sm overflow-hidden relative group">
-        <div class="absolute inset-0 bg-slate-50/30 group-hover:bg-indigo-50/20 transition-colors duration-700"></div>
-        <div class="relative z-10 max-w-md mx-auto">
-          <div class="w-24 h-24 bg-slate-100 rounded-[32px] flex items-center justify-center mx-auto mb-8 shadow-inner transform group-hover:rotate-6 transition-transform">
-             <div [innerHTML]="getSafeIcon('bookOpen')" class="w-12 h-12 text-slate-400"></div>
-          </div>
-          <h3 class="text-2xl font-black text-slate-900 mb-2 tracking-tight">No hay tareas</h3>
-          <p class="text-slate-500 font-medium">Aún no tienes tareas asignadas</p>
+        <div class="flex flex-wrap gap-2">
+          <span class="px-3 py-2 rounded-2xl bg-slate-100 text-slate-600 border border-slate-200 text-xs font-black uppercase tracking-wider">
+            Total {{ allTasks.length }}
+          </span>
+          <span class="px-3 py-2 rounded-2xl bg-amber-50 text-amber-700 border border-amber-200 text-xs font-black uppercase tracking-wider">
+            Pendientes {{ getStatusCount('pendiente') }}
+          </span>
+          <span class="px-3 py-2 rounded-2xl bg-rose-50 text-rose-700 border border-rose-200 text-xs font-black uppercase tracking-wider">
+            Vencidas {{ getStatusCount('vencida') }}
+          </span>
+          <span class="px-3 py-2 rounded-2xl bg-emerald-50 text-emerald-700 border border-emerald-200 text-xs font-black uppercase tracking-wider">
+            Entregadas {{ getSubmittedCount() }}
+          </span>
         </div>
       </div>
 
-      <!-- Tasks List -->
-      <div *ngIf="!loading && filteredTasks.length > 0" class="space-y-4">
-        <div *ngFor="let task of filteredTasks" 
-             class="bg-white rounded-[32px] border border-slate-200 shadow-sm hover:shadow-2xl hover:border-indigo-100 transition-all duration-500 overflow-hidden flex flex-col pointer-events-auto">
-          <div class="p-8 space-y-6">
-            <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
-              <div class="space-y-3">
-                <div class="flex items-center gap-3">
-                  <h3 class="text-xl font-black text-slate-900">{{ task.title }}</h3>
-                  <span [class]="'px-3 py-1 rounded-lg text-[10px] font-black uppercase tracking-widest shadow-sm ' + getStatusStyles(task.status).bg + ' ' + getStatusStyles(task.status).text">
-                    {{ task.status | uppercase }}
-                  </span>
-                </div>
-                <div class="flex items-center gap-2">
-                  <span [class]="'px-2 py-0.5 rounded-md text-[10px] font-black text-white ' + task.course.color">{{ task.course.code }}</span>
-                  <span class="text-xs font-bold text-slate-400 uppercase tracking-tight">{{ task.course.name }}</span>
-                </div>
+      <div class="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-5 gap-4">
+        <button
+          *ngFor="let filter of filters"
+          type="button"
+          (click)="setFilter(filter.id)"
+          [ngClass]="activeFilter === filter.id ? 'border-blue-900 ring-2 ring-blue-100 shadow-lg' : 'border-slate-200 hover:border-slate-300'"
+          class="bg-white border rounded-3xl p-5 text-left transition-all shadow-sm"
+        >
+          <p class="text-[10px] font-black uppercase tracking-widest text-slate-400">{{ filter.label }}</p>
+          <h2 class="mt-3 text-3xl font-black text-slate-900">{{ getFilterCount(filter.id) }}</h2>
+        </button>
+      </div>
+
+      <div *ngIf="loading" class="flex justify-center py-20">
+        <div class="w-10 h-10 border-4 border-blue-900 border-t-transparent rounded-full animate-spin"></div>
+      </div>
+
+      <div *ngIf="error" class="bg-red-50 border border-red-200 text-red-700 rounded-2xl px-4 py-3 text-sm font-medium">
+        {{ error }}
+      </div>
+
+      <section *ngIf="!loading && !filteredTasks.length" class="bg-white border border-slate-100 rounded-3xl p-12 shadow-sm text-center">
+        <div class="w-16 h-16 rounded-full bg-slate-100 mx-auto flex items-center justify-center text-slate-300">
+          <svg class="w-8 h-8" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8">
+            <path d="M14.5 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V7.5L14.5 2Z"></path>
+            <path d="M14 2v6h6"></path>
+          </svg>
+        </div>
+        <h2 class="mt-5 text-xl font-bold text-slate-900">No hay tareas en este filtro</h2>
+        <p class="mt-2 text-sm font-medium text-slate-500">
+          Cambia el filtro o espera a que tus docentes publiquen nuevas actividades.
+        </p>
+      </section>
+
+      <section *ngIf="!loading && filteredTasks.length" class="space-y-4">
+        <article *ngFor="let task of filteredTasks" class="bg-white border border-slate-100 rounded-3xl p-6 shadow-sm hover:shadow-md transition-shadow">
+          <div class="flex flex-col xl:flex-row xl:items-start justify-between gap-5">
+            <div class="space-y-3">
+              <div class="flex flex-wrap items-center gap-2">
+                <span class="px-3 py-1 rounded-full text-[10px] font-black uppercase tracking-wider" [ngClass]="getStatusClass(task.status)">
+                  {{ task.status }}
+                </span>
+                <span class="px-3 py-1 rounded-full bg-slate-100 text-slate-600 text-[10px] font-black uppercase tracking-wider">
+                  {{ task.courseCode }}
+                </span>
+                <span *ngIf="isDueToday(task)" class="px-3 py-1 rounded-full bg-amber-50 text-amber-700 text-[10px] font-black uppercase tracking-wider border border-amber-200">
+                  Vence hoy
+                </span>
               </div>
-              <div class="flex gap-2">
-                <button class="px-6 py-2.5 bg-white text-slate-700 border border-slate-200 rounded-xl text-xs font-black hover:bg-slate-50 transition-colors shadow-sm flex items-center gap-2">
-                  <div [innerHTML]="getSafeIcon('fileText')" class="w-4 h-4 text-slate-400"></div>
-                  VER DETALLE
-                </button>
-                <button *ngIf="task.status === 'pendiente' || task.status === 'vencida'" class="px-6 py-2.5 bg-indigo-600 text-white rounded-xl text-xs font-black hover:bg-indigo-700 transition-all shadow-lg shadow-indigo-200 flex items-center gap-2">
-                  <div [innerHTML]="getSafeIcon('upload')" class="w-4 h-4"></div>
-                  ENTREGAR
-                </button>
+
+              <div>
+                <h2 class="text-xl font-black text-slate-900">{{ task.title }}</h2>
+                <p class="mt-1 text-sm font-semibold text-slate-500">{{ task.courseName }} | {{ task.sectionLabel }}</p>
+              </div>
+
+              <p *ngIf="task.description" class="text-sm leading-6 text-slate-600 max-w-3xl">{{ task.description }}</p>
+
+              <div class="flex flex-wrap gap-4 text-sm font-semibold text-slate-500">
+                <span>Limite: <strong class="text-slate-800">{{ task.due_date ? (task.due_date | date:'dd/MM/yyyy HH:mm') : 'Sin fecha' }}</strong></span>
+                <span *ngIf="task.submission?.submission_date">Entregado: <strong class="text-slate-800">{{ task.submission?.submission_date | date:'dd/MM/yyyy HH:mm' }}</strong></span>
+                <span *ngIf="task.status === 'calificada'">Nota: <strong class="text-emerald-700">{{ task.score ?? '-' }}/{{ task.max_score ?? '-' }}</strong></span>
               </div>
             </div>
 
-            <p class="text-sm font-medium text-slate-500 leading-relaxed max-w-3xl" *ngIf="task.description">
-              {{ task.description }}
-            </p>
-
-            <div class="flex flex-wrap items-center gap-6 text-xs font-bold">
-              <div class="flex items-center gap-2 text-slate-400">
-                <div [innerHTML]="getSafeIcon('clock')" class="w-4 h-4"></div>
-                Límite: <span [class]="task.status === 'vencida' ? 'text-red-600' : 'text-slate-600'">{{ task.due_date | date:'short' }}</span>
-              </div>
-              <div *ngIf="task.status === 'calificada'" class="flex items-center gap-2 text-emerald-600">
-                <div [innerHTML]="getSafeIcon('award')" class="w-4 h-4"></div>
-                Nota: {{ task.score }}/{{ task.max_score }}
-              </div>
+            <div class="flex flex-wrap gap-2 xl:justify-end">
+              <button
+                type="button"
+                (click)="openDetail(task)"
+                class="px-4 py-2 rounded-xl border border-slate-200 text-slate-600 text-[11px] font-black uppercase tracking-wider hover:bg-slate-50"
+              >
+                Ver detalle
+              </button>
+              <button
+                *ngIf="canSubmit(task)"
+                type="button"
+                (click)="openSubmission(task)"
+                class="px-4 py-2 rounded-xl bg-blue-900 text-white text-[11px] font-black uppercase tracking-wider hover:bg-blue-800"
+              >
+                {{ task.submission ? 'Actualizar entrega' : 'Entregar tarea' }}
+              </button>
             </div>
           </div>
+        </article>
+      </section>
+
+      <div *ngIf="detailTask" class="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/60 backdrop-blur-sm">
+        <div class="bg-white w-full max-w-3xl rounded-3xl shadow-2xl border border-slate-100 overflow-hidden">
+          <div class="flex items-center justify-between px-6 py-5 border-b border-slate-100">
+            <div>
+              <p class="text-[10px] font-black uppercase tracking-widest text-slate-400">Detalle</p>
+              <h2 class="mt-1 text-2xl font-black text-slate-900">{{ detailTask.title }}</h2>
+            </div>
+            <button type="button" (click)="closeDetail()" class="p-2 rounded-xl hover:bg-slate-50 text-slate-400">
+              <svg class="w-6 h-6" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2">
+                <path d="M18 6 6 18"></path>
+                <path d="m6 6 12 12"></path>
+              </svg>
+            </button>
+          </div>
+
+          <div class="p-6 space-y-5">
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <div class="rounded-2xl bg-slate-50 border border-slate-200 p-4">
+                <p class="text-[10px] font-black uppercase tracking-widest text-slate-400">Curso</p>
+                <p class="mt-2 text-sm font-bold text-slate-900">{{ detailTask.courseName }}</p>
+              </div>
+              <div class="rounded-2xl bg-slate-50 border border-slate-200 p-4">
+                <p class="text-[10px] font-black uppercase tracking-widest text-slate-400">Fecha limite</p>
+                <p class="mt-2 text-sm font-bold text-slate-900">{{ detailTask.due_date ? (detailTask.due_date | date:'dd/MM/yyyy HH:mm') : 'Sin fecha' }}</p>
+              </div>
+            </div>
+
+            <div *ngIf="detailTask.assignment.instructions" class="rounded-2xl bg-blue-50/50 border border-blue-100 p-4">
+              <p class="text-[10px] font-black uppercase tracking-widest text-blue-500">Indicaciones</p>
+              <p class="mt-2 text-sm leading-6 text-slate-700">{{ detailTask.assignment.instructions }}</p>
+            </div>
+
+            <div *ngIf="detailTask.description" class="rounded-2xl bg-slate-50 border border-slate-200 p-4">
+              <p class="text-[10px] font-black uppercase tracking-widest text-slate-400">Descripcion</p>
+              <p class="mt-2 text-sm leading-6 text-slate-700">{{ detailTask.description }}</p>
+            </div>
+
+            <div *ngIf="detailTask.submission" class="rounded-2xl bg-emerald-50/50 border border-emerald-100 p-4 space-y-3">
+              <div class="flex flex-wrap gap-3 items-center">
+                <span class="px-3 py-1 rounded-full bg-white text-emerald-700 border border-emerald-200 text-[10px] font-black uppercase tracking-wider">
+                  {{ detailTask.status }}
+                </span>
+                <span *ngIf="detailTask.submission?.submission_date" class="text-sm font-semibold text-slate-600">
+                  Enviado: {{ detailTask.submission.submission_date | date:'dd/MM/yyyy HH:mm' }}
+                </span>
+              </div>
+
+              <div *ngIf="detailTask.submission?.content">
+                <p class="text-[10px] font-black uppercase tracking-widest text-emerald-600">Mi entrega</p>
+                <p class="mt-2 text-sm leading-6 text-slate-700">{{ detailTask.submission.content }}</p>
+              </div>
+
+              <div *ngIf="detailTask.submission?.attachment_url">
+                <p class="text-[10px] font-black uppercase tracking-widest text-emerald-600">Archivo o enlace</p>
+                <a [href]="detailTask.submission.attachment_url || '#'" target="_blank" rel="noopener noreferrer" class="mt-2 inline-block text-sm font-bold text-blue-700 hover:underline">
+                  {{ detailTask.submission.attachment_name || detailTask.submission.attachment_url }}
+                </a>
+              </div>
+            </div>
+
+            <div *ngIf="detailTask.status === 'calificada'" class="rounded-2xl bg-amber-50/60 border border-amber-100 p-4 space-y-3">
+              <p class="text-[10px] font-black uppercase tracking-widest text-amber-600">Retroalimentacion</p>
+              <p class="text-sm font-semibold text-slate-700">
+                Nota: {{ detailTask.score ?? '-' }}/{{ detailTask.max_score ?? '-' }}
+                <span *ngIf="detailTask.submission?.grade_letter">({{ detailTask.submission?.grade_letter }})</span>
+              </p>
+              <p class="text-sm leading-6 text-slate-700">{{ detailTask.feedback || 'Todavia no hay comentario del docente.' }}</p>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div *ngIf="submissionTask" class="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/60 backdrop-blur-sm">
+        <div class="bg-white w-full max-w-2xl rounded-3xl shadow-2xl border border-slate-100 overflow-hidden">
+          <div class="flex items-center justify-between px-6 py-5 border-b border-slate-100">
+            <div>
+              <p class="text-[10px] font-black uppercase tracking-widest text-slate-400">Entrega</p>
+              <h2 class="mt-1 text-2xl font-black text-slate-900">{{ submissionTask.title }}</h2>
+            </div>
+            <button type="button" (click)="closeSubmission()" class="p-2 rounded-xl hover:bg-slate-50 text-slate-400">
+              <svg class="w-6 h-6" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2">
+                <path d="M18 6 6 18"></path>
+                <path d="m6 6 12 12"></path>
+              </svg>
+            </button>
+          </div>
+
+          <form (submit)="saveSubmission($event)" class="p-6 space-y-5">
+            <div class="rounded-2xl bg-slate-50 border border-slate-200 p-4 text-sm font-medium text-slate-600">
+              Limite: <strong class="text-slate-900">{{ submissionTask.due_date ? (submissionTask.due_date | date:'dd/MM/yyyy HH:mm') : 'Sin fecha' }}</strong>
+            </div>
+
+            <div class="space-y-1.5">
+              <label class="text-[10px] font-black uppercase tracking-widest text-slate-400">Descripcion de tu entrega</label>
+              <textarea
+                [(ngModel)]="submissionForm.content"
+                name="content"
+                rows="6"
+                placeholder="Escribe aqui tu respuesta, resumen o comentarios para el docente"
+                class="w-full rounded-2xl border border-slate-200 bg-slate-50 px-4 py-3 text-sm font-medium text-slate-700 resize-none focus:outline-none focus:ring-2 focus:ring-blue-500/15 focus:border-blue-500"
+              ></textarea>
+            </div>
+
+            <div class="space-y-1.5">
+              <label class="text-[10px] font-black uppercase tracking-widest text-slate-400">Enlace o archivo subido</label>
+              <input
+                [(ngModel)]="submissionForm.attachment_url"
+                name="attachment_url"
+                type="url"
+                placeholder="https://..."
+                class="w-full rounded-2xl border border-slate-200 bg-slate-50 px-4 py-3 text-sm font-medium text-slate-700 focus:outline-none focus:ring-2 focus:ring-blue-500/15 focus:border-blue-500"
+              >
+            </div>
+
+            <div class="flex gap-3 pt-2">
+              <button type="button" (click)="closeSubmission()" class="flex-1 px-5 py-3 rounded-2xl border border-slate-200 text-slate-500 text-xs font-black uppercase tracking-widest hover:bg-slate-50">
+                Cancelar
+              </button>
+              <button type="submit" [disabled]="saving" class="flex-[1.4] px-5 py-3 rounded-2xl bg-gradient-to-r from-blue-900 to-blue-700 text-white text-xs font-black uppercase tracking-widest shadow-lg disabled:opacity-60">
+                {{ saving ? 'Guardando...' : (submissionTask.submission ? 'Actualizar entrega' : 'Enviar entrega') }}
+              </button>
+            </div>
+          </form>
         </div>
       </div>
     </div>
-v>
   `,
-  styles: [`
-    :host { display: block; background: #F8FAFC; min-h: 100vh; }
-  `]
+  styles: [':host { display: block; }']
 })
 export class TasksStudentComponent implements OnInit {
-  private sanitizer = inject(DomSanitizer);
-  
-  loading = false;
-  activeFilter = 'all';
-  pendingCount = 0;
+  private authService = inject(AuthService);
+  private taskService = inject(TaskService);
 
-  filters = [
-    { id: 'all', label: 'Todas', count: 0 },
-    { id: 'today', label: 'Cierran hoy', count: 1 },
-    { id: 'week', label: 'Esta semana', count: 3 },
-    { id: 'overdue', label: 'Vencidas', count: 1 },
-    { id: 'submitted', label: 'Entregadas', count: 0 },
+  loading = false;
+  saving = false;
+  error = '';
+
+  student: AcademicContextStudent | null = null;
+  activeFilter: StudentTaskFilter = 'all';
+  allTasks: StudentTaskView[] = [];
+  filteredTasks: StudentTaskView[] = [];
+
+  detailTask: StudentTaskView | null = null;
+  submissionTask: StudentTaskView | null = null;
+
+  submissionForm = {
+    content: '',
+    attachment_url: '',
+  };
+
+  readonly filters: Array<{ id: StudentTaskFilter; label: string }> = [
+    { id: 'all', label: 'Todas' },
+    { id: 'today', label: 'Para hoy' },
+    { id: 'week', label: 'Esta semana' },
+    { id: 'overdue', label: 'Vencidas' },
+    { id: 'submitted', label: 'Entregadas' },
   ];
 
-  allTasks: Task[] = [];
-  filteredTasks: Task[] = [];
-
-  ngOnInit() {
+  ngOnInit(): void {
     this.loadTasks();
   }
 
-  loadTasks() {
+  setFilter(filter: StudentTaskFilter): void {
+    this.activeFilter = filter;
+    this.applyFilters();
+  }
+
+  openDetail(task: StudentTaskView): void {
+    this.detailTask = task;
+  }
+
+  closeDetail(): void {
+    this.detailTask = null;
+  }
+
+  openSubmission(task: StudentTaskView): void {
+    this.submissionTask = task;
+    this.submissionForm = {
+      content: task.submission?.content || '',
+      attachment_url: task.submission?.attachment_url || '',
+    };
+  }
+
+  closeSubmission(): void {
+    this.submissionTask = null;
+    this.submissionForm = { content: '', attachment_url: '' };
+  }
+
+  canSubmit(task: StudentTaskView): boolean {
+    return task.status !== 'calificada';
+  }
+
+  isDueToday(task: StudentTaskView): boolean {
+    if (!task.due_date) {
+      return false;
+    }
+
+    const due = new Date(task.due_date);
+    const now = new Date();
+
+    return due.getFullYear() === now.getFullYear()
+      && due.getMonth() === now.getMonth()
+      && due.getDate() === now.getDate();
+  }
+
+  getStatusClass(status: StudentTaskStatus): string {
+    const classes: Record<StudentTaskStatus, string> = {
+      pendiente: 'bg-blue-50 text-blue-700',
+      entregada: 'bg-cyan-50 text-cyan-700',
+      calificada: 'bg-emerald-50 text-emerald-700',
+      vencida: 'bg-rose-50 text-rose-700',
+    };
+
+    return classes[status];
+  }
+
+  getFilterCount(filter: StudentTaskFilter): number {
+    return this.allTasks.filter((task) => this.matchesFilter(task, filter)).length;
+  }
+
+  getStatusCount(status: StudentTaskStatus): number {
+    return this.allTasks.filter((task) => task.status === status).length;
+  }
+
+  getSubmittedCount(): number {
+    return this.allTasks.filter((task) => task.status === 'entregada' || task.status === 'calificada').length;
+  }
+
+  getStudentSectionLabel(): string {
+    const gradeLevel = this.student?.section?.grade_level;
+    const sectionLetter = this.student?.section?.section_letter;
+    const section = sectionLetter ? `Seccion ${sectionLetter}` : 'Seccion';
+
+    if (gradeLevel?.grade && gradeLevel?.level) {
+      return `${gradeLevel.grade} ${gradeLevel.level} - ${section}`;
+    }
+
+    return section;
+  }
+
+  saveSubmission(event: Event): void {
+    event.preventDefault();
+
+    if (!this.student || !this.submissionTask || this.saving) {
+      return;
+    }
+
+    if (!this.submissionForm.content.trim() && !this.submissionForm.attachment_url.trim()) {
+      this.error = 'Debes escribir una descripcion o adjuntar un enlace para enviar la tarea.';
+      return;
+    }
+
+    this.saving = true;
+    this.error = '';
+
+    const attachmentUrl = this.submissionForm.attachment_url.trim();
+    const payload = {
+      assignment_id: this.submissionTask.assignment.id,
+      student_id: this.student.id,
+      content: this.submissionForm.content.trim() || null,
+      attachment_url: attachmentUrl || null,
+      attachment_name: attachmentUrl ? this.buildAttachmentName(attachmentUrl) : null,
+      status: 'submitted' as const,
+    };
+
+    const request = this.submissionTask.submission
+      ? this.taskService.updateSubmission(this.submissionTask.submission.id, payload)
+      : this.taskService.createSubmission(payload);
+
+    request.subscribe({
+      next: () => {
+        this.saving = false;
+        this.closeSubmission();
+        this.loadTasks();
+      },
+      error: (error) => {
+        this.saving = false;
+        this.error = this.extractError(error, 'No se pudo guardar la entrega.');
+      },
+    });
+  }
+
+  private loadTasks(): void {
     this.loading = true;
-    setTimeout(() => {
-      this.allTasks = [
-        {
-          id: '1',
-          title: 'Cálculo de Áreas y Perímetros',
-          description: 'Resolver los ejercicios de la página 45 a 48 del libro de trabajo. Subir fotos de los procedimientos claros.',
-          due_date: new Date().toISOString(),
-          status: 'pendiente',
-          priority: 'alta',
-          course: { name: 'Matemática', code: 'MAT-301', color: 'bg-blue-600' },
-          has_attachment: true
-        },
-        {
-          id: '2',
-          title: 'Análisis de la Obra "Moby Dick"',
-          description: 'Elaborar un ensayo de 500 palabras sobre la obsesión del capitán Ahab y el simbolismo de la ballena blanca.',
-          due_date: new Date(Date.now() + 86400000 * 2).toISOString(),
-          status: 'pendiente',
-          priority: 'media',
-          course: { name: 'Comunicación', code: 'COM-301', color: 'bg-rose-600' },
-          has_attachment: false
-        },
-        {
-          id: '3',
-          title: 'Laboratorio: Célula Animal vs Vegetal',
-          description: 'Completar el informe de laboratorio con las observaciones del microscopio realizadas en clase.',
-          due_date: new Date(Date.now() - 86400000).toISOString(),
-          status: 'vencida',
-          priority: 'alta',
-          course: { name: 'Ciencia y Tecnología', code: 'CYT-302', color: 'bg-emerald-600' },
-          has_attachment: true
-        },
-        {
-          id: '4',
-          title: 'Proyecto: Historia de mi Localidad',
-          description: 'Entrevista a una persona mayor sobre cómo ha cambiado la ciudad en los últimos 30 años.',
-          due_date: new Date(Date.now() + 86400000 * 5).toISOString(),
-          status: 'entregada',
-          priority: 'media',
-          course: { name: 'DPCC', code: 'DPCC-301', color: 'bg-amber-600' },
-          has_attachment: true
-        },
-        {
-          id: '5',
-          title: 'Práctica Dirigida: Vectores',
-          description: 'Resolver el PDF adjunto y marcar las respuestas en el formulario online.',
-          due_date: new Date(Date.now() - 86400000 * 2).toISOString(),
-          status: 'calificada',
-          priority: 'baja',
-          course: { name: 'Física', code: 'FIS-301', color: 'bg-indigo-600' },
-          has_attachment: true,
-          score: 18,
-          max_score: 20
+    this.error = '';
+
+    this.authService.getAcademicContext().subscribe({
+      next: (context) => {
+        this.student = context.students?.[0] || null;
+
+        if (!this.student) {
+          this.allTasks = [];
+          this.filteredTasks = [];
+          this.loading = false;
+          this.error = 'No se encontro el estudiante asociado al usuario autenticado.';
+          return;
         }
-      ];
-      this.filterTasks();
-      this.loading = false;
-    }, 1200);
+
+        forkJoin({
+          assignments: this.taskService.getAssignments(),
+          submissions: this.taskService.getSubmissions(),
+        }).subscribe({
+          next: ({ assignments, submissions }) => {
+            const submissionMap = new Map<string, TaskSubmission>();
+            for (const submission of submissions.data || []) {
+              if (submission.assignment_id) {
+                submissionMap.set(submission.assignment_id, submission);
+              }
+            }
+
+            this.allTasks = (assignments.data || [])
+              .map((assignment) => this.toTaskView(assignment, submissionMap.get(assignment.id) || null))
+              .sort((left, right) => this.compareTasks(left, right));
+
+            this.applyFilters();
+            this.loading = false;
+          },
+          error: (error) => {
+            this.loading = false;
+            this.allTasks = [];
+            this.filteredTasks = [];
+            this.error = this.extractError(error, 'No se pudieron cargar las tareas del alumno.');
+          },
+        });
+      },
+      error: (error) => {
+        this.loading = false;
+        this.error = this.extractError(error, 'No se pudo cargar el contexto academico del alumno.');
+      },
+    });
   }
 
-  getFilterCount(filter: string): number {
+  private applyFilters(): void {
+    this.filteredTasks = this.allTasks.filter((task) => this.matchesFilter(task, this.activeFilter));
+  }
+
+  private matchesFilter(task: StudentTaskView, filter: StudentTaskFilter): boolean {
+    if (filter === 'all') {
+      return true;
+    }
+
+    if (filter === 'submitted') {
+      return task.status === 'entregada' || task.status === 'calificada';
+    }
+
+    if (filter === 'overdue') {
+      return task.status === 'vencida';
+    }
+
+    if (!task.due_date) {
+      return false;
+    }
+
+    const dueDate = new Date(task.due_date);
     const now = new Date();
     const todayStart = new Date(now.getFullYear(), now.getMonth(), now.getDate());
-    const weekFromNow = new Date(todayStart);
-    weekFromNow.setDate(weekFromNow.getDate() + 7);
+    const tomorrowStart = new Date(todayStart);
+    tomorrowStart.setDate(tomorrowStart.getDate() + 1);
+    const weekEnd = new Date(todayStart);
+    weekEnd.setDate(weekEnd.getDate() + 7);
 
-    switch (filter) {
-      case 'today':
-        return this.allTasks.filter(t => {
-          const d = new Date(t.due_date);
-          return d >= todayStart && d < new Date(todayStart.getTime() + 86400000);
-        }).length;
-      case 'week':
-        return this.allTasks.filter(t => {
-          const d = new Date(t.due_date);
-          return d >= todayStart && d <= weekFromNow;
-        }).length;
-      case 'overdue':
-        return this.allTasks.filter(t => t.status === 'vencida').length;
-      default:
-        return this.allTasks.length;
+    if (filter === 'today') {
+      return dueDate >= todayStart && dueDate < tomorrowStart;
+    }
+
+    if (filter === 'week') {
+      return dueDate >= todayStart && dueDate <= weekEnd;
+    }
+
+    return true;
+  }
+
+  private toTaskView(assignment: Assignment, submission: TaskSubmission | null): StudentTaskView {
+    const status = this.resolveTaskStatus(assignment, submission);
+    const sectionLetter = assignment.section?.section_letter ? `Seccion ${assignment.section.section_letter}` : 'Seccion';
+    const gradeLevel = assignment.section?.grade_level;
+    const sectionLabel = gradeLevel?.grade && gradeLevel?.level
+      ? `${gradeLevel.grade} ${gradeLevel.level} - ${sectionLetter}`
+      : sectionLetter;
+
+    return {
+      assignment,
+      submission,
+      status,
+      title: assignment.title,
+      description: assignment.description || assignment.instructions || '',
+      due_date: assignment.due_date,
+      courseName: assignment.course?.name || 'Curso',
+      courseCode: assignment.course?.code || 'CURSO',
+      sectionLabel,
+      score: submission?.grade ?? null,
+      max_score: assignment.max_score ?? null,
+      feedback: submission?.feedback ?? null,
+    };
+  }
+
+  private resolveTaskStatus(assignment: Assignment, submission: TaskSubmission | null): StudentTaskStatus {
+    if (submission?.status === 'graded') {
+      return 'calificada';
+    }
+
+    if (submission) {
+      return 'entregada';
+    }
+
+    return assignment.timing_status === 'overdue' ? 'vencida' : 'pendiente';
+  }
+
+  private compareTasks(left: StudentTaskView, right: StudentTaskView): number {
+    const priority = {
+      vencida: 0,
+      pendiente: 1,
+      entregada: 2,
+      calificada: 3,
+    };
+
+    const priorityDiff = priority[left.status] - priority[right.status];
+    if (priorityDiff !== 0) {
+      return priorityDiff;
+    }
+
+    return this.getDueTimestamp(left.due_date) - this.getDueTimestamp(right.due_date);
+  }
+
+  private getDueTimestamp(dueDate?: string | null): number {
+    if (!dueDate) {
+      return Number.MAX_SAFE_INTEGER;
+    }
+
+    const timestamp = new Date(dueDate).getTime();
+    return Number.isNaN(timestamp) ? Number.MAX_SAFE_INTEGER : timestamp;
+  }
+
+  private buildAttachmentName(url: string): string {
+    try {
+      const parsedUrl = new URL(url);
+      const lastSegment = parsedUrl.pathname.split('/').filter(Boolean).pop();
+      return lastSegment || url;
+    } catch {
+      return url;
     }
   }
 
-  filterTasks() {
-    const now = new Date();
-    const todayStart = new Date(now.getFullYear(), now.getMonth(), now.getDate());
-    const weekFromNow = new Date(todayStart);
-    weekFromNow.setDate(weekFromNow.getDate() + 7);
-
-    if (this.activeFilter === 'all') {
-      this.filteredTasks = this.allTasks;
-    } else if (this.activeFilter === 'today') {
-      this.filteredTasks = this.allTasks.filter(t => {
-        const d = new Date(t.due_date);
-        return d >= todayStart && d < new Date(todayStart.getTime() + 86400000);
-      });
-    } else if (this.activeFilter === 'week') {
-      this.filteredTasks = this.allTasks.filter(t => {
-        const d = new Date(t.due_date);
-        return d >= todayStart && d <= weekFromNow;
-      });
-    } else if (this.activeFilter === 'overdue') {
-      this.filteredTasks = this.allTasks.filter(t => t.status === 'vencida');
+  private extractError(error: any, fallback: string): string {
+    const validationErrors = error?.error?.errors;
+    if (validationErrors && typeof validationErrors === 'object') {
+      const firstKey = Object.keys(validationErrors)[0];
+      const firstValue = validationErrors[firstKey];
+      if (Array.isArray(firstValue) && firstValue[0]) {
+        return firstValue[0];
+      }
     }
-  }
 
-  getSafeIcon(name: string): SafeHtml {
-    const map: Record<string, string> = {
-      calendar: ICONS.calendar,
-      clock: ICONS.clock,
-      alertCircle: ICONS.alertTriangle,
-      bookOpen: ICONS.bookOpen,
-      fileText: ICONS.fileText,
-      upload: ICONS.megaphone, // Usingmegaphone as placeholder if upload missing
-      award: ICONS.award,
-      paperclip: ICONS.paperclip
-    };
-    const svg = map[name] || ICONS.calendar;
-    return this.sanitizer.bypassSecurityTrustHtml(svg);
-  }
-
-  getPriorityClass(p: string): string {
-    const map: Record<string, string> = {
-      'alta': 'bg-red-50 text-red-600 border border-red-100 font-black',
-      'media': 'bg-orange-50 text-orange-600 border border-orange-100 font-black',
-      'baja': 'bg-blue-50 text-blue-600 border border-blue-100 font-black',
-    };
-    return map[p] || 'bg-slate-50 text-slate-500 font-bold';
-  }
-
-  getStatusStyles(status: string) {
-    const styles: Record<string, any> = {
-      pendiente: { bg: 'bg-indigo-50', text: 'text-indigo-600', icon: 'clock' },
-      entregada: { bg: 'bg-emerald-50', text: 'text-emerald-600', icon: 'checkCircle2' },
-      calificada: { bg: 'bg-blue-50', text: 'text-blue-600', icon: 'award' },
-      vencida: { bg: 'bg-red-50', text: 'text-red-600', icon: 'alertCircle' },
-    };
-    return styles[status] || styles['pendiente'];
+    return error?.error?.message || fallback;
   }
 }

@@ -134,6 +134,11 @@ export interface EvaluationSummary {
     b: number;
     c: number;
   };
+  enrolled_courses?: Array<{
+    id: string;
+    code?: string;
+    name?: string;
+  }>;
   areas: Array<{
     course_id: string;
     course_name?: string;
