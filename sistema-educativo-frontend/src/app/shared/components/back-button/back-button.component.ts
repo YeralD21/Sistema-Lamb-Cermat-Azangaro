@@ -64,7 +64,7 @@ export class BackButtonComponent {
       return;
     }
 
-    const targetLink = this.link || ['/app/dashboard/teacher'];
+    const targetLink = this.link || ['/app/dashboard'];
     if (Array.isArray(targetLink)) {
       this.router.navigate(targetLink);
     } else {

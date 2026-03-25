@@ -13,7 +13,7 @@ import { AdminBackButtonComponent } from "@shared/components/back-button/admin-b
   imports: [CommonModule, RouterModule, FormsModule, BackButtonComponent, AdminBackButtonComponent],
   template: `
     <div class="min-h-[calc(100vh-80px)] p-6 sm:p-10 max-w-7xl mx-auto space-y-8 text-slate-700">
-      <app-admin-back-button></app-admin-back-button>
+      <app-back-button></app-back-button>
 
       <!-- Header -->
       <div class="flex items-center gap-4">
