@@ -130,6 +130,29 @@ export class FinanceService {
     return this.http.delete(`${this.apiUrl}/financial-plans/${id}`);
   }
 
+  // --- Plan Installments ---
+  getInstallments(filters: any = {}): Observable<any> {
+    let params = new HttpParams();
+    Object.keys(filters).forEach(key => {
+      if (filters[key] !== null && filters[key] !== undefined && filters[key] !== '') {
+        params = params.set(key, filters[key]);
+      }
+    });
+    return this.http.get(`${this.apiUrl}/plan-installments`, { params });
+  }
+
+  createInstallment(data: any): Observable<any> {
+    return this.http.post(`${this.apiUrl}/plan-installments`, data);
+  }
+
+  updateInstallment(id: string, data: any): Observable<any> {
+    return this.http.put(`${this.apiUrl}/plan-installments/${id}`, data);
+  }
+
+  deleteInstallment(id: string): Observable<any> {
+    return this.http.delete(`${this.apiUrl}/plan-installments/${id}`);
+  }
+
   // --- Discounts ---
   getDiscounts(filters: any = {}): Observable<any> {
     let params = new HttpParams();

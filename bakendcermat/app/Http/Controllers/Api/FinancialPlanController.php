@@ -53,6 +53,7 @@ class FinancialPlanController extends Controller
 
     public function destroy(FinancialPlan $financialPlan)
     {
+        $financialPlan->installments()->delete();
         $financialPlan->delete();
         return response()->noContent();
     }

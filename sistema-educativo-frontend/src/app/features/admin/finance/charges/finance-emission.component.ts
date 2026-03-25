@@ -4,13 +4,14 @@ import { ReactiveFormsModule, FormBuilder, FormGroup, Validators } from '@angula
 import { FinanceService } from '@core/services/finance.service';
 import { AcademicService } from '@core/services/academic.service';
 import { BackButtonComponent } from '@shared/components/back-button/back-button.component';
+import { SettingFilterDropdownComponent } from '@shared/components/setting-filter-dropdown/setting-filter-dropdown.component';
 import { Subject, takeUntil } from 'rxjs';
 import Swal from 'sweetalert2';
 
 @Component({
   selector: 'app-finance-emission',
   standalone: true,
-  imports: [CommonModule, BackButtonComponent, ReactiveFormsModule],
+  imports: [CommonModule, BackButtonComponent, ReactiveFormsModule, SettingFilterDropdownComponent],
   template: `
     <div class="min-h-[calc(100vh-80px)] p-6 sm:p-10 max-w-7xl mx-auto space-y-8 animate-fade-in text-slate-700">
       
@@ -34,49 +35,45 @@ import Swal from 'sweetalert2';
             <!-- Academic Year -->
             <div class="space-y-2">
               <label class="text-[11px] font-semibold text-slate-400 uppercase tracking-widest pl-1">Año Académico <span class="text-red-500">*</span></label>
-              <div class="relative group">
-                <select formControlName="academic_year_id" class="w-full bg-slate-50 border border-slate-200 text-slate-700 rounded-xl px-4 py-3 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500/10 focus:border-blue-500 transition-all font-medium appearance-none cursor-pointer group-hover:bg-white">
-                  <option value="">Selecciona un año</option>
-                  <option *ngFor="let y of academicYears" [value]="y.id">{{ y.year }}</option>
-                </select>
-                <svg class="w-4 h-4 text-slate-400 absolute right-4 top-1/2 -translate-y-1/2 pointer-events-none" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="6 9 12 15 18 9"/></svg>
-              </div>
+              <app-setting-filter-dropdown
+                [options]="yearOptions"
+                [selectedId]="emissionForm.get('academic_year_id')?.value || ''"
+                placeholder="Selecciona un año"
+                (selectionChange)="emissionForm.get('academic_year_id')?.setValue($event)">
+              </app-setting-filter-dropdown>
             </div>
 
             <!-- Financial Plan -->
             <div class="space-y-2">
               <label class="text-[11px] font-semibold text-slate-400 uppercase tracking-widest pl-1">Plan Financiero <span class="text-red-500">*</span></label>
-              <div class="relative group">
-                <select formControlName="financial_plan_id" class="w-full bg-slate-50 border border-slate-200 text-slate-700 rounded-xl px-4 py-3 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500/10 focus:border-blue-500 transition-all font-medium appearance-none cursor-pointer group-hover:bg-white">
-                  <option value="">Selecciona un plan</option>
-                  <option *ngFor="let p of financialPlans" [value]="p.id">{{ p.name }}</option>
-                </select>
-                <svg class="w-4 h-4 text-slate-400 absolute right-4 top-1/2 -translate-y-1/2 pointer-events-none" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="6 9 12 15 18 9"/></svg>
-              </div>
+              <app-setting-filter-dropdown
+                [options]="planOptions"
+                [selectedId]="emissionForm.get('financial_plan_id')?.value || ''"
+                placeholder="Selecciona un plan"
+                (selectionChange)="emissionForm.get('financial_plan_id')?.setValue($event)">
+              </app-setting-filter-dropdown>
             </div>
 
             <!-- Grade -->
             <div class="space-y-2">
               <label class="text-[11px] font-semibold text-slate-400 uppercase tracking-widest pl-1">Grado (opcional)</label>
-              <div class="relative group">
-                <select formControlName="grade_level_id" class="w-full bg-slate-50 border border-slate-200 text-slate-700 rounded-xl px-4 py-3 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500/10 focus:border-blue-500 transition-all font-medium appearance-none cursor-pointer group-hover:bg-white">
-                  <option value="">Todos los grados</option>
-                  <option *ngFor="let g of gradeLevels" [value]="g.id">{{ g.name }}</option>
-                </select>
-                <svg class="w-4 h-4 text-slate-400 absolute right-4 top-1/2 -translate-y-1/2 pointer-events-none" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="6 9 12 15 18 9"/></svg>
-              </div>
+              <app-setting-filter-dropdown
+                [options]="gradeOptions"
+                [selectedId]="emissionForm.get('grade_level_id')?.value || ''"
+                placeholder="Todos los grados"
+                (selectionChange)="emissionForm.get('grade_level_id')?.setValue($event)">
+              </app-setting-filter-dropdown>
             </div>
 
             <!-- Section -->
-            <div class="space-y-2">
+            <div class="space-y-2 relative" [class.opacity-50]="sections.length === 0" [class.pointer-events-none]="sections.length === 0">
               <label class="text-[11px] font-semibold text-slate-400 uppercase tracking-widest pl-1">Sección (opcional)</label>
-              <div class="relative group">
-                <select formControlName="section_id" [attr.disabled]="sections.length === 0 ? true : null" class="w-full bg-slate-50 border border-slate-200 text-slate-700 rounded-xl px-4 py-3 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500/10 focus:border-blue-500 transition-all font-medium appearance-none cursor-pointer group-hover:bg-white disabled:opacity-50 disabled:cursor-not-allowed">
-                  <option value="">Todas las secciones</option>
-                  <option *ngFor="let s of sections" [value]="s.id">{{ s.name }}</option>
-                </select>
-                <svg class="w-4 h-4 text-slate-400 absolute right-4 top-1/2 -translate-y-1/2 pointer-events-none" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="6 9 12 15 18 9"/></svg>
-              </div>
+              <app-setting-filter-dropdown
+                [options]="sectionOptions"
+                [selectedId]="emissionForm.get('section_id')?.value || ''"
+                placeholder="Todas las secciones"
+                (selectionChange)="emissionForm.get('section_id')?.setValue($event)">
+              </app-setting-filter-dropdown>
             </div>
           </div>
 
@@ -108,6 +105,11 @@ export class FinanceEmissionComponent {
   financialPlans: any[] = [];
   gradeLevels: any[] = [];
   sections: any[] = [];
+  
+  yearOptions: {id: string, name: string}[] = [];
+  planOptions: {id: string, name: string}[] = [];
+  gradeOptions: {id: string, name: string}[] = [];
+  sectionOptions: {id: string, name: string}[] = [];
   
   loading = false;
   private destroy$ = new Subject<void>();
@@ -141,17 +143,30 @@ export class FinanceEmissionComponent {
   }
 
   loadInitialData() {
-    this.academicService.getAcademicYears().subscribe(res => this.academicYears = res.data || res);
-    this.financeService.getPlans({ is_active: true }).subscribe(res => this.financialPlans = res.data || res);
-    this.academicService.getGradeLevels().subscribe(res => this.gradeLevels = res.data || res);
+    this.academicService.getAcademicYears().subscribe(res => {
+      this.academicYears = res.data || res;
+      this.yearOptions = this.academicYears.map(y => ({ id: y.id, name: y.year.toString() }));
+    });
+    this.financeService.getPlans({ is_active: true }).subscribe(res => {
+      this.financialPlans = res.data || res;
+      this.planOptions = this.financialPlans.map(p => ({ id: p.id, name: p.name }));
+    });
+    this.academicService.getGradeLevels().subscribe(res => {
+      this.gradeLevels = res.data || res;
+      this.gradeOptions = this.gradeLevels.map(g => ({ id: g.id, name: g.name }));
+    });
   }
 
   loadSections(gradeId: string) {
     if (!gradeId) {
       this.sections = [];
+      this.sectionOptions = [];
       return;
     }
-    this.academicService.getSections({ grade_level_id: gradeId }).subscribe(res => this.sections = res.data || res);
+    this.academicService.getSections({ grade_level_id: gradeId }).subscribe(res => {
+      this.sections = res.data || res;
+      this.sectionOptions = this.sections.map(s => ({ id: s.id, name: s.name }));
+    });
   }
 
   onEmit() {

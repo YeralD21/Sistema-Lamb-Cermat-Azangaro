@@ -1,15 +1,20 @@
 import { Component, OnInit } from '@angular/core';
 import { CommonModule } from '@angular/common';
-import { FormsModule, ReactiveFormsModule, FormBuilder, FormGroup, Validators } from '@angular/forms';
+import { FormsModule, ReactiveFormsModule, FormBuilder, FormGroup, Validators, FormArray } from '@angular/forms';
 import { BackButtonComponent } from '@shared/components/back-button/back-button.component';
 import { FinanceService, FinancialPlan, FeeConcept } from '@core/services/finance.service';
 import { HttpClient } from '@angular/common/http';
 import { environment } from '../../../../../environments/environment';
+import { SettingMetricCardComponent } from '@shared/components/setting-metric-card/setting-metric-card.component';
+import { SettingFilterDropdownComponent } from '@shared/components/setting-filter-dropdown/setting-filter-dropdown.component';
+import { forkJoin, Observable, of } from 'rxjs';
+import { catchError } from 'rxjs/operators';
+import Swal from 'sweetalert2';
 
 @Component({
   selector: 'app-finance-plans',
   standalone: true,
-  imports: [CommonModule, BackButtonComponent, FormsModule, ReactiveFormsModule],
+  imports: [CommonModule, BackButtonComponent, FormsModule, ReactiveFormsModule, SettingMetricCardComponent, SettingFilterDropdownComponent],
   template: `
     <div class="min-h-[calc(100vh-80px)] p-6 sm:p-10 max-w-7xl mx-auto space-y-8 animate-fade-in text-slate-700">
       
@@ -30,41 +35,27 @@ import { environment } from '../../../../../environments/environment';
       </div>
 
       <!-- KPI Grid -->
-      <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
-        <div *ngFor="let kpi of kpis" class="bg-white border border-slate-100 rounded-2xl p-6 shadow-sm group hover:shadow-md transition-all relative overflow-hidden">
-          <div class="flex items-start justify-between relative z-10">
-            <div class="space-y-1">
-              <p class="text-[10px] font-semibold text-slate-400 uppercase tracking-widest pl-1">{{ kpi.label }}</p>
-              <h3 class="text-2xl font-bold text-slate-900 tracking-tighter">{{ kpi.value }}</h3>
-            </div>
-            <div class="p-3 bg-slate-50 rounded-xl group-hover:bg-blue-50 transition-colors">
-              <svg class="w-6 h-6" [class]="kpi.iconColor" [innerHTML]="kpi.icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"></svg>
-            </div>
-          </div>
-          <div class="absolute -right-2 -bottom-2 w-16 h-16 bg-slate-50/50 rounded-full blur-2xl group-hover:bg-blue-50/50 transition-all"></div>
-        </div>
+      <div class="flex flex-wrap gap-3 mt-2 mb-6">
+        <app-setting-metric-card *ngFor="let kpi of kpis" [label]="kpi.label" [value]="kpi.value"></app-setting-metric-card>
       </div>
 
       <!-- Filters Card -->
-      <div class="bg-white border border-slate-100 rounded-2xl shadow-sm overflow-hidden">
-        <div class="p-5 border-b border-slate-50 bg-slate-50/10 flex items-center gap-2 px-6">
-          <svg class="w-4 h-4 text-slate-400" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polygon points="22 3 2 3 10 12.46 10 19 14 21 14 12.46 22 3"/></svg>
-          <h2 class="text-sm font-semibold text-slate-700 tracking-tight">Filtros</h2>
+      <div class="md:max-w-2xl mx-auto flex gap-4">
+        <div class="flex-1">
+          <app-setting-filter-dropdown
+            [options]="yearOptions"
+            [selectedId]="filters.academic_year_id || ''"
+            placeholder="Todos los Años Académicos"
+            (selectionChange)="applyFilters('academic_year_id', $event)">
+          </app-setting-filter-dropdown>
         </div>
-        <div class="p-6 md:p-8 grid grid-cols-1 md:grid-cols-2 gap-6">
-          <div class="space-y-2">
-            <label class="text-[10px] font-semibold text-slate-400 uppercase tracking-widest pl-1">Estado</label>
-            <div class="relative group">
-              <select 
-                (change)="applyFilters('is_active', $any($event.target).value)"
-                class="w-full bg-white border border-slate-200 text-slate-700 rounded-xl px-4 py-3 text-sm font-medium appearance-none cursor-pointer focus:outline-none focus:ring-2 focus:ring-blue-500/10 focus:border-blue-500 transition-all">
-                <option value="">Todos</option>
-                <option value="true">Activo</option>
-                <option value="false">Inactivo</option>
-              </select>
-              <svg class="w-4 h-4 text-slate-400 absolute right-4 top-1/2 -translate-y-1/2 pointer-events-none" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="6 9 12 15 18 9"/></svg>
-            </div>
-          </div>
+        <div class="flex-1">
+          <app-setting-filter-dropdown
+            [options]="statusOptions"
+            [selectedId]="filters.is_active"
+            placeholder="Todos los estados"
+            (selectionChange)="applyFilters('is_active', $event)">
+          </app-setting-filter-dropdown>
         </div>
       </div>
 
@@ -91,7 +82,7 @@ import { environment } from '../../../../../environments/environment';
                 <td class="py-5 px-8">
                   <div class="flex flex-col">
                     <span class="text-sm font-semibold text-slate-700">{{ p.name }}</span>
-                    <span class="text-[10px] text-slate-400 font-medium uppercase">{{ p.academic_year?.name || 'Varios' }}</span>
+                    <span class="text-[10px] text-slate-400 font-medium uppercase">{{ p.academic_year?.year || 'Varios' }}</span>
                   </div>
                 </td>
                 <td class="py-5 px-6">
@@ -134,15 +125,15 @@ import { environment } from '../../../../../environments/environment';
       </div>
 
       <!-- Modal -->
-      <div *ngIf="showModal" class="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/60 backdrop-blur-sm animate-fade-in">
-        <div class="bg-white rounded-3xl w-full max-w-lg shadow-2xl overflow-hidden animate-slide-up">
-          <div class="p-6 border-b border-slate-100 flex items-center justify-between bg-slate-50/50">
+      <div *ngIf="showModal" class="fixed inset-0 z-50 flex items-center justify-center p-4 sm:p-6 bg-slate-900/60 backdrop-blur-sm animate-fade-in">
+        <form [formGroup]="planForm" (ngSubmit)="savePlan()" class="bg-white rounded-3xl w-full max-w-lg shadow-2xl flex flex-col max-h-[95vh] overflow-hidden animate-slide-up">
+          <div class="p-6 border-b border-slate-100 flex items-center justify-between bg-slate-50/50 shrink-0">
             <h3 class="text-xl font-bold text-blue-900">{{ isEditing ? 'Editar' : 'Nuevo' }} Plan de Pago</h3>
-            <button (click)="closeModal()" class="p-2 hover:bg-slate-100 rounded-full transition-colors">
+            <button type="button" (click)="closeModal()" class="p-2 hover:bg-slate-100 rounded-full transition-colors">
               <svg class="w-5 h-5 text-slate-400" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
             </button>
           </div>
-          <form [formGroup]="planForm" (ngSubmit)="savePlan()" class="p-8 space-y-6">
+          <div class="p-6 sm:p-8 space-y-6 overflow-y-auto flex-1 custom-scrollbar">
             <div class="space-y-4">
               <div class="space-y-2">
                 <label class="text-[10px] font-semibold text-slate-400 uppercase tracking-widest pl-1">Nombre del Plan</label>
@@ -151,7 +142,7 @@ import { environment } from '../../../../../environments/environment';
               <div class="space-y-2">
                 <label class="text-[10px] font-semibold text-slate-400 uppercase tracking-widest pl-1">Año Académico</label>
                 <select formControlName="academic_year_id" class="w-full bg-slate-50 border border-slate-200 rounded-xl px-4 py-3 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500/10 focus:border-blue-500 transition-all">
-                  <option *ngFor="let y of years" [value]="y.id">{{ y.name }}</option>
+                  <option *ngFor="let y of years" [value]="y.id">{{ y.year }}</option>
                 </select>
               </div>
               <div class="space-y-2">
@@ -177,17 +168,50 @@ import { environment } from '../../../../../environments/environment';
                 <label class="text-[10px] font-semibold text-slate-400 uppercase tracking-widest pl-1">Descripción (Opcional)</label>
                 <textarea formControlName="description" rows="2" class="w-full bg-slate-50 border border-slate-200 rounded-xl px-4 py-3 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500/10 focus:border-blue-500 transition-all"></textarea>
               </div>
+
+              <!-- Generar Cuotas -->
+              <div class="pt-4 border-t border-slate-100 space-y-4">
+                <button type="button" (click)="generateInstallments()" class="px-5 py-2.5 bg-white border-2 border-blue-600 text-blue-700 hover:bg-blue-50 text-[13px] font-bold rounded-xl transition-all shadow-sm active:scale-95">
+                  Generar Cuotas
+                </button>
+
+                <div *ngIf="installmentsFormArray.length > 0" class="bg-slate-50/50 p-6 rounded-2xl border border-slate-100">
+                  <h4 class="text-sm font-bold text-slate-800 tracking-tight mb-4">Detalle de Cuotas</h4>
+                  
+                  <div formArrayName="installments" class="space-y-3">
+                    <div *ngFor="let instCtrl of installmentsFormArray.controls; let i = index" [formGroupName]="i" class="flex items-center gap-4">
+                      <span class="text-xs font-semibold text-slate-400 w-16">Cuota {{ i + 1 }}</span>
+                      <input formControlName="due_date" type="date" class="flex-1 bg-white border border-slate-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:border-blue-500 transition-all text-slate-600 font-medium tracking-tight">
+                      <div class="relative flex-1">
+                        <span class="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400 text-sm font-medium">S/</span>
+                        <input formControlName="amount" type="number" step="0.01" class="w-full bg-white border border-slate-200 rounded-lg pl-8 pr-3 py-2 text-sm focus:outline-none focus:border-blue-500 transition-all text-slate-700 font-bold">
+                      </div>
+                      <button type="button" (click)="removeInstallment(i)" class="p-1.5 text-slate-400 hover:text-red-500 transition-colors"><svg class="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg></button>
+                    </div>
+                  </div>
+                  
+                  <div class="mt-5 pt-4 border-t border-slate-200 flex items-center justify-between">
+                    <span class="text-xs font-bold text-slate-900 uppercase tracking-wider">Total:</span>
+                    <span class="text-sm font-bold text-slate-900">S/ {{ calculateTotalInstallments() | number:'1.2-2' }}</span>
+                  </div>
+                </div>
+              </div>
+
             </div>
-            <div class="flex gap-4 pt-4">
-              <button (click)="closeModal()" type="button" class="flex-1 px-6 py-3 bg-slate-100 hover:bg-slate-200 text-slate-600 text-sm font-bold rounded-xl transition-all active:scale-95">
-                Cancelar
-              </button>
-              <button [disabled]="planForm.invalid" type="submit" class="flex-1 px-6 py-3 bg-gradient-to-r from-blue-900 to-red-600 text-white text-sm font-bold rounded-xl shadow-lg active:scale-95 disabled:opacity-50 disabled:cursor-not-allowed">
-                {{ isEditing ? 'Actualizar' : 'Crear' }}
-              </button>
-            </div>
-          </form>
-        </div>
+          </div>
+          <div class="p-6 border-t border-slate-100 bg-slate-50/30 shrink-0 flex gap-4">
+            <button (click)="closeModal()" type="button" [disabled]="isSaving" class="flex-1 px-6 py-3 bg-white border border-slate-200 hover:bg-slate-50 text-slate-600 text-sm font-bold rounded-xl transition-all active:scale-95 disabled:opacity-50 disabled:cursor-not-allowed">
+              Cancelar
+            </button>
+            <button [disabled]="planForm.invalid || isSaving" type="submit" class="flex-1 px-6 py-3 bg-gradient-to-r from-blue-900 to-red-600 hover:opacity-90 text-white text-sm font-bold rounded-xl shadow-lg active:scale-95 disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2">
+              <svg *ngIf="isSaving" class="animate-spin h-5 w-5 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
+                <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+              </svg>
+              {{ isEditing ? 'Actualizar' : 'Crear Plan' }}
+            </button>
+          </div>
+        </form>
       </div>
 
     </div>
@@ -196,25 +220,37 @@ import { environment } from '../../../../../environments/environment';
     :host { display: block; }
     .animate-fade-in { animation: fadeIn 0.3s ease-out; }
     .animate-slide-up { animation: slideUp 0.4s cubic-bezier(0.16, 1, 0.3, 1); }
+    ::-webkit-scrollbar { width: 6px; }
+    ::-webkit-scrollbar-track { background: transparent; }
+    ::-webkit-scrollbar-thumb { background: #e2e8f0; border-radius: 10px; }
+    ::-webkit-scrollbar-thumb:hover { background: #cbd5e1; }
     @keyframes fadeIn { from { opacity: 0; } to { opacity: 1; } }
     @keyframes slideUp { from { opacity: 0; transform: translateY(20px); } to { opacity: 1; transform: translateY(0); } }
   `]
 })
 export class FinancePlansComponent implements OnInit {
   kpis = [
-    { label: 'Total Planes', value: 0, iconColor: 'text-blue-500', icon: '<path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V7.5L14.5 2z"/><polyline points="14 2 14 8 20 8"/><path d="M10 13h4"/><path d="M10 17h4"/>' },
-    { label: 'Planes Activos', value: 0, iconColor: 'text-green-500', icon: '<path d="m9 11 3 3L22 4"/><path d="M21 12v7a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11"/>' },
-    { label: 'Año Actual', value: '-', iconColor: 'text-purple-500', icon: '<rect width="18" height="18" x="3" y="4" rx="2" ry="2"/><line x1="16" x2="16" y1="2" y2="6"/><line x1="8" x2="8" y1="2" y2="6"/><line x1="3" x2="21" y1="10" y2="10"/>' },
+    { label: 'Total Planes', value: 0 },
+    { label: 'Planes Activos', value: 0 },
+    { label: 'Año Actual', value: '-' },
   ];
 
   plans: FinancialPlan[] = [];
   concepts: FeeConcept[] = [];
   years: any[] = [];
-  filters: any = { is_active: '' };
+  
+  statusOptions = [
+    { id: 'true', name: 'Activos' },
+    { id: 'false', name: 'Inactivos' }
+  ];
+  yearOptions: {id: string, name: string}[] = [];
+
+  filters: any = { is_active: '', academic_year_id: '' };
   
   showModal = false;
   isEditing = false;
   currentId: string | null = null;
+  isSaving = false;
   planForm: FormGroup;
 
   constructor(private financeService: FinanceService, private fb: FormBuilder, private http: HttpClient) {
@@ -224,8 +260,53 @@ export class FinancePlansComponent implements OnInit {
       concept_id: ['', Validators.required],
       number_of_installments: [1, [Validators.required, Validators.min(1)]],
       description: [''],
-      is_active: [true]
+      is_active: [true],
+      installments: this.fb.array([])
     });
+  }
+
+  get installmentsFormArray() {
+    return this.planForm.get('installments') as FormArray;
+  }
+
+  calculateTotalInstallments(): number {
+    return this.installmentsFormArray.controls.reduce((sum, ctrl) => sum + (Number(ctrl.get('amount')?.value) || 0), 0);
+  }
+
+  removeInstallment(index: number) {
+    this.installmentsFormArray.removeAt(index);
+    this.planForm.get('number_of_installments')?.setValue(this.installmentsFormArray.length);
+  }
+
+  generateInstallments() {
+    const numInstallments = this.planForm.get('number_of_installments')?.value || 1;
+    const conceptId = this.planForm.get('concept_id')?.value;
+    
+    if (!conceptId) {
+      alert('Por favor selecciona unConcepto Base primero para conocer el monto.');
+      return;
+    }
+
+    const concept = this.concepts.find(c => c.id === conceptId);
+    if (!concept) return;
+
+    const baseAmount = concept.base_amount || 0;
+    const amountPerInstallment = parseFloat((baseAmount / numInstallments).toFixed(2));
+
+    this.installmentsFormArray.clear();
+    
+    for (let i = 0; i < numInstallments; i++) {
+       // Calcular una fecha estimada mensual (+ i meses) si quisieras
+       const d = new Date();
+       d.setMonth(d.getMonth() + i);
+       const dateStr = d.toISOString().split('T')[0];
+
+       this.installmentsFormArray.push(this.fb.group({
+         installment_number: [i + 1, Validators.required],
+         due_date: [dateStr, Validators.required],
+         amount: [amountPerInstallment, [Validators.required, Validators.min(0)]]
+       }));
+    }
   }
 
   ngOnInit(): void {
@@ -234,7 +315,10 @@ export class FinancePlansComponent implements OnInit {
   }
 
   loadInitialData(): void {
-    this.http.get<any>(`${environment.apiUrl}/academic-years`).subscribe(res => this.years = res.data || res);
+    this.http.get<any>(`${environment.apiUrl}/academic-years`).subscribe(res => {
+      this.years = res.data || res;
+      this.yearOptions = this.years.map((y: any) => ({ id: y.id, name: y.year.toString() }));
+    });
     this.financeService.getConcepts({ is_active: true }).subscribe(res => this.concepts = res.data || res);
   }
 
@@ -252,7 +336,7 @@ export class FinancePlansComponent implements OnInit {
     this.kpis[0].value = this.plans.length;
     this.kpis[1].value = this.plans.filter(p => p.is_active).length;
     if (this.plans.length > 0 && this.plans[0].academic_year) {
-      this.kpis[2].value = this.plans[0].academic_year.name;
+      this.kpis[2].value = this.plans[0].academic_year.year;
     }
   }
 
@@ -262,6 +346,7 @@ export class FinancePlansComponent implements OnInit {
   }
 
   openModal(): void {
+    this.installmentsFormArray.clear();
     this.showModal = true;
     this.isEditing = false;
     this.currentId = null;
@@ -269,6 +354,7 @@ export class FinancePlansComponent implements OnInit {
   }
 
   editPlan(p: FinancialPlan): void {
+    this.installmentsFormArray.clear();
     this.showModal = true;
     this.isEditing = true;
     this.currentId = p.id;
@@ -280,34 +366,114 @@ export class FinancePlansComponent implements OnInit {
       description: '',
       is_active: p.is_active
     });
+    
+    // Load installments if present
+    if (p.installments && p.installments.length > 0) {
+       p.installments.forEach(i => {
+         this.installmentsFormArray.push(this.fb.group({
+           id: [i.id],
+           installment_number: [i.installment_number, Validators.required],
+           due_date: [i.due_date, Validators.required],
+           amount: [i.amount, [Validators.required, Validators.min(0)]]
+         }));
+       });
+    }
   }
 
   closeModal(): void {
+    if (this.isSaving) return;
     this.showModal = false;
+    this.planForm.reset();
+    this.installmentsFormArray.clear();
   }
 
   savePlan(): void {
-    if (this.planForm.invalid) return;
-    const data = this.planForm.value;
+    if (this.planForm.invalid || this.isSaving) return;
+    
+    this.isSaving = true;
+    
+    // Clone form without installments field for the Plan endpoint
+    const data = { ...this.planForm.value };
+    delete data.installments;
+
     const request = this.isEditing && this.currentId
       ? this.financeService.updatePlan(this.currentId, data)
       : this.financeService.createPlan(data);
 
     request.subscribe({
-      next: () => {
+      next: (res: any) => {
+        const planId = this.isEditing ? this.currentId : (res.id || res.data?.id || res.body?.id);
+        
+        // Save installments
+        if (planId && this.installmentsFormArray.length > 0) {
+           const requests: Observable<any>[] = [];
+           
+           this.installmentsFormArray.controls.forEach(ctrl => {
+              const instVal = ctrl.value;
+              
+              if (instVal.id) {
+                 // Update existing
+                 requests.push(this.financeService.updateInstallment(instVal.id, instVal));
+              } else {
+                 // Create new
+                 requests.push(this.financeService.createInstallment({
+                    ...instVal,
+                    plan_id: planId
+                 }).pipe(catchError(err => of(err)))); // Avoid cancelling the whole forkJoin on one failure
+              }
+           });
+           
+           if (requests.length > 0) {
+               forkJoin(requests).subscribe({
+                  next: () => {
+                     this.isSaving = false;
+                     Swal.fire('¡Éxito!', 'Plan y cuotas guardados correctamente', 'success');
+                     this.loadPlans();
+                     this.closeModal();
+                  },
+                  error: (err) => {
+                     this.isSaving = false;
+                     Swal.fire('Atención', 'El plan se creó, pero hubo un error con algunas cuotas.', 'warning');
+                     this.loadPlans();
+                     this.closeModal();
+                  }
+               });
+               return; // Exit here, close modal after installments finish
+           }
+        }
+
+        this.isSaving = false;
+        Swal.fire('¡Éxito!', 'Plan guardado correctamente', 'success');
         this.loadPlans();
         this.closeModal();
       },
-      error: (err) => alert('Error al guardar: ' + (err.error?.message || 'Error desconocido'))
+      error: (err) => {
+        this.isSaving = false;
+        Swal.fire('Error', 'Error al guardar: ' + (err.error?.message || 'Error desconocido'), 'error');
+      }
     });
   }
 
   deletePlan(id: string): void {
-    if (confirm('¿Estás seguro de eliminar este plan?')) {
-      this.financeService.deletePlan(id).subscribe({
-        next: () => this.loadPlans(),
-        error: (err) => alert('Error al eliminar: ' + (err.error?.message || 'Error desconocido'))
-      });
-    }
+    Swal.fire({
+      title: '¿Estás seguro?',
+      text: "Eliminar este plan también eliminará cualquier cuota asociada a este.",
+      icon: 'warning',
+      showCancelButton: true,
+      confirmButtonColor: '#3085d6',
+      cancelButtonColor: '#d33',
+      confirmButtonText: 'Sí, eliminar',
+      cancelButtonText: 'Cancelar'
+    }).then((result) => {
+      if (result.isConfirmed) {
+        this.financeService.deletePlan(id).subscribe({
+          next: () => {
+             Swal.fire('¡Eliminado!', 'El plan ha sido eliminado.', 'success');
+             this.loadPlans();
+          },
+          error: (err) => Swal.fire('Error', 'No se pudo eliminar el plan. ' + (err.error?.message || ''), 'error')
+        });
+      }
+    });
   }
 }

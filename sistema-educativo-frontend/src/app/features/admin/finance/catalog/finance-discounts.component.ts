@@ -4,10 +4,13 @@ import { FormsModule, ReactiveFormsModule, FormBuilder, FormGroup, Validators } 
 import { BackButtonComponent } from '@shared/components/back-button/back-button.component';
 import { FinanceService, Discount, FeeConcept } from '@core/services/finance.service';
 
+import { SettingMetricCardComponent } from '@shared/components/setting-metric-card/setting-metric-card.component';
+import { SettingFilterDropdownComponent } from '@shared/components/setting-filter-dropdown/setting-filter-dropdown.component';
+
 @Component({
   selector: 'app-finance-discounts',
   standalone: true,
-  imports: [CommonModule, BackButtonComponent, FormsModule, ReactiveFormsModule],
+  imports: [CommonModule, BackButtonComponent, FormsModule, ReactiveFormsModule, SettingMetricCardComponent, SettingFilterDropdownComponent],
   template: `
     <div class="min-h-[calc(100vh-80px)] p-6 sm:p-10 max-w-7xl mx-auto space-y-8 animate-fade-in">
       
@@ -28,60 +31,35 @@ import { FinanceService, Discount, FeeConcept } from '@core/services/finance.ser
       </div>
 
       <!-- KPI Grid -->
-      <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
-        <div *ngFor="let kpi of kpis" class="bg-white border border-slate-100 rounded-2xl p-6 shadow-sm flex items-center justify-between group hover:shadow-md transition-all">
-          <div>
-            <p class="text-[11px] font-medium text-slate-400 uppercase tracking-wider mb-1">{{ kpi.label }}</p>
-            <h3 class="text-2xl font-bold text-slate-900 tracking-tight">{{ kpi.value }}</h3>
-          </div>
-          <div class="p-3 bg-slate-50 rounded-xl group-hover:bg-blue-50 transition-colors" [class]="kpi.iconClass">
-            <svg class="w-6 h-6" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" [innerHTML]="kpi.icon"></svg>
-          </div>
-        </div>
+      <div class="flex flex-wrap gap-3 mt-2 mb-6">
+        <app-setting-metric-card *ngFor="let kpi of kpis" [label]="kpi.label" [value]="kpi.value"></app-setting-metric-card>
       </div>
 
       <!-- Filters Section -->
-      <div class="bg-white border border-slate-100 rounded-3xl p-8 shadow-sm">
-        <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
-          <div class="space-y-2">
-            <label class="text-[11px] font-semibold text-slate-400 uppercase tracking-widest pl-1">Tipo</label>
-            <div class="relative group">
-              <select 
-                (change)="applyFilters('type', $any($event.target).value)"
-                class="w-full bg-slate-50 border border-slate-200 text-slate-700 rounded-xl px-4 py-3 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500/10 focus:border-blue-500 transition-all font-medium appearance-none cursor-pointer group-hover:bg-white">
-                <option value="">Todos</option>
-                <option value="porcentaje">Porcentaje (%)</option>
-                <option value="monto_fijo">Monto Fijo (S/)</option>
-              </select>
-              <svg class="w-4 h-4 text-slate-400 absolute right-4 top-1/2 -translate-y-1/2 pointer-events-none" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="6 9 12 15 18 9"/></svg>
-            </div>
-          </div>
-          <div class="space-y-2">
-            <label class="text-[11px] font-semibold text-slate-400 uppercase tracking-widest pl-1">Alcance</label>
-            <div class="relative group">
-              <select 
-                (change)="applyFilters('scope', $any($event.target).value)"
-                class="w-full bg-slate-50 border border-slate-200 text-slate-700 rounded-xl px-4 py-3 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500/10 focus:border-blue-500 transition-all font-medium appearance-none cursor-pointer group-hover:bg-white">
-                <option value="">Todos</option>
-                <option value="todos">Global</option>
-                <option value="especifico">Concepto Específico</option>
-              </select>
-              <svg class="w-4 h-4 text-slate-400 absolute right-4 top-1/2 -translate-y-1/2 pointer-events-none" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="6 9 12 15 18 9"/></svg>
-            </div>
-          </div>
-          <div class="space-y-2">
-            <label class="text-[11px] font-semibold text-slate-400 uppercase tracking-widest pl-1">Estado</label>
-            <div class="relative group">
-              <select 
-                (change)="applyFilters('is_active', $any($event.target).value)"
-                class="w-full bg-slate-50 border border-slate-200 text-slate-700 rounded-xl px-4 py-3 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500/10 focus:border-blue-500 transition-all font-medium appearance-none cursor-pointer group-hover:bg-white">
-                <option value="">Todos</option>
-                <option value="true">Activo</option>
-                <option value="false">Inactivo</option>
-              </select>
-              <svg class="w-4 h-4 text-slate-400 absolute right-4 top-1/2 -translate-y-1/2 pointer-events-none" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="6 9 12 15 18 9"/></svg>
-            </div>
-          </div>
+      <div class="md:max-w-3xl mx-auto flex gap-4">
+        <div class="flex-1">
+          <app-setting-filter-dropdown
+            [options]="typeOptions"
+            [selectedId]="filters.type"
+            placeholder="Todos los tipos"
+            (selectionChange)="applyFilters('type', $event)">
+          </app-setting-filter-dropdown>
+        </div>
+        <div class="flex-1">
+          <app-setting-filter-dropdown
+            [options]="scopeOptions"
+            [selectedId]="filters.scope"
+            placeholder="Todos los alcances"
+            (selectionChange)="applyFilters('scope', $event)">
+          </app-setting-filter-dropdown>
+        </div>
+        <div class="flex-1">
+          <app-setting-filter-dropdown
+            [options]="statusOptions"
+            [selectedId]="filters.is_active"
+            placeholder="Todos los estados"
+            (selectionChange)="applyFilters('is_active', $event)">
+          </app-setting-filter-dropdown>
         </div>
       </div>
 
@@ -119,7 +97,12 @@ import { FinanceService, Discount, FeeConcept } from '@core/services/finance.ser
                 </td>
                 <td class="py-5 px-6 text-center">
                   <span class="px-3 py-1 bg-blue-50 text-blue-600 text-[11px] font-semibold rounded-full uppercase tracking-tighter">
-                    {{ d.scope === 'todos' ? 'Global' : (d.concept?.name || 'Concepto Específico') }}
+                    {{ 
+                      d.scope === 'todos' ? 'Global' : 
+                      d.scope === 'pension' ? 'Todas las Pensiones' :
+                      d.scope === 'matricula' ? 'Todas las Matrículas' :
+                      (d.concept?.name || 'Concepto Específico') 
+                    }}
                   </span>
                 </td>
                 <td class="py-5 px-6 text-center">
@@ -180,6 +163,8 @@ import { FinanceService, Discount, FeeConcept } from '@core/services/finance.ser
                 <label class="text-[10px] font-semibold text-slate-400 uppercase tracking-widest pl-1">Alcance</label>
                 <select formControlName="scope" class="w-full bg-slate-50 border border-slate-200 rounded-xl px-4 py-3 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500/10 focus:border-blue-500 transition-all">
                   <option value="todos">Global (Aplica a todo)</option>
+                  <option value="pension">Todas las Pensiones</option>
+                  <option value="matricula">Todas las Matrículas</option>
                   <option value="especifico">Concepto Específico</option>
                 </select>
               </div>
@@ -221,10 +206,27 @@ import { FinanceService, Discount, FeeConcept } from '@core/services/finance.ser
 })
 export class FinanceDiscountsComponent implements OnInit {
   kpis = [
-    { label: 'Total', value: '0', icon: '<path d="m3 3 7.07 16.97 2.51-7.39 7.39-2.51L3 3z"/><path d="m13 13 6 6"/>', iconClass: 'text-blue-500' },
-    { label: 'Activos', value: '0', icon: '<polyline points="9 11 12 14 22 4"/><path d="M21 12v7a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11"/>', iconClass: 'text-green-500' },
-    { label: 'Porcentaje', value: '0', icon: '<line x1="19" x2="5" y1="5" y2="19"/><circle cx="6.5" cy="6.5" r="2.5"/><circle cx="17.5" cy="17.5" r="2.5"/>', iconClass: 'text-slate-900' },
-    { label: 'Monto Fijo', value: '0', icon: '<path d="M12 2v20M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"/>', iconClass: 'text-slate-900' },
+    { label: 'Total', value: 0 },
+    { label: 'Activos', value: 0 },
+    { label: 'Porcentaje', value: 0 },
+    { label: 'Monto Fijo', value: 0 },
+  ];
+
+  typeOptions = [
+    { id: 'porcentaje', name: 'Porcentaje (%)' },
+    { id: 'monto_fijo', name: 'Monto Fijo (S/)' }
+  ];
+
+  scopeOptions = [
+    { id: 'todos', name: 'Global' },
+    { id: 'pension', name: 'Todas las Pensiones' },
+    { id: 'matricula', name: 'Todas las Matrículas' },
+    { id: 'especifico', name: 'Concepto Específico' }
+  ];
+
+  statusOptions = [
+    { id: 'true', name: 'Activos' },
+    { id: 'false', name: 'Inactivos' }
   ];
 
   discounts: Discount[] = [];
@@ -268,10 +270,10 @@ export class FinanceDiscountsComponent implements OnInit {
   }
 
   updateKPIs(): void {
-    this.kpis[0].value = this.discounts.length.toString();
-    this.kpis[1].value = this.discounts.filter(d => d.is_active).length.toString();
-    this.kpis[2].value = this.discounts.filter(d => d.type === 'porcentaje').length.toString();
-    this.kpis[3].value = this.discounts.filter(d => d.type === 'monto_fijo').length.toString();
+    this.kpis[0].value = this.discounts.length;
+    this.kpis[1].value = this.discounts.filter(d => d.is_active).length;
+    this.kpis[2].value = this.discounts.filter(d => d.type === 'porcentaje').length;
+    this.kpis[3].value = this.discounts.filter(d => d.type === 'monto_fijo').length;
   }
 
   applyFilters(key: string, value: any): void {

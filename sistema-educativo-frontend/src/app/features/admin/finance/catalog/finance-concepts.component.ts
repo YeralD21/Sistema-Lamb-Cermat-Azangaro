@@ -4,10 +4,13 @@ import { FormsModule, ReactiveFormsModule, FormBuilder, FormGroup, Validators } 
 import { BackButtonComponent } from '@shared/components/back-button/back-button.component';
 import { FinanceService, FeeConcept } from '@core/services/finance.service';
 
+import { SettingMetricCardComponent } from '@shared/components/setting-metric-card/setting-metric-card.component';
+import { SettingFilterDropdownComponent } from '@shared/components/setting-filter-dropdown/setting-filter-dropdown.component';
+
 @Component({
   selector: 'app-finance-concepts',
   standalone: true,
-  imports: [CommonModule, BackButtonComponent, FormsModule, ReactiveFormsModule],
+  imports: [CommonModule, BackButtonComponent, FormsModule, ReactiveFormsModule, SettingMetricCardComponent, SettingFilterDropdownComponent],
   template: `
     <div class="min-h-[calc(100vh-80px)] p-6 sm:p-10 max-w-7xl mx-auto space-y-8 animate-fade-in text-slate-700">
       
@@ -28,57 +31,27 @@ import { FinanceService, FeeConcept } from '@core/services/finance.service';
       </div>
 
       <!-- KPI Grid -->
-      <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
-        <div *ngFor="let kpi of kpis" class="bg-white border border-slate-100 rounded-2xl p-6 shadow-sm group hover:shadow-md transition-all relative overflow-hidden">
-          <div class="flex items-start justify-between relative z-10">
-            <div class="space-y-1">
-              <p class="text-[10px] font-semibold text-slate-400 uppercase tracking-widest pl-1">{{ kpi.label }}</p>
-              <h3 class="text-2xl font-bold text-slate-900 tracking-tighter">{{ kpi.value }}</h3>
-            </div>
-            <div class="p-3 bg-slate-50 rounded-xl group-hover:bg-blue-50 transition-colors">
-              <svg class="w-6 h-6" [class]="kpi.iconColor" [innerHTML]="kpi.icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"></svg>
-            </div>
-          </div>
-          <div class="absolute -right-2 -bottom-2 w-16 h-16 bg-slate-50/50 rounded-full blur-2xl group-hover:bg-blue-50/50 transition-all"></div>
-        </div>
+      <div class="flex flex-wrap gap-3 mt-2 mb-6">
+        <app-setting-metric-card *ngFor="let kpi of kpis" [label]="kpi.label" [value]="kpi.value"></app-setting-metric-card>
       </div>
 
       <!-- Filters Card -->
-      <div class="bg-white border border-slate-100 rounded-2xl shadow-sm overflow-hidden">
-        <div class="p-5 border-b border-slate-50 bg-slate-50/10 flex items-center gap-2 px-6">
-          <svg class="w-4 h-4 text-slate-400" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polygon points="22 3 2 3 10 12.46 10 19 14 21 14 12.46 22 3"/></svg>
-          <h2 class="text-sm font-semibold text-slate-700 tracking-tight">Filtros</h2>
+      <div class="md:max-w-xl mx-auto flex gap-4">
+        <div class="flex-1">
+          <app-setting-filter-dropdown
+            [options]="typeOptions"
+            [selectedId]="filters.type"
+            placeholder="Todos los tipos"
+            (selectionChange)="applyFilters('type', $event)">
+          </app-setting-filter-dropdown>
         </div>
-        <div class="p-6 md:p-8 grid grid-cols-1 md:grid-cols-2 gap-6">
-          <div class="space-y-2">
-            <label class="text-[10px] font-semibold text-slate-400 uppercase tracking-widest pl-1">Tipo</label>
-            <div class="relative group">
-              <select 
-                (change)="applyFilters('type', $any($event.target).value)"
-                class="w-full bg-white border border-slate-200 text-slate-700 rounded-xl px-4 py-3 text-sm font-medium appearance-none cursor-pointer focus:outline-none focus:ring-2 focus:ring-blue-500/10 focus:border-blue-500 transition-all">
-                <option value="">Todos</option>
-                <option value="pension">Pensión (Recurrente)</option>
-                <option value="matricula">Matrícula (Sencillo)</option>
-                <option value="servicio">Servicios</option>
-                <option value="taller">Talleres</option>
-                <option value="otro">Otros</option>
-              </select>
-              <svg class="w-4 h-4 text-slate-400 absolute right-4 top-1/2 -translate-y-1/2 pointer-events-none" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="6 9 12 15 18 9"/></svg>
-            </div>
-          </div>
-          <div class="space-y-2">
-            <label class="text-[10px] font-semibold text-slate-400 uppercase tracking-widest pl-1">Estado</label>
-            <div class="relative group">
-              <select 
-                (change)="applyFilters('is_active', $any($event.target).value)"
-                class="w-full bg-white border border-slate-200 text-slate-700 rounded-xl px-4 py-3 text-sm font-medium appearance-none cursor-pointer focus:outline-none focus:ring-2 focus:ring-blue-500/10 focus:border-blue-500 transition-all">
-                <option value="">Todos</option>
-                <option value="true">Activo</option>
-                <option value="false">Inactivo</option>
-              </select>
-              <svg class="w-4 h-4 text-slate-400 absolute right-4 top-1/2 -translate-y-1/2 pointer-events-none" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="6 9 12 15 18 9"/></svg>
-            </div>
-          </div>
+        <div class="flex-1">
+          <app-setting-filter-dropdown
+            [options]="statusOptions"
+            [selectedId]="filters.is_active"
+            placeholder="Todos los estados"
+            (selectionChange)="applyFilters('is_active', $event)">
+          </app-setting-filter-dropdown>
         </div>
       </div>
 
@@ -224,10 +197,23 @@ import { FinanceService, FeeConcept } from '@core/services/finance.service';
 })
 export class FinanceConceptsComponent implements OnInit {
   kpis = [
-    { label: 'Total', value: 0, iconColor: 'text-blue-500', icon: '<path d="M12 2v20M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"/>' },
-    { label: 'Activos', value: 0, iconColor: 'text-green-500', icon: '<path d="m9 11 3 3L22 4"/><path d="M21 12v7a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11"/>' },
-    { label: 'Pensiones', value: 0, iconColor: 'text-purple-500', icon: '<rect width="18" height="18" x="3" y="4" rx="2" ry="2"/><line x1="16" x2="16" y1="2" y2="6"/><line x1="8" x2="8" y1="2" y2="6"/><line x1="3" x2="21" y1="10" y2="10"/><path d="M8 14h.01"/><path d="M12 14h.01"/><path d="M16 14h.01"/><path d="M8 18h.01"/><path d="M12 18h.01"/><path d="M16 18h.01"/>' },
-    { label: 'Matrículas', value: 0, iconColor: 'text-orange-500', icon: '<path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V7.5 L14.5 2z"/><polyline points="14 2 14 8 20 8"/><path d="M10 13h4"/><path d="M10 17h4"/>' },
+    { label: 'Total', value: 0 },
+    { label: 'Activos', value: 0 },
+    { label: 'Pensiones', value: 0 },
+    { label: 'Matrículas', value: 0 },
+  ];
+
+  typeOptions = [
+    { id: 'pension', name: 'Pensión (Recurrente)' },
+    { id: 'matricula', name: 'Matrícula (Sencillo)' },
+    { id: 'servicio', name: 'Servicios' },
+    { id: 'taller', name: 'Talleres' },
+    { id: 'otro', name: 'Otros' }
+  ];
+
+  statusOptions = [
+    { id: 'true', name: 'Activos' },
+    { id: 'false', name: 'Inactivos' }
   ];
 
   concepts: FeeConcept[] = [];
