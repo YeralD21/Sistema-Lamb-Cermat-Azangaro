@@ -207,9 +207,9 @@ export class FinanceClosuresComponent implements OnInit {
   }
 
   buildLiveClosureForToday(todayDate: string) {
-    this.financeService.getPayments({}).subscribe({
+    this.financeService.getPayments({ per_page: 1000, date_from: todayDate, date_to: todayDate }).subscribe({
       next: (res) => {
-        const payments = res.data?.data || res.data || res;
+        const payments = res.data || res;
         const todayPayments = (Array.isArray(payments) ? payments : []).filter((p: any) => {
             if (!p.paid_at && !p.created_at) return false;
             const date = (p.paid_at || p.created_at).split('T')[0];

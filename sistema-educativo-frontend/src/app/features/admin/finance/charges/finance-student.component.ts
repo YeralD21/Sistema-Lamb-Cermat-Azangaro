@@ -85,7 +85,7 @@ import { Subject, takeUntil, debounceTime, distinctUntilChanged } from 'rxjs';
                   <td class="px-6 py-4 text-sm text-slate-500 font-medium">{{ c.due_date | date:'dd/MM/yyyy' }}</td>
                   <td class="px-6 py-4 text-right">
                     <div class="font-bold text-slate-950 text-sm">S/ {{ c.amount | number:'1.2-2' }}</div>
-                    <div *ngIf="c.paid_amount > 0" class="text-[10px] text-emerald-500 font-bold">Pagado: S/ {{ c.paid_amount | number:'1.2-2' }}</div>
+                    <div *ngIf="(c.paid_amount || 0) > 0" class="text-[10px] text-emerald-500 font-bold">Pagado: S/ {{ c.paid_amount | number:'1.2-2' }}</div>
                   </td>
                   <td class="px-6 py-4 text-center">
                     <span [class]="'px-3 py-1 rounded-full text-[10px] font-bold border ' + getStatusBadge(c.status)">

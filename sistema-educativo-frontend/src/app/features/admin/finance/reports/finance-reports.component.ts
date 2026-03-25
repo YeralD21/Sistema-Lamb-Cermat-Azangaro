@@ -218,10 +218,10 @@ export class FinanceReportsComponent implements OnInit {
     // Given backend limitations, we fetch latest for the year.
     this.financeService.getCharges({
       academic_year_id: this.selectedYearId,
-      // per_page: 1000 // In a real production system we'd consume an optimized endpoint
+      per_page: 1000
     }).subscribe({
       next: (res) => {
-        let items = res.data?.data || res.data || res;
+        let items = res.data || res;
         this.allCharges = Array.isArray(items) ? items : [];
         this.calculateStats();
         this.loading = false;

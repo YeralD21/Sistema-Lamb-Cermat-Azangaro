@@ -165,7 +165,7 @@ export class FinanceEmissionComponent {
     }
     this.academicService.getSections({ grade_level_id: gradeId }).subscribe(res => {
       this.sections = res.data || res;
-      this.sectionOptions = this.sections.map(s => ({ id: s.id, name: s.name }));
+      this.sectionOptions = this.sections.map(s => ({ id: s.id, name: s.section_letter || s.name }));
     });
   }
 
