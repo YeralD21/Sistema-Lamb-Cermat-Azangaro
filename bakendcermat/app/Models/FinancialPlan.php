@@ -18,6 +18,10 @@ class FinancialPlan extends Model
     public $incrementing = false;
     protected $keyType = 'string';
     public $timestamps = true;
+    protected $appends = [
+        'installments_count',
+        'total_amount',
+    ];
 
     protected $fillable = [
         'name',
@@ -48,5 +52,23 @@ class FinancialPlan extends Model
     public function installments(): HasMany
     {
         return $this->hasMany(PlanInstallment::class, 'plan_id')->orderBy('installment_number');
+    }
+
+    public function getInstallmentsCountAttribute(): int
+    {
+        if ($this->relationLoaded('installments')) {
+            return $this->installments->count();
+        }
+
+        return (int) ($this->number_of_installments ?? 0);
+    }
+
+    public function getTotalAmountAttribute(): float
+    {
+        if ($this->relationLoaded('installments')) {
+            return round((float) $this->installments->sum('amount'), 2);
+        }
+
+        return round((float) $this->installments()->sum('amount'), 2);
     }
 }

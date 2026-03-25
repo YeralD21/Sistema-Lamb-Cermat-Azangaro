@@ -15,8 +15,8 @@ class StorePaymentRequest extends FormRequest
     public function rules(): array
     {
         return [
-            'charge_id' => ['required', 'uuid', 'exists:charges,id'],
-            'student_id' => ['required', 'uuid', 'exists:students,id'],
+            'charge_id' => ['nullable', 'uuid', 'exists:charges,id'],
+            'student_id' => ['nullable', 'uuid', 'exists:students,id'],
 
             'amount' => ['required', 'numeric', 'min:0.01'],
             'method' => ['required', 'string', Rule::in(['efectivo', 'transferencia', 'tarjeta', 'yape', 'plin', 'pasarela'])],

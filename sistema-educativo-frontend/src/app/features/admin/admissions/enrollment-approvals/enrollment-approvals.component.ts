@@ -5,15 +5,16 @@ import { FormsModule } from '@angular/forms';
 import { BackButtonComponent } from '@shared/components/back-button/back-button.component';
 import { EnrollmentService, EnrollmentApplication } from '@core/services/enrollment.service';
 import { AcademicService, Section } from '@core/services/academic.service';
+import { AdminBackButtonComponent } from "@shared/components/back-button/admin-back-button.component";
 
 @Component({
   selector: 'app-enrollment-approvals',
   standalone: true,
-  imports: [CommonModule, RouterModule, FormsModule, BackButtonComponent],
+  imports: [CommonModule, RouterModule, FormsModule, BackButtonComponent, AdminBackButtonComponent],
   template: `
     <div class="min-h-[calc(100vh-80px)] p-6 sm:p-10 max-w-7xl mx-auto space-y-8 text-slate-700">
-      <app-back-button></app-back-button>
-      
+      <app-admin-back-button></app-admin-back-button>
+
       <!-- Header -->
       <div class="flex items-center gap-4">
         <div class="p-3 bg-blue-50 rounded-2xl border border-blue-100 shadow-sm">
@@ -29,8 +30,8 @@ import { AcademicService, Section } from '@core/services/academic.service';
       <div class="bg-white border border-slate-100 rounded-2xl p-4 shadow-sm flex flex-wrap items-center gap-4">
         <div class="flex-1 min-w-[200px]">
           <label class="block text-[10px] font-bold text-slate-400 mb-1.5 uppercase tracking-widest pl-1">Filtrar por Estado</label>
-          <select 
-            [(ngModel)]="selectedStatus" 
+          <select
+            [(ngModel)]="selectedStatus"
             (change)="loadApplications()"
             class="w-full bg-slate-50 border border-slate-200 text-slate-700 rounded-xl px-4 py-2.5 text-xs font-bold uppercase tracking-widest focus:outline-none focus:ring-2 focus:ring-blue-500/10 focus:border-blue-500 transition-all cursor-pointer">
             <option value="pending">Pendientes de Revisión</option>
@@ -40,7 +41,7 @@ import { AcademicService, Section } from '@core/services/academic.service';
           </select>
         </div>
         <div class="pt-5">
-          <button 
+          <button
             (click)="loadApplications()"
             class="px-6 py-2.5 bg-slate-900 hover:bg-slate-800 text-white text-xs font-bold uppercase tracking-widest rounded-xl transition-all shadow-md active:scale-95">
             Actualizar
@@ -74,7 +75,7 @@ import { AcademicService, Section } from '@core/services/academic.service';
                   {{ app.student_document_number }}
                 </td>
                 <td class="p-5 text-center">
-                  <span 
+                  <span
                     [class]="getStatusBadgeClass(app.status)"
                     class="px-3 py-1 rounded-full text-[9px] font-bold uppercase tracking-widest border">
                     {{ app.status }}
@@ -85,12 +86,12 @@ import { AcademicService, Section } from '@core/services/academic.service';
                 </td>
                 <td class="p-5">
                   <div *ngIf="app.status === 'pending'" class="flex items-center justify-center gap-2">
-                    <button 
+                    <button
                       (click)="onApproveClick(app)"
                       class="p-2 bg-green-50 text-green-600 hover:bg-green-600 hover:text-white rounded-lg transition-all border border-green-100">
                       <svg class="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="20 6 9 17 4 12"/></svg>
                     </button>
-                    <button 
+                    <button
                       (click)="onRejectClick(app)"
                       class="p-2 bg-red-50 text-red-600 hover:bg-red-600 hover:text-white rounded-lg transition-all border border-red-100">
                       <svg class="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
@@ -118,10 +119,10 @@ import { AcademicService, Section } from '@core/services/academic.service';
       <div class="bg-white rounded-[2rem] p-8 max-w-md w-full shadow-2xl border border-white/20">
         <h3 class="text-2xl font-bold text-slate-900 tracking-tight mb-2">Aprobar Matrícula</h3>
         <p class="text-slate-500 text-sm font-medium mb-6">Selecciona la sección para el estudiante.</p>
-        
+
         <div class="space-y-4">
           <label class="block text-[10px] font-bold text-slate-400 uppercase tracking-widest pl-1">Sección Destino</label>
-          <select 
+          <select
             [(ngModel)]="selectedSectionId"
             class="w-full bg-slate-50 border border-slate-200 text-slate-700 rounded-2xl px-4 py-3 text-sm font-bold focus:outline-none focus:ring-4 focus:ring-blue-500/10 transition-all">
             <option value="">Seleccionar sección...</option>
@@ -150,7 +151,7 @@ export class EnrollmentApprovalsComponent implements OnInit {
   applications: EnrollmentApplication[] = [];
   sections: Section[] = [];
   selectedStatus = 'pending';
-  
+
   showApproveModal = false;
   selectedApp: EnrollmentApplication | null = null;
   selectedSectionId = '';

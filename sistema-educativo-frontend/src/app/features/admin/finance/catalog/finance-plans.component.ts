@@ -2,9 +2,8 @@ import { Component, OnInit } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule, ReactiveFormsModule, FormBuilder, FormGroup, Validators, FormArray } from '@angular/forms';
 import { BackButtonComponent } from '@shared/components/back-button/back-button.component';
-import { FinanceService, FinancialPlan, FeeConcept } from '@core/services/finance.service';
-import { HttpClient } from '@angular/common/http';
-import { environment } from '../../../../../environments/environment';
+import { FinanceService, FinancialPlan, FeeConcept, PlanInstallment } from '@core/services/finance.service';
+import { AcademicService } from '@core/services/academic.service';
 import { SettingMetricCardComponent } from '@shared/components/setting-metric-card/setting-metric-card.component';
 import { SettingFilterDropdownComponent } from '@shared/components/setting-filter-dropdown/setting-filter-dropdown.component';
 import { forkJoin, Observable, of } from 'rxjs';
@@ -252,8 +251,13 @@ export class FinancePlansComponent implements OnInit {
   currentId: string | null = null;
   isSaving = false;
   planForm: FormGroup;
+  originalInstallmentIds: string[] = [];
 
-  constructor(private financeService: FinanceService, private fb: FormBuilder, private http: HttpClient) {
+  constructor(
+    private financeService: FinanceService,
+    private academicService: AcademicService,
+    private fb: FormBuilder
+  ) {
     this.planForm = this.fb.group({
       name: ['', Validators.required],
       academic_year_id: ['', Validators.required],
@@ -315,9 +319,9 @@ export class FinancePlansComponent implements OnInit {
   }
 
   loadInitialData(): void {
-    this.http.get<any>(`${environment.apiUrl}/academic-years`).subscribe(res => {
+    this.academicService.getAcademicYears().subscribe(res => {
       this.years = res.data || res;
-      this.yearOptions = this.years.map((y: any) => ({ id: y.id, name: y.year.toString() }));
+      this.yearOptions = this.years.map((y: any) => ({ id: y.id, name: String(y.year) }));
     });
     this.financeService.getConcepts({ is_active: true }).subscribe(res => this.concepts = res.data || res);
   }
@@ -347,6 +351,7 @@ export class FinancePlansComponent implements OnInit {
 
   openModal(): void {
     this.installmentsFormArray.clear();
+    this.originalInstallmentIds = [];
     this.showModal = true;
     this.isEditing = false;
     this.currentId = null;
@@ -358,12 +363,13 @@ export class FinancePlansComponent implements OnInit {
     this.showModal = true;
     this.isEditing = true;
     this.currentId = p.id;
+    this.originalInstallmentIds = (p.installments || []).map(i => i.id).filter(Boolean) as string[];
     this.planForm.patchValue({
       name: p.name,
       academic_year_id: p.academic_year_id,
       concept_id: p.concept_id,
-      number_of_installments: p.installments_count,
-      description: '',
+      number_of_installments: p.number_of_installments ?? p.installments_count ?? p.installments?.length ?? 1,
+      description: p.description || '',
       is_active: p.is_active
     });
     
@@ -385,6 +391,7 @@ export class FinancePlansComponent implements OnInit {
     this.showModal = false;
     this.planForm.reset();
     this.installmentsFormArray.clear();
+    this.originalInstallmentIds = [];
   }
 
   savePlan(): void {

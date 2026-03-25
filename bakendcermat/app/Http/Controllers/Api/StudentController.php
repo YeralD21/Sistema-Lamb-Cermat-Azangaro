@@ -12,7 +12,7 @@ class StudentController extends Controller
 {
     public function index(Request $request)
     {
-        $query = Student::query();
+        $query = Student::with(['section.gradeLevel']);
         $perPage = (int) $request->integer('per_page', 20);
 
         if ($request->has('section_id'))
@@ -29,7 +29,8 @@ class StudentController extends Controller
             $query->where(function ($sub) use ($q) {
                 $sub->where('first_name', 'ilike', "%{$q}%")
                     ->orWhere('last_name', 'ilike', "%{$q}%")
-                    ->orWhere('student_code', 'ilike', "%{$q}%");
+                    ->orWhere('student_code', 'ilike', "%{$q}%")
+                    ->orWhere('dni', 'ilike', "%{$q}%");
             });
         }
 

@@ -1,7 +1,7 @@
 import { Component, OnInit, OnDestroy } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { ReactiveFormsModule, FormBuilder, FormGroup } from '@angular/forms';
-import { FinanceService } from '@core/services/finance.service';
+import { Charge, FinanceService } from '@core/services/finance.service';
 import { BackButtonComponent } from '@shared/components/back-button/back-button.component';
 import { Subject, takeUntil, debounceTime, distinctUntilChanged } from 'rxjs';
 
@@ -53,11 +53,11 @@ import { Subject, takeUntil, debounceTime, distinctUntilChanged } from 'rxjs';
           <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
              <div class="p-6 bg-slate-50 rounded-2xl border border-slate-100">
                <p class="text-[10px] text-slate-400 uppercase font-bold tracking-widest mb-1">Total Deuda</p>
-               <h3 class="text-2xl font-bold text-slate-950">S/ 450.00</h3>
+               <h3 class="text-2xl font-bold text-slate-950">S/ {{ accountSummary.outstanding | number:'1.2-2' }}</h3>
              </div>
              <div class="p-6 bg-emerald-50 rounded-2xl border border-emerald-100/50">
                <p class="text-[10px] text-emerald-600/70 uppercase font-bold tracking-widest mb-1">Total Pagado</p>
-               <h3 class="text-2xl font-bold text-emerald-700">S/ 1,200.00</h3>
+               <h3 class="text-2xl font-bold text-emerald-700">S/ {{ accountSummary.paid | number:'1.2-2' }}</h3>
              </div>
              <div class="p-6 bg-blue-50 rounded-2xl border border-blue-100/50">
                <p class="text-[10px] text-blue-600/70 uppercase font-bold tracking-widest mb-1">Estado General</p>
@@ -129,9 +129,14 @@ export class FinanceStudentComponent {
   searchForm: FormGroup;
   students: any[] = [];
   selectedStudent: any = null;
-  charges: any[] = [];
+  charges: Charge[] = [];
   loading = false;
   searching = false;
+  accountSummary = {
+    outstanding: 0,
+    paid: 0,
+    overdueCount: 0,
+  };
   
   private destroy$ = new Subject<void>();
 
@@ -186,13 +191,57 @@ export class FinanceStudentComponent {
   loadCharges() {
     if (!this.selectedStudent) return;
     this.loading = true;
-    this.financeService.getCharges({ student_id: this.selectedStudent.id }).subscribe({
+    this.financeService.getCharges({ student_id: this.selectedStudent.id, per_page: 500 }).subscribe({
       next: (res) => {
         this.charges = res.data || res;
+        this.calculateSummary();
         this.loading = false;
       },
       error: () => this.loading = false
     });
+  }
+
+  calculateSummary() {
+    this.accountSummary = this.charges.reduce((summary, charge) => {
+      const amount = Number(charge.amount) || 0;
+      const discount = Number(charge.discount_amount) || 0;
+      const paid = Number(charge.paid_amount) || 0;
+      const outstanding = Math.max(0, amount - discount - paid);
+      const isOverdue = charge.status === 'vencido'
+        || (!!charge.due_date && new Date(charge.due_date) < new Date() && outstanding > 0);
+
+      summary.outstanding += outstanding;
+      summary.paid += paid;
+      if (isOverdue) {
+        summary.overdueCount += 1;
+      }
+
+      return summary;
+    }, {
+      outstanding: 0,
+      paid: 0,
+      overdueCount: 0,
+    });
+  }
+
+  getAccountStatus(): string {
+    if (!this.selectedStudent) {
+      return '-';
+    }
+
+    if (this.accountSummary.overdueCount > 0) {
+      return 'Con vencimientos';
+    }
+
+    if (this.accountSummary.outstanding > 0) {
+      return 'Pendiente';
+    }
+
+    if (this.charges.length > 0) {
+      return 'Al dia';
+    }
+
+    return 'Sin cargos';
   }
 
   getStatusBadge(status: string) {

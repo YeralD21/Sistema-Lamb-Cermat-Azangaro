@@ -3,6 +3,14 @@ import { HttpClient, HttpParams } from '@angular/common/http';
 import { Observable } from 'rxjs';
 import { environment } from '../../../environments/environment';
 
+export interface PaginatedResponse<T> {
+  data: T[];
+  current_page?: number;
+  last_page?: number;
+  per_page?: number;
+  total?: number;
+}
+
 export interface FeeConcept {
   id: string;
   name: string;
@@ -10,7 +18,17 @@ export interface FeeConcept {
   base_amount: number;
   periodicity: 'unico' | 'mensual' | 'anual' | 'opcional';
   is_active: boolean;
-  description?: string;
+  description?: string | null;
+  created_at?: string;
+}
+
+export interface PlanInstallment {
+  id?: string;
+  plan_id: string;
+  installment_number: number;
+  due_date: string;
+  amount: number;
+  description?: string | null;
   created_at?: string;
 }
 
@@ -19,12 +37,14 @@ export interface FinancialPlan {
   name: string;
   academic_year_id: string;
   concept_id: string;
-  total_amount: number;
-  installments_count: number;
+  number_of_installments: number;
+  installments_count?: number;
+  total_amount?: number;
+  description?: string | null;
   is_active: boolean;
   academic_year?: any;
   concept?: FeeConcept;
-  installments?: any[];
+  installments?: PlanInstallment[];
 }
 
 export interface Discount {
@@ -33,24 +53,81 @@ export interface Discount {
   type: 'porcentaje' | 'monto_fijo';
   value: number;
   scope: 'todos' | 'pension' | 'matricula' | 'especifico';
-  specific_concept_id?: string;
+  specific_concept_id?: string | null;
   is_active: boolean;
-  description?: string;
+  description?: string | null;
   concept?: FeeConcept;
 }
+
+export interface StudentDiscount {
+  id: string;
+  student_id: string;
+  discount_id: string;
+  academic_year_id: string;
+  assigned_by?: string | null;
+  student?: any;
+  discount?: Discount;
+  academic_year?: any;
+  assigned_by_user?: any;
+}
+
+export interface Receipt {
+  id: string;
+  payment_id: string;
+  student_id?: string | null;
+  number?: string | null;
+  issued_at?: string | null;
+  total?: number | null;
+  notes?: string | null;
+  payment?: Payment;
+  student?: any;
+}
+
+export interface Charge {
+  id: string;
+  student_id: string;
+  academic_year_id: string;
+  concept_id: string;
+  type: string;
+  status: 'pendiente' | 'pagado_parcial' | 'pagado' | 'vencido' | string;
+  amount: number;
+  discount_amount?: number | null;
+  paid_amount?: number | null;
+  due_date?: string | null;
+  notes?: string | null;
+  created_by?: string | null;
+  student?: any;
+  concept?: FeeConcept;
+  payments?: Payment[];
+}
+
+export interface Payment {
+  id: string;
+  charge_id?: string | null;
+  student_id?: string | null;
+  amount: number;
+  method: string;
+  reference?: string | null;
+  paid_at: string;
+  notes?: string | null;
+  student?: any;
+  charge?: Charge | null;
+  receipt?: Receipt | null;
+}
+
 export interface CashClosure {
   id: string;
   closure_date: string;
-  opening_time: string;
-  closing_time?: string;
+  opening_time?: string | null;
+  closing_time?: string | null;
   opening_balance: number;
   cash_received: number;
   expected_balance: number;
   actual_balance: number;
   difference: number;
-  notes?: string;
-  closed_by: string;
-  cashier_id?: string;
+  notes?: string | null;
+  closed_by?: string | null;
+  cashier_id?: string | null;
   total_cash: number;
   total_cards: number;
   total_transfers: number;
@@ -63,18 +140,7 @@ export interface CashClosure {
   closed_by_user?: any;
 }
 
-export interface Payment {
-  id: string;
-  charge_id: string;
-  student_id: string;
-  amount: number;
-  method: string;
-  reference?: string;
-  paid_at: string;
-  notes?: string;
-  student?: any;
-  charge?: any;
-}
+type QueryFilters = Record<string, string | number | boolean | null | undefined>;
 
 @Injectable({
   providedIn: 'root'
@@ -84,15 +150,10 @@ export class FinanceService {
 
   constructor(private http: HttpClient) {}
 
-  // --- Fee Concepts ---
-  getConcepts(filters: any = {}): Observable<any> {
-    let params = new HttpParams();
-    Object.keys(filters).forEach(key => {
-      if (filters[key] !== null && filters[key] !== undefined && filters[key] !== '') {
-        params = params.set(key, filters[key]);
-      }
+  getConcepts(filters: QueryFilters = {}): Observable<PaginatedResponse<FeeConcept>> {
+    return this.http.get<PaginatedResponse<FeeConcept>>(`${this.apiUrl}/fee-concepts`, {
+      params: this.buildParams(filters)
     });
-    return this.http.get(`${this.apiUrl}/fee-concepts`, { params });
   }
 
   createConcept(concept: Partial<FeeConcept>): Observable<FeeConcept> {
@@ -103,19 +164,14 @@ export class FinanceService {
     return this.http.put<FeeConcept>(`${this.apiUrl}/fee-concepts/${id}`, concept);
   }
 
-  deleteConcept(id: string): Observable<any> {
-    return this.http.delete(`${this.apiUrl}/fee-concepts/${id}`);
+  deleteConcept(id: string): Observable<void> {
+    return this.http.delete<void>(`${this.apiUrl}/fee-concepts/${id}`);
   }
 
-  // --- Financial Plans ---
-  getPlans(filters: any = {}): Observable<any> {
-    let params = new HttpParams();
-    Object.keys(filters).forEach(key => {
-      if (filters[key] !== null && filters[key] !== undefined && filters[key] !== '') {
-        params = params.set(key, filters[key]);
-      }
+  getPlans(filters: QueryFilters = {}): Observable<PaginatedResponse<FinancialPlan>> {
+    return this.http.get<PaginatedResponse<FinancialPlan>>(`${this.apiUrl}/financial-plans`, {
+      params: this.buildParams(filters)
     });
-    return this.http.get(`${this.apiUrl}/financial-plans`, { params });
   }
 
   createPlan(plan: Partial<FinancialPlan>): Observable<FinancialPlan> {
@@ -126,42 +182,32 @@ export class FinanceService {
     return this.http.put<FinancialPlan>(`${this.apiUrl}/financial-plans/${id}`, plan);
   }
 
-  deletePlan(id: string): Observable<any> {
-    return this.http.delete(`${this.apiUrl}/financial-plans/${id}`);
+  deletePlan(id: string): Observable<void> {
+    return this.http.delete<void>(`${this.apiUrl}/financial-plans/${id}`);
   }
 
-  // --- Plan Installments ---
-  getInstallments(filters: any = {}): Observable<any> {
-    let params = new HttpParams();
-    Object.keys(filters).forEach(key => {
-      if (filters[key] !== null && filters[key] !== undefined && filters[key] !== '') {
-        params = params.set(key, filters[key]);
-      }
+  getInstallments(filters: QueryFilters = {}): Observable<PaginatedResponse<PlanInstallment>> {
+    return this.http.get<PaginatedResponse<PlanInstallment>>(`${this.apiUrl}/plan-installments`, {
+      params: this.buildParams(filters)
     });
-    return this.http.get(`${this.apiUrl}/plan-installments`, { params });
   }
 
-  createInstallment(data: any): Observable<any> {
-    return this.http.post(`${this.apiUrl}/plan-installments`, data);
+  createInstallment(data: Partial<PlanInstallment>): Observable<PlanInstallment> {
+    return this.http.post<PlanInstallment>(`${this.apiUrl}/plan-installments`, data);
   }
 
-  updateInstallment(id: string, data: any): Observable<any> {
-    return this.http.put(`${this.apiUrl}/plan-installments/${id}`, data);
+  updateInstallment(id: string, data: Partial<PlanInstallment>): Observable<PlanInstallment> {
+    return this.http.put<PlanInstallment>(`${this.apiUrl}/plan-installments/${id}`, data);
   }
 
-  deleteInstallment(id: string): Observable<any> {
-    return this.http.delete(`${this.apiUrl}/plan-installments/${id}`);
+  deleteInstallment(id: string): Observable<void> {
+    return this.http.delete<void>(`${this.apiUrl}/plan-installments/${id}`);
   }
 
-  // --- Discounts ---
-  getDiscounts(filters: any = {}): Observable<any> {
-    let params = new HttpParams();
-    Object.keys(filters).forEach(key => {
-      if (filters[key] !== null && filters[key] !== undefined && filters[key] !== '') {
-        params = params.set(key, filters[key]);
-      }
+  getDiscounts(filters: QueryFilters = {}): Observable<PaginatedResponse<Discount>> {
+    return this.http.get<PaginatedResponse<Discount>>(`${this.apiUrl}/discounts`, {
+      params: this.buildParams(filters)
     });
-    return this.http.get(`${this.apiUrl}/discounts`, { params });
   }
 
   createDiscount(discount: Partial<Discount>): Observable<Discount> {
@@ -172,69 +218,101 @@ export class FinanceService {
     return this.http.put<Discount>(`${this.apiUrl}/discounts/${id}`, discount);
   }
 
-  deleteDiscount(id: string): Observable<any> {
-    return this.http.delete(`${this.apiUrl}/discounts/${id}`);
+  deleteDiscount(id: string): Observable<void> {
+    return this.http.delete<void>(`${this.apiUrl}/discounts/${id}`);
   }
 
-  // --- Charges ---
-  getCharges(filters: any = {}): Observable<any> {
-    let params = new HttpParams();
-    Object.keys(filters).forEach(key => {
-      if (filters[key] !== null && filters[key] !== undefined && filters[key] !== '') {
-        params = params.set(key, filters[key]);
-      }
+  getStudentDiscounts(filters: QueryFilters = {}): Observable<PaginatedResponse<StudentDiscount>> {
+    return this.http.get<PaginatedResponse<StudentDiscount>>(`${this.apiUrl}/student-discounts`, {
+      params: this.buildParams(filters)
     });
-    return this.http.get(`${this.apiUrl}/charges`, { params });
   }
 
-  emitBatchCharges(data: { academic_year_id: string, financial_plan_id: string, grade_level_id?: string, section_id?: string }): Observable<any> {
-    return this.http.post(`${this.apiUrl}/charges/batch`, data);
+  createStudentDiscount(data: Partial<StudentDiscount>): Observable<StudentDiscount> {
+    return this.http.post<StudentDiscount>(`${this.apiUrl}/student-discounts`, data);
   }
 
-  // --- Payments ---
-  getPayments(filters: any = {}): Observable<any> {
-    let params = new HttpParams();
-    Object.keys(filters).forEach(key => {
-      if (filters[key] !== null && filters[key] !== undefined && filters[key] !== '') {
-        params = params.set(key, filters[key]);
-      }
+  deleteStudentDiscount(id: string): Observable<void> {
+    return this.http.delete<void>(`${this.apiUrl}/student-discounts/${id}`);
+  }
+
+  getCharges(filters: QueryFilters = {}): Observable<PaginatedResponse<Charge>> {
+    return this.http.get<PaginatedResponse<Charge>>(`${this.apiUrl}/charges`, {
+      params: this.buildParams(filters)
     });
-    return this.http.get(`${this.apiUrl}/payments`, { params });
   }
 
-  createPayment(payment: any): Observable<any> {
-    return this.http.post(`${this.apiUrl}/payments`, payment);
+  emitBatchCharges(data: {
+    academic_year_id: string;
+    financial_plan_id: string;
+    grade_level_id?: string;
+    section_id?: string;
+  }): Observable<{ message: string; created_count: number }> {
+    return this.http.post<{ message: string; created_count: number }>(`${this.apiUrl}/charges/batch`, data);
   }
 
-  // --- Cash Closures ---
-  getClosures(filters: any = {}): Observable<any> {
-    let params = new HttpParams();
-    Object.keys(filters).forEach(key => {
-      if (filters[key] !== null && filters[key] !== undefined && filters[key] !== '') {
-        params = params.set(key, filters[key]);
-      }
+  getPayments(filters: QueryFilters = {}): Observable<PaginatedResponse<Payment>> {
+    return this.http.get<PaginatedResponse<Payment>>(`${this.apiUrl}/payments`, {
+      params: this.buildParams(filters)
     });
-    return this.http.get(`${this.apiUrl}/cash-closures`, { params });
+  }
+
+  createPayment(payment: Partial<Payment>): Observable<Payment> {
+    return this.http.post<Payment>(`${this.apiUrl}/payments`, payment);
+  }
+
+  deletePayment(id: string): Observable<void> {
+    return this.http.delete<void>(`${this.apiUrl}/payments/${id}`);
+  }
+
+  getReceipts(filters: QueryFilters = {}): Observable<PaginatedResponse<Receipt>> {
+    return this.http.get<PaginatedResponse<Receipt>>(`${this.apiUrl}/receipts`, {
+      params: this.buildParams(filters)
+    });
+  }
+
+  createReceipt(data: { payment_id: string }): Observable<Receipt> {
+    return this.http.post<Receipt>(`${this.apiUrl}/receipts`, data);
+  }
+
+  getClosures(filters: QueryFilters = {}): Observable<PaginatedResponse<CashClosure>> {
+    return this.http.get<PaginatedResponse<CashClosure>>(`${this.apiUrl}/cash-closures`, {
+      params: this.buildParams(filters)
+    });
   }
 
   getClosure(id: string): Observable<CashClosure> {
     return this.http.get<CashClosure>(`${this.apiUrl}/cash-closures/${id}`);
   }
 
-  createClosure(data: any): Observable<CashClosure> {
+  createClosure(data: Partial<CashClosure>): Observable<CashClosure> {
     return this.http.post<CashClosure>(`${this.apiUrl}/cash-closures`, data);
   }
 
-  updateClosure(id: string, data: any): Observable<CashClosure> {
+  updateClosure(id: string, data: Partial<CashClosure>): Observable<CashClosure> {
     return this.http.put<CashClosure>(`${this.apiUrl}/cash-closures/${id}`, data);
   }
 
-  deleteClosure(id: string): Observable<any> {
-    return this.http.delete(`${this.apiUrl}/cash-closures/${id}`);
+  deleteClosure(id: string): Observable<void> {
+    return this.http.delete<void>(`${this.apiUrl}/cash-closures/${id}`);
   }
 
-  // --- Students Search (Helpers for Finance) ---
-  searchStudents(query: string): Observable<any> {
-    return this.http.get(`${this.apiUrl}/students`, { params: new HttpParams().set('q', query) });
+  searchStudents(query: string): Observable<PaginatedResponse<any>> {
+    return this.http.get<PaginatedResponse<any>>(`${this.apiUrl}/students`, {
+      params: this.buildParams({ q: query, per_page: 20 })
+    });
+  }
+
+  private buildParams(filters: QueryFilters = {}): HttpParams {
+    let params = new HttpParams();
+
+    Object.keys(filters).forEach((key) => {
+      const value = filters[key];
+      if (value !== null && value !== undefined && value !== '') {
+        params = params.set(key, String(value));
+      }
+    });
+
+    return params;
   }
 }
