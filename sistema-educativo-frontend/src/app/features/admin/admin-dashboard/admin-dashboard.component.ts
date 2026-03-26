@@ -4,12 +4,12 @@ import { RouterModule, Router } from '@angular/router';
 import { DomSanitizer, SafeHtml } from '@angular/platform-browser';
 import { AuthService } from '@core/services/auth.service';
 import { ADMIN_MODULES_LIST, AdminModuleEntry, SubModuleSection } from '@core/constants/admin-modules';
-import { BackButtonComponent } from '@shared/components/back-button/back-button.component';
+import { AdminBackButtonComponent } from '@shared/components/back-button/admin-back-button.component';
 
 @Component({
   selector: 'app-admin-dashboard',
   standalone: true,
-  imports: [CommonModule, RouterModule, BackButtonComponent],
+  imports: [CommonModule, RouterModule, AdminBackButtonComponent],
   templateUrl: './admin-dashboard.component.html'
 })
 export class AdminDashboardComponent implements OnInit {
