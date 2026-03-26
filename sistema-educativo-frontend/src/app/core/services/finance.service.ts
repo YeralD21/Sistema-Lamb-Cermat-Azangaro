@@ -11,6 +11,8 @@ export interface PaginatedResponse<T> {
   total?: number;
 }
 
+export type CollectionResponse<T> = PaginatedResponse<T> | T[] | { data?: T[] };
+
 export interface FeeConcept {
   id: string;
   name: string;
@@ -64,11 +66,13 @@ export interface StudentDiscount {
   student_id: string;
   discount_id: string;
   academic_year_id: string;
+  notes?: string | null;
   assigned_by?: string | null;
   student?: any;
   discount?: Discount;
   academic_year?: any;
   assigned_by_user?: any;
+  created_at?: string | null;
 }
 
 export interface Receipt {
@@ -89,13 +93,16 @@ export interface Charge {
   academic_year_id: string;
   concept_id: string;
   type: string;
-  status: 'pendiente' | 'pagado_parcial' | 'pagado' | 'vencido' | string;
+  status: 'pendiente' | 'pagado_parcial' | 'pagado' | 'vencido' | 'anulado' | string;
   amount: number;
   discount_amount?: number | null;
   paid_amount?: number | null;
   due_date?: string | null;
   notes?: string | null;
   created_by?: string | null;
+  voided_at?: string | null;
+  voided_by?: string | null;
+  void_reason?: string | null;
   student?: any;
   concept?: FeeConcept;
   payments?: Payment[];
@@ -110,6 +117,9 @@ export interface Payment {
   reference?: string | null;
   paid_at: string;
   notes?: string | null;
+  voided_at?: string | null;
+  voided_by?: string | null;
+  void_reason?: string | null;
   student?: any;
   charge?: Charge | null;
   receipt?: Receipt | null;
@@ -265,6 +275,10 @@ export class FinanceService {
     return this.http.delete<void>(`${this.apiUrl}/payments/${id}`);
   }
 
+  voidPayment(id: string, reason: string): Observable<any> {
+    return this.http.post(`${this.apiUrl}/payments/${id}/void`, { reason });
+  }
+
   getReceipts(filters: QueryFilters = {}): Observable<PaginatedResponse<Receipt>> {
     return this.http.get<PaginatedResponse<Receipt>>(`${this.apiUrl}/receipts`, {
       params: this.buildParams(filters)
@@ -297,10 +311,26 @@ export class FinanceService {
     return this.http.delete<void>(`${this.apiUrl}/cash-closures/${id}`);
   }
 
-  searchStudents(query: string): Observable<PaginatedResponse<any>> {
+  searchStudents(query: string, extraFilters: QueryFilters = {}): Observable<PaginatedResponse<any>> {
     return this.http.get<PaginatedResponse<any>>(`${this.apiUrl}/students`, {
-      params: this.buildParams({ q: query, per_page: 20 })
+      params: this.buildParams({ q: query, per_page: 20, ...extraFilters })
     });
+  }
+
+  voidCharge(id: string, reason: string): Observable<any> {
+    return this.http.post(`${this.apiUrl}/charges/${id}/void`, { reason });
+  }
+
+  unwrapItems<T>(response: CollectionResponse<T>): T[] {
+    if (Array.isArray(response)) {
+      return response;
+    }
+
+    if (Array.isArray(response?.data)) {
+      return response.data;
+    }
+
+    return [];
   }
 
   private buildParams(filters: QueryFilters = {}): HttpParams {

@@ -14,11 +14,11 @@ export interface FilterOption {
   template: `
     <div class="relative inline-block w-full">
       <!-- Trigger -->
-      <button 
+      <button
         type="button"
         (click)="toggle()"
         class="w-full bg-white border border-slate-100 rounded-[2rem] p-4 shadow-sm flex items-center justify-between gap-4 px-6 transition-all hover:shadow-md active:scale-[0.98] group">
-        
+
         <div class="flex items-center gap-3">
           <div class="text-slate-400 group-hover:text-[#0E3A8A] transition-colors">
             <svg class="w-5 h-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M22 3H2l8 9.46V19l4 2v-8.54L22 3z"/></svg>
@@ -34,11 +34,12 @@ export interface FilterOption {
       </button>
 
       <!-- Options Dropdown -->
-      <div 
+      <div
         *ngIf="isOpen"
-        class="absolute z-[100] mt-2 w-full bg-white border border-slate-100 rounded-2xl shadow-xl overflow-hidden animate-slide-up py-1 max-h-64 overflow-y-auto custom-scrollbar">
-        
-        <button 
+        [ngStyle]="dropdownStyles"
+        class="bg-white border border-slate-100 rounded-2xl shadow-xl overflow-hidden animate-slide-up py-1 custom-scrollbar">
+
+        <button
           (click)="select('')"
           class="w-full px-6 py-3 text-left text-[10px] font-bold uppercase tracking-widest transition-colors hover:bg-slate-50 border-b border-slate-50"
           [class.text-[#0E3A8A]]="!selectedId"
@@ -46,12 +47,12 @@ export interface FilterOption {
           {{ placeholder }}
         </button>
 
-        <button 
+        <button
           *ngFor="let opt of options"
           (click)="select(opt.id)"
           class="w-full px-6 py-3 text-left text-[10px] font-bold uppercase tracking-widest transition-all hover:bg-blue-50/50 group flex items-center justify-between"
           [class.bg-blue-50]="selectedId === opt.id">
-          
+
           <div class="flex flex-col">
             <span [class.text-[#0E3A8A]]="selectedId === opt.id" class="text-slate-700 group-hover:text-[#0E3A8A]">
               {{ opt.name }}
@@ -84,17 +85,50 @@ export class SettingFilterDropdownComponent {
   @Output() selectionChange = new EventEmitter<string>();
 
   isOpen = false;
+  dropdownStyles: Record<string, string> = {};
 
   constructor(private elementRef: ElementRef) {}
 
   toggle() {
     this.isOpen = !this.isOpen;
+    if (this.isOpen) {
+      this.setDropdownPosition();
+    }
   }
 
   select(id: string) {
     this.selectedId = id;
     this.selectionChange.emit(id);
     this.isOpen = false;
+  }
+
+  @HostListener('window:resize')
+  onWindowResize() {
+    if (this.isOpen) {
+      this.setDropdownPosition();
+    }
+  }
+
+  private setDropdownPosition() {
+    const button: HTMLElement | null = this.elementRef.nativeElement.querySelector('button');
+    if (!button) return;
+
+    const rect = button.getBoundingClientRect();
+    const viewHeight = window.innerHeight;
+    const maxHeight = Math.max(180, Math.min(420, viewHeight - rect.bottom - 16));
+
+    this.dropdownStyles = {
+      position: 'fixed',
+      top: `${rect.bottom + 8}px`,
+      left: `${rect.left}px`,
+      width: `${rect.width}px`,
+      zIndex: '10050',
+      maxHeight: `${maxHeight}px`,
+      overflowY: 'auto',
+      background: '#ffffff',
+      borderRadius: '16px',
+      boxShadow: '0 10px 30px rgba(15, 23, 42, 0.2)'
+    };
   }
 
   getSelectedLabel(): string {

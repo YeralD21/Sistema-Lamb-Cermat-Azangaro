@@ -76,6 +76,8 @@ use App\Http\Controllers\Api\UserController;
 */
 
 Route::post('/login', [AuthController::class, 'login']);
+Route::get('/public/enrollment-options', [EnrollmentApplicationController::class, 'publicOptions']);
+Route::post('/public/enrollment-applications', [EnrollmentApplicationController::class, 'store']);
 
 /*
 |--------------------------------------------------------------------------
@@ -225,6 +227,7 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::middleware('role:admin,director,coordinator,secretary')->group(function () {
         Route::apiResource('enrollment-applications', EnrollmentApplicationController::class);
         Route::post('enrollment-applications/{id}/approve', [EnrollmentApplicationController::class, 'approve']);
+        Route::post('enrollment-applications/{id}/provision-accounts', [EnrollmentApplicationController::class, 'provisionAccounts']);
         Route::post('enrollment-applications/{id}/reject', [EnrollmentApplicationController::class, 'reject']);
 
         Route::post('teacher-course-assignments', [TeacherCourseAssignmentController::class, 'store']);
@@ -482,7 +485,9 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::middleware('role:admin,director,coordinator,secretary')->group(function () {
         Route::apiResource('fee-concepts', FeeConceptController::class);
         Route::post('charges/batch', [ChargeController::class, 'batchStore']);
+        Route::post('charges/{charge}/void', [ChargeController::class, 'void']);
         Route::apiResource('charges', ChargeController::class);
+        Route::post('payments/{payment}/void', [PaymentController::class, 'void']);
         Route::apiResource('payments', PaymentController::class)->only(['index', 'store', 'show', 'destroy']);
         Route::apiResource('receipts', ReceiptController::class)->only(['index', 'store', 'show', 'destroy']);
     });

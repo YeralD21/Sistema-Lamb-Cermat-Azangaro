@@ -14,43 +14,44 @@ class ReceiptController extends Controller
     public function index(Request $request)
     {
         $q = Receipt::query();
+        $issuedAtColumn = Receipt::issuedAtColumn();
 
-        if ($request->filled('student_id')) $q->where('student_id', $request->student_id);
-        if ($request->filled('payment_id')) $q->where('payment_id', $request->payment_id);
+        if ($request->filled('student_id')) {
+            $q->where('student_id', $request->student_id);
+        }
 
-        return $q->orderByDesc('issued_at')->orderByDesc('created_at')->paginate(50);
+        if ($request->filled('payment_id')) {
+            $q->where('payment_id', $request->payment_id);
+        }
+
+        return $q->orderByDesc($issuedAtColumn)->orderByDesc('created_at')->paginate(50);
     }
 
     public function store(Request $request)
     {
         $data = $request->validate([
-            'payment_id' => ['required','uuid','exists:payments,id'],
+            'payment_id' => ['required', 'uuid', 'exists:payments,id'],
         ]);
 
-        return DB::transaction(function () use ($data) {
+        return DB::transaction(function () use ($data, $request) {
             /** @var Payment $payment */
             $payment = Payment::lockForUpdate()->findOrFail($data['payment_id']);
 
-            // Si ya existe recibo, lo devolvemos
             $existing = Receipt::where('payment_id', $payment->id)->first();
-            if ($existing) return $existing;
-
-            // numero automático simple (puedes cambiarlo por tu formato)
-            $number = 'R-' . str_pad((string) (Receipt::count() + 1), 8, '0', STR_PAD_LEFT);
+            if ($existing) {
+                return $existing->load('payment');
+            }
 
             $insert = [
                 'payment_id' => $payment->id,
                 'student_id' => $payment->student_id,
-                'number'     => $number,
-                'issued_at'  => now(),
-                'total'      => $payment->amount,
+                Receipt::numberColumn() => Receipt::nextNumber(),
+                Receipt::issuedAtColumn() => now(),
+                Receipt::totalColumn() => $payment->amount,
             ];
 
-            // Si tu tabla no tiene alguna columna, evitar romper
-            foreach (['number','issued_at','total','notes'] as $col) {
-                if (!Schema::hasColumn('receipts', $col)) {
-                    unset($insert[$col]);
-                }
+            if (Schema::hasColumn('receipts', 'issued_by') && $request->user()?->id) {
+                $insert['issued_by'] = $request->user()->id;
             }
 
             $receipt = Receipt::create($insert);
@@ -61,12 +62,13 @@ class ReceiptController extends Controller
 
     public function show(Receipt $receipt)
     {
-        return $receipt->load(['payment','student']);
+        return $receipt->load(['payment', 'student']);
     }
 
     public function destroy(Receipt $receipt)
     {
         $receipt->delete();
+
         return response()->noContent();
     }
 }

@@ -7,6 +7,7 @@ use App\Models\Student;
 use App\Http\Requests\StoreStudentRequest;
 use App\Http\Requests\UpdateStudentRequest;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Schema;
 
 class StudentController extends Controller
 {
@@ -14,6 +15,26 @@ class StudentController extends Controller
     {
         $query = Student::with(['section.gradeLevel']);
         $perPage = (int) $request->integer('per_page', 20);
+        $academicYearId = $request->input('academic_year_id');
+        $onlyWithCharges = $request->boolean('only_with_charges');
+        $includeVoided = $request->boolean('include_voided');
+
+        $chargeScope = function ($chargeQuery) use ($academicYearId, $includeVoided) {
+            if ($academicYearId) {
+                $chargeQuery->where('academic_year_id', $academicYearId);
+            }
+
+            if (!$includeVoided && Schema::hasColumn('charges', 'voided_at')) {
+                $chargeQuery->whereNull('voided_at');
+            }
+        };
+
+        if ($onlyWithCharges) {
+            $query->whereHas('charges', $chargeScope)
+                ->withCount([
+                    'charges as active_charges_count' => $chargeScope,
+                ]);
+        }
 
         if ($request->has('section_id'))
             $query->where('section_id', $request->section_id);

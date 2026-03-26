@@ -56,6 +56,11 @@ class Student extends Model
     return $this->hasMany(StudentDiscount::class, 'student_id');
 }
 
+    public function charges()
+    {
+        return $this->hasMany(Charge::class, 'student_id');
+    }
+
 public function messages()
 {
     return $this->hasMany(Message::class, 'student_id');

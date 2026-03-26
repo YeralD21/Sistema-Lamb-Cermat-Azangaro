@@ -217,6 +217,10 @@ export class AcademicService {
     return this.http.post(`${environment.apiUrl}/student-course-enrollments`, data);
   }
 
+  updateStudentCourseEnrollment(id: string, data: any): Observable<any> {
+    return this.http.patch(`${environment.apiUrl}/student-course-enrollments/${id}`, data);
+  }
+
   getEnrolledStudents(params?: any): Observable<any> {
     return this.http.get(`${environment.apiUrl}/student-course-enrollments`, { params });
   }

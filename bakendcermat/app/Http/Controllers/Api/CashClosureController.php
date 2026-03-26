@@ -6,7 +6,9 @@ use App\Http\Controllers\Controller;
 use App\Http\Requests\StoreCashClosureRequest;
 use App\Http\Requests\UpdateCashClosureRequest;
 use App\Models\CashClosure;
+use App\Models\Payment;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Schema;
 
 class CashClosureController extends Controller
 {
@@ -31,18 +33,7 @@ class CashClosureController extends Controller
 
         $closureDate = $data['closure_date'] ?? now()->toDateString();
         $openingBalance = (float) ($data['opening_balance'] ?? 0);
-        $cashReceived = (float) ($data['cash_received'] ?? 0);
         $actualBalance = (float) ($data['actual_balance'] ?? 0);
-
-        $totalCash = (float) ($data['total_cash'] ?? $cashReceived);
-        $totalCards = (float) ($data['total_cards'] ?? 0);
-        $totalTransfers = (float) ($data['total_transfers'] ?? 0);
-        $totalYape = (float) ($data['total_yape'] ?? 0);
-        $totalPlin = (float) ($data['total_plin'] ?? 0);
-
-        $expectedBalance = $openingBalance + $cashReceived;
-        $difference = $actualBalance - $expectedBalance;
-        $totalAmount = $totalCash + $totalCards + $totalTransfers + $totalYape + $totalPlin;
 
         $exists = CashClosure::whereDate('closure_date', $closureDate)
             ->where('closed_by', optional($request->user())->id)
@@ -54,10 +45,14 @@ class CashClosureController extends Controller
             ], 422);
         }
 
+        $summary = $this->summarizePaymentsForDate($closureDate);
+        $expectedBalance = $openingBalance + $summary['cash'];
+        $difference = $actualBalance - $expectedBalance;
+
         $cashClosure = CashClosure::create([
             'closure_date' => $closureDate,
             'opening_balance' => $openingBalance,
-            'cash_received' => $cashReceived,
+            'cash_received' => $summary['cash'],
             'expected_balance' => $expectedBalance,
             'actual_balance' => $actualBalance,
             'difference' => $difference,
@@ -66,13 +61,13 @@ class CashClosureController extends Controller
             'cashier_id' => $data['cashier_id'] ?? null,
             'opening_time' => $data['opening_time'] ?? null,
             'closing_time' => $data['closing_time'] ?? now(),
-            'total_cash' => $totalCash,
-            'total_cards' => $totalCards,
-            'total_transfers' => $totalTransfers,
-            'total_yape' => $totalYape,
-            'total_plin' => $totalPlin,
-            'total_amount' => $totalAmount,
-            'payments_count' => (int) ($data['payments_count'] ?? 0),
+            'total_cash' => $summary['cash'],
+            'total_cards' => $summary['cards'],
+            'total_transfers' => $summary['transfers'],
+            'total_yape' => $summary['yape'],
+            'total_plin' => $summary['plin'],
+            'total_amount' => $summary['total'],
+            'payments_count' => $summary['count'],
             'created_at' => now(),
         ]);
 
@@ -112,5 +107,61 @@ class CashClosureController extends Controller
     {
         $cashClosure->delete();
         return response()->noContent();
+    }
+
+    private function summarizePaymentsForDate(string $closureDate): array
+    {
+        $paidAtColumn = Schema::hasColumn('payments', 'paid_at') ? 'paid_at' : 'payment_date';
+        $payments = Payment::query()
+            ->whereDate($paidAtColumn, $closureDate)
+            ->get();
+
+        $summary = [
+            'cash' => 0.0,
+            'cards' => 0.0,
+            'transfers' => 0.0,
+            'yape' => 0.0,
+            'plin' => 0.0,
+            'count' => $payments->count(),
+            'total' => 0.0,
+        ];
+
+        foreach ($payments as $payment) {
+            $amount = (float) $payment->amount;
+            $notes = mb_strtoupper((string) ($payment->notes ?? ''));
+            $method = strtolower((string) ($payment->method ?? 'efectivo'));
+
+            if (str_contains($notes, '(EGRESO)')) {
+                $summary['cash'] -= $amount;
+                continue;
+            }
+
+            switch ($method) {
+                case 'tarjeta':
+                    $summary['cards'] += $amount;
+                    break;
+                case 'transferencia':
+                case 'pasarela':
+                    $summary['transfers'] += $amount;
+                    break;
+                case 'yape':
+                    $summary['yape'] += $amount;
+                    break;
+                case 'plin':
+                    $summary['plin'] += $amount;
+                    break;
+                default:
+                    $summary['cash'] += $amount;
+                    break;
+            }
+        }
+
+        $summary['total'] = $summary['cash']
+            + $summary['cards']
+            + $summary['transfers']
+            + $summary['yape']
+            + $summary['plin'];
+
+        return $summary;
     }
 }
