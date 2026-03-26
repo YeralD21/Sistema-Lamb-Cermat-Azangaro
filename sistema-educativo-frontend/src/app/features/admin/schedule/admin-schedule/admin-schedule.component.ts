@@ -5,17 +5,16 @@ import { BackButtonComponent } from '@shared/components/back-button/back-button.
 import { AcademicService, GradeLevel, Section, Course } from '@core/services/academic.service';
 import { ScheduleService } from '@core/services/schedule.service';
 import Swal from 'sweetalert2';
-import { AdminBackButtonComponent } from "@shared/components/back-button/admin-back-button.component";
 
 @Component({
   selector: 'app-admin-schedule',
   standalone: true,
-  imports: [CommonModule, FormsModule, ReactiveFormsModule, AdminBackButtonComponent],
+  imports: [CommonModule, FormsModule, ReactiveFormsModule, BackButtonComponent],
   template: `
     <div class="print:m-0 print:p-0 min-h-[calc(100vh-80px)] p-6 sm:p-10 max-w-[1400px] mx-auto space-y-8 text-slate-700">
       
       <div class="print:hidden">
-  <app-admin-back-button></app-admin-back-button>
+        <app-back-button></app-back-button>
       </div>
 
       <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-4 print:hidden">
@@ -322,9 +321,9 @@ export class AdminScheduleComponent implements OnInit {
 
   /* 07:45 intervals */
   timeScale = [
-    '07:00', '07:45', '08:30', '09:15', '10:00', '10:45', '11:30',
-    '12:15', '13:00', '13:45', '14:30', '15:15', '16:00', '16:45',
-    '17:30', '18:15'
+    '07:00','07:45','08:30','09:15','10:00','10:45','11:30',
+    '12:15','13:00','13:45','14:30','15:15','16:00','16:45',
+    '17:30','18:15'
   ];
   startMinutes = 7 * 60; // 07:00
   endMinutes = 18 * 60 + 15; // 18:15
@@ -347,7 +346,7 @@ export class AdminScheduleComponent implements OnInit {
   selectedGradeId = '';
   selectedSectionId = '';
   activeAcademicYearId = '';
-
+  
   loading = false;
   showModal = false;
   saving = false;
@@ -370,8 +369,8 @@ export class AdminScheduleComponent implements OnInit {
     this.academicService.getAcademicYears().subscribe(res => {
       const data = res.data?.data || res.data || res;
       if (Array.isArray(data)) {
-        const active = data.find((y: any) => y.is_active);
-        if (active) this.activeAcademicYearId = active.id;
+         const active = data.find((y: any) => y.is_active);
+         if (active) this.activeAcademicYearId = active.id;
       }
     });
 
@@ -379,7 +378,7 @@ export class AdminScheduleComponent implements OnInit {
       let data = res.data?.data || res.data || res;
       this.grades = Array.isArray(data) ? data : [];
     });
-
+    
     this.academicService.getTeachers().subscribe(res => {
       let data = res.data?.data || res.data || res;
       this.teachers = Array.isArray(data) ? data : [];
@@ -406,9 +405,9 @@ export class AdminScheduleComponent implements OnInit {
   loadSchedules() {
     if (!this.selectedSectionId || !this.activeAcademicYearId) return;
     this.loading = true;
-    this.scheduleService.getSchedules({
+    this.scheduleService.getSchedules({ 
       academic_year_id: this.activeAcademicYearId,
-      section_id: this.selectedSectionId
+      section_id: this.selectedSectionId 
     }).subscribe({
       next: (res) => {
         let items = res.data?.data || res.data || res;
@@ -424,9 +423,9 @@ export class AdminScheduleComponent implements OnInit {
     const courseIds = this.schedules.map(s => s.course_id);
     const uniqueIds = [...new Set(courseIds)];
     const ordered = uniqueIds.sort((a, b) => {
-      const aTime = Math.min(...this.schedules.filter(s => s.course_id === a).map(s => this.timeToMinutes(s.start_time)));
-      const bTime = Math.min(...this.schedules.filter(s => s.course_id === b).map(s => this.timeToMinutes(s.start_time)));
-      return aTime - bTime;
+       const aTime = Math.min(...this.schedules.filter(s => s.course_id === a).map(s => this.timeToMinutes(s.start_time)));
+       const bTime = Math.min(...this.schedules.filter(s => s.course_id === b).map(s => this.timeToMinutes(s.start_time)));
+       return aTime - bTime;
     });
     return ordered;
   }
@@ -481,7 +480,7 @@ export class AdminScheduleComponent implements OnInit {
     if (this.scheduleForm.invalid) return;
     this.saving = true;
     this.overlapError = false;
-
+    
     const payload = {
       ...this.scheduleForm.value,
       academic_year_id: this.activeAcademicYearId,
@@ -586,7 +585,7 @@ export class AdminScheduleComponent implements OnInit {
     const g = this.grades.find(g => g.id === this.selectedGradeId);
     return g ? (g.name || `${g.level} ${g.grade}°`) : '';
   }
-
+  
   getSelectedSectionLetter() {
     return this.sections.find(s => s.id === this.selectedSectionId)?.section_letter || '';
   }

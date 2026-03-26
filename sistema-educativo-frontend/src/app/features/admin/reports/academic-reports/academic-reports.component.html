@@ -1,5 +1,5 @@
 <div class="min-h-[calc(100vh-80px)] p-6 sm:p-8 max-w-7xl mx-auto space-y-6">
-  <app-admin-back-button></app-admin-back-button>
+  <app-back-button></app-back-button>
 
   <!-- Header -->
   <div>
@@ -8,13 +8,8 @@
   </div>
 
   <!-- Error banner -->
-  <div *ngIf="error"
-    class="flex items-start gap-2 bg-red-50 border border-red-200 text-red-700 px-4 py-3 rounded-lg text-sm">
-    <svg class="w-5 h-5 shrink-0 mt-0.5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-      <circle cx="12" cy="12" r="10" />
-      <line x1="12" y1="8" x2="12" y2="12" />
-      <line x1="12" y1="16" x2="12.01" y2="16" />
-    </svg>
+  <div *ngIf="error" class="flex items-start gap-2 bg-red-50 border border-red-200 text-red-700 px-4 py-3 rounded-lg text-sm">
+    <svg class="w-5 h-5 shrink-0 mt-0.5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg>
     <span>{{ error }}</span>
   </div>
 
@@ -24,40 +19,34 @@
       <!-- Asistencia -->
       <button (click)="setTab('attendance')"
         class="flex items-center gap-2 px-4 py-3 text-sm font-medium transition-all border-b-2"
-        [class.border-blue-600]="activeTab === 'attendance'" [class.text-blue-700]="activeTab === 'attendance'"
-        [class.border-transparent]="activeTab !== 'attendance'" [class.text-slate-500]="activeTab !== 'attendance'"
+        [class.border-blue-600]="activeTab === 'attendance'"
+        [class.text-blue-700]="activeTab === 'attendance'"
+        [class.border-transparent]="activeTab !== 'attendance'"
+        [class.text-slate-500]="activeTab !== 'attendance'"
         [class.hover:text-slate-700]="activeTab !== 'attendance'">
-        <svg class="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-          <rect width="18" height="18" x="3" y="4" rx="2" ry="2" />
-          <line x1="16" x2="16" y1="2" y2="6" />
-          <line x1="8" x2="8" y1="2" y2="6" />
-          <line x1="3" x2="21" y1="10" y2="10" />
-          <path d="m9 16 2 2 4-4" />
-        </svg>
+        <svg class="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect width="18" height="18" x="3" y="4" rx="2" ry="2"/><line x1="16" x2="16" y1="2" y2="6"/><line x1="8" x2="8" y1="2" y2="6"/><line x1="3" x2="21" y1="10" y2="10"/><path d="m9 16 2 2 4-4"/></svg>
         Asistencia
       </button>
       <!-- Evaluación -->
       <button (click)="setTab('evaluation')"
         class="flex items-center gap-2 px-4 py-3 text-sm font-medium transition-all border-b-2"
-        [class.border-blue-600]="activeTab === 'evaluation'" [class.text-blue-700]="activeTab === 'evaluation'"
-        [class.border-transparent]="activeTab !== 'evaluation'" [class.text-slate-500]="activeTab !== 'evaluation'"
+        [class.border-blue-600]="activeTab === 'evaluation'"
+        [class.text-blue-700]="activeTab === 'evaluation'"
+        [class.border-transparent]="activeTab !== 'evaluation'"
+        [class.text-slate-500]="activeTab !== 'evaluation'"
         [class.hover:text-slate-700]="activeTab !== 'evaluation'">
-        <svg class="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-          <path d="M2 3h6a4 4 0 0 1 4 4v14a3 3 0 0 0-3-3H2z" />
-          <path d="M22 3h-6a4 4 0 0 0-4 4v14a3 3 0 0 1 3-3h7z" />
-        </svg>
+        <svg class="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M2 3h6a4 4 0 0 1 4 4v14a3 3 0 0 0-3-3H2z"/><path d="M22 3h-6a4 4 0 0 0-4 4v14a3 3 0 0 1 3-3h7z"/></svg>
         Evaluación
       </button>
       <!-- Exportes SIAGIE -->
       <button (click)="setTab('siagie')"
         class="flex items-center gap-2 px-4 py-3 text-sm font-medium transition-all border-b-2"
-        [class.border-blue-600]="activeTab === 'siagie'" [class.text-blue-700]="activeTab === 'siagie'"
-        [class.border-transparent]="activeTab !== 'siagie'" [class.text-slate-500]="activeTab !== 'siagie'"
+        [class.border-blue-600]="activeTab === 'siagie'"
+        [class.text-blue-700]="activeTab === 'siagie'"
+        [class.border-transparent]="activeTab !== 'siagie'"
+        [class.text-slate-500]="activeTab !== 'siagie'"
         [class.hover:text-slate-700]="activeTab !== 'siagie'">
-        <svg class="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-          <path d="M14.5 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V7.5L14.5 2z" />
-          <polyline points="14 2 14 8 20 8" />
-        </svg>
+        <svg class="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M14.5 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V7.5L14.5 2z"/><polyline points="14 2 14 8 20 8"/></svg>
         Exportes SIAGIE
       </button>
     </div>
@@ -70,8 +59,7 @@
       <!-- Año Académico -->
       <div>
         <label class="block text-[10px] font-bold text-slate-400 mb-1.5 uppercase tracking-widest">Año Académico</label>
-        <select [(ngModel)]="selectedYear" (ngModelChange)="onYearChange()"
-          class="w-full bg-slate-50 border border-slate-200 text-slate-700 rounded-lg px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 transition-all">
+        <select [(ngModel)]="selectedYear" (ngModelChange)="onYearChange()" class="w-full bg-slate-50 border border-slate-200 text-slate-700 rounded-lg px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 transition-all">
           <option value="">Seleccionar año</option>
           <option *ngFor="let y of academicYears" [value]="y.id">{{ y.year }}</option>
         </select>
@@ -80,8 +68,7 @@
       <!-- Periodo -->
       <div>
         <label class="block text-[10px] font-bold text-slate-400 mb-1.5 uppercase tracking-widest">Periodo</label>
-        <select [(ngModel)]="selectedPeriod" (ngModelChange)="onPeriodChange()" [disabled]="!selectedYear"
-          class="w-full bg-slate-50 border border-slate-200 text-slate-700 rounded-lg px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 transition-all disabled:opacity-50 disabled:cursor-not-allowed">
+        <select [(ngModel)]="selectedPeriod" (ngModelChange)="onPeriodChange()" [disabled]="!selectedYear" class="w-full bg-slate-50 border border-slate-200 text-slate-700 rounded-lg px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 transition-all disabled:opacity-50 disabled:cursor-not-allowed">
           <option value="">Seleccionar periodo</option>
           <option *ngFor="let p of periods" [value]="p.id">{{ p.name }}</option>
         </select>
@@ -90,8 +77,7 @@
       <!-- Grado -->
       <div>
         <label class="block text-[10px] font-bold text-slate-400 mb-1.5 uppercase tracking-widest">Grado</label>
-        <select [(ngModel)]="selectedGrade" (ngModelChange)="onGradeChange()"
-          class="w-full bg-slate-50 border border-slate-200 text-slate-700 rounded-lg px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 transition-all">
+        <select [(ngModel)]="selectedGrade" (ngModelChange)="onGradeChange()" class="w-full bg-slate-50 border border-slate-200 text-slate-700 rounded-lg px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 transition-all">
           <option value="">Seleccionar grado</option>
           <option *ngFor="let g of grades" [value]="g.id">{{ g.grade }}° {{ g.level }}</option>
         </select>
@@ -100,8 +86,7 @@
       <!-- Sección -->
       <div>
         <label class="block text-[10px] font-bold text-slate-400 mb-1.5 uppercase tracking-widest">Sección</label>
-        <select [(ngModel)]="selectedSection" (ngModelChange)="onSectionChange()" [disabled]="!selectedGrade"
-          class="w-full bg-slate-50 border border-slate-200 text-slate-700 rounded-lg px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 transition-all disabled:opacity-50 disabled:cursor-not-allowed">
+        <select [(ngModel)]="selectedSection" (ngModelChange)="onSectionChange()" [disabled]="!selectedGrade" class="w-full bg-slate-50 border border-slate-200 text-slate-700 rounded-lg px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 transition-all disabled:opacity-50 disabled:cursor-not-allowed">
           <option value="">Seleccionar sección</option>
           <option *ngFor="let s of sections" [value]="s.id">Sección {{ s.section_letter }}</option>
         </select>
@@ -110,8 +95,7 @@
       <!-- Curso (solo en tab Evaluación) -->
       <div *ngIf="activeTab === 'evaluation'">
         <label class="block text-[10px] font-bold text-slate-400 mb-1.5 uppercase tracking-widest">Curso</label>
-        <select [(ngModel)]="selectedCourse" (ngModelChange)="onCourseChange()" [disabled]="!selectedSection"
-          class="w-full bg-slate-50 border border-slate-200 text-slate-700 rounded-lg px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 transition-all disabled:opacity-50 disabled:cursor-not-allowed">
+        <select [(ngModel)]="selectedCourse" (ngModelChange)="onCourseChange()" [disabled]="!selectedSection" class="w-full bg-slate-50 border border-slate-200 text-slate-700 rounded-lg px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 transition-all disabled:opacity-50 disabled:cursor-not-allowed">
           <option value="">Seleccionar curso</option>
           <option *ngFor="let c of courses" [value]="c.id">{{ c.name }}</option>
         </select>
@@ -130,63 +114,45 @@
     <!-- KPI Cards -->
     <div class="grid md:grid-cols-3 gap-6">
       <!-- Avg Attendance -->
-      <div
-        class="bg-white rounded-2xl border border-slate-100 shadow-sm p-6 relative overflow-hidden group hover:shadow-md transition-shadow">
+      <div class="bg-white rounded-2xl border border-slate-100 shadow-sm p-6 relative overflow-hidden group hover:shadow-md transition-shadow">
         <div class="absolute top-0 left-0 w-1 h-full bg-green-500"></div>
         <div class="flex items-center justify-between mb-4">
           <span class="text-3xl font-semibold text-slate-900 tracking-tight">{{ avgAttendance.toFixed(1) }}%</span>
           <div class="p-2 bg-green-50 rounded-lg">
-            <svg class="w-6 h-6 text-green-600" viewBox="0 0 24 24" fill="none" stroke="currentColor"
-              stroke-width="2.5">
-              <polyline points="22 7 13.5 15.5 8.5 10.5 2 17" />
-              <polyline points="16 7 22 7 22 13" />
-            </svg>
+            <svg class="w-6 h-6 text-green-600" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="22 7 13.5 15.5 8.5 10.5 2 17"/><polyline points="16 7 22 7 22 13"/></svg>
           </div>
         </div>
         <p class="text-xs font-bold text-slate-400 uppercase tracking-widest">Asistencia Promedio</p>
       </div>
 
       <!-- Total faltas -->
-      <div
-        class="bg-white rounded-2xl border border-slate-100 shadow-sm p-6 relative overflow-hidden group hover:shadow-md transition-shadow">
+      <div class="bg-white rounded-2xl border border-slate-100 shadow-sm p-6 relative overflow-hidden group hover:shadow-md transition-shadow">
         <div class="absolute top-0 left-0 w-1 h-full bg-red-500"></div>
         <div class="flex items-center justify-between mb-4">
           <span class="text-3xl font-semibold text-slate-900 tracking-tight">{{ totalAbsences }}</span>
           <div class="p-2 bg-red-50 rounded-lg">
-            <svg class="w-6 h-6 text-red-600" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
-              <circle cx="12" cy="12" r="10" />
-              <line x1="12" y1="8" x2="12" y2="12" />
-              <line x1="12" y1="16" x2="12.01" y2="16" />
-            </svg>
+            <svg class="w-6 h-6 text-red-600" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg>
           </div>
         </div>
         <p class="text-xs font-bold text-slate-400 uppercase tracking-widest">Total Faltas en Periodo</p>
       </div>
 
       <!-- Top absentees -->
-      <div
-        class="bg-white rounded-2xl border border-slate-100 shadow-sm p-6 relative overflow-hidden group hover:shadow-md transition-shadow">
+      <div class="bg-white rounded-2xl border border-slate-100 shadow-sm p-6 relative overflow-hidden group hover:shadow-md transition-shadow">
         <div class="absolute top-0 left-0 w-1 h-full bg-yellow-400"></div>
         <div class="flex items-start justify-between mb-4">
           <div class="space-y-2">
             <p class="text-xs font-bold text-slate-400 uppercase tracking-widest mb-1">Inasistencia (Top 3)</p>
             <ul *ngIf="topAbsentees.length > 0" class="text-sm text-slate-700 font-medium space-y-1">
               <li *ngFor="let name of topAbsentees; let i = index" class="flex items-center gap-2">
-                <span
-                  class="w-4 h-4 flex items-center justify-center bg-yellow-100 text-yellow-700 rounded-full text-[10px] font-bold">{{
-                  i+1 }}</span>
+                <span class="w-4 h-4 flex items-center justify-center bg-yellow-100 text-yellow-700 rounded-full text-[10px] font-bold">{{ i+1 }}</span>
                 {{ name }}
               </li>
             </ul>
             <p *ngIf="topAbsentees.length === 0" class="text-sm text-slate-400 italic">Sin datos suficientes</p>
           </div>
           <div class="p-2 bg-yellow-50 rounded-lg shrink-0">
-            <svg class="w-6 h-6 text-yellow-600" viewBox="0 0 24 24" fill="none" stroke="currentColor"
-              stroke-width="2.5">
-              <path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2" />
-              <circle cx="9" cy="7" r="4" />
-              <path d="M22 21v-2a4 4 0 0 0-3-3.87" />
-            </svg>
+            <svg class="w-6 h-6 text-yellow-600" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M22 21v-2a4 4 0 0 0-3-3.87"/></svg>
           </div>
         </div>
       </div>
@@ -197,25 +163,15 @@
       <div class="px-6 py-5 border-b border-slate-50 flex flex-col sm:flex-row sm:items-center justify-between gap-4">
         <div>
           <h3 class="text-lg font-bold text-slate-900">Consolidado de Asistencia</h3>
-          <p class="text-xs text-slate-400 font-medium uppercase tracking-tight">{{ attendanceData.length }} estudiantes
-            registrados</p>
+          <p class="text-xs text-slate-400 font-medium uppercase tracking-tight">{{ attendanceData.length }} estudiantes registrados</p>
         </div>
         <div class="flex gap-2">
-          <button (click)="exportCSV('attendance')"
-            class="flex items-center gap-2 px-4 py-2 border border-slate-200 text-slate-700 text-sm font-semibold rounded-lg hover:bg-slate-50 transition-all active:scale-95 shadow-sm">
-            <svg class="w-4 h-4 text-slate-500" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-              <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4" />
-              <polyline points="7 10 12 15 17 10" />
-              <line x1="12" y1="15" x2="12" y2="3" />
-            </svg>
+          <button (click)="exportCSV('attendance')" class="flex items-center gap-2 px-4 py-2 border border-slate-200 text-slate-700 text-sm font-semibold rounded-lg hover:bg-slate-50 transition-all active:scale-95 shadow-sm">
+            <svg class="w-4 h-4 text-slate-500" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
             Excel / CSV
           </button>
-          <button (click)="exportPDF('attendance')"
-            class="flex items-center gap-2 px-4 py-2 bg-slate-900 text-white text-sm font-semibold rounded-lg hover:bg-slate-800 transition-all active:scale-95 shadow-md">
-            <svg class="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-              <path d="M14.5 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V7.5L14.5 2z" />
-              <polyline points="14 2 14 8 20 8" />
-            </svg>
+          <button (click)="exportPDF('attendance')" class="flex items-center gap-2 px-4 py-2 bg-slate-900 text-white text-sm font-semibold rounded-lg hover:bg-slate-800 transition-all active:scale-95 shadow-md">
+            <svg class="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M14.5 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V7.5L14.5 2z"/><polyline points="14 2 14 8 20 8"/></svg>
             Imprimir PDF
           </button>
         </div>
@@ -224,10 +180,7 @@
         <!-- Empty state -->
         <div *ngIf="attendanceData.length === 0" class="text-center py-20">
           <div class="p-4 bg-slate-50 rounded-full w-16 h-16 flex items-center justify-center mx-auto mb-4">
-            <svg class="w-8 h-8 text-slate-300" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-              <circle cx="11" cy="11" r="8" />
-              <line x1="21" y1="21" x2="16.65" y2="16.65" />
-            </svg>
+            <svg class="w-8 h-8 text-slate-300" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
           </div>
           <p class="text-slate-500 font-medium">No se han encontrado registros</p>
           <p class="text-slate-400 text-sm">Selecciona los filtros arriba para generar el reporte consolidado.</p>
@@ -250,8 +203,7 @@
                 <td class="py-4 px-4 text-sm font-mono text-slate-500">{{ row.student_code }}</td>
                 <td class="py-4 px-4 text-sm font-bold text-slate-800">{{ row.student_name }}</td>
                 <td class="py-4 px-4 text-center">
-                  <span class="px-3 py-1 rounded-full text-xs font-bold shadow-sm"
-                    [class]="attendanceBadgeClass(row.attendance_percentage)">
+                  <span class="px-3 py-1 rounded-full text-xs font-bold shadow-sm" [class]="attendanceBadgeClass(row.attendance_percentage)">
                     {{ row.attendance_percentage.toFixed(1) }}%
                   </span>
                 </td>
@@ -272,12 +224,9 @@
     <div class="grid md:grid-cols-2 gap-6">
       <!-- Grade distribution -->
       <div class="bg-white rounded-2xl shadow-sm border border-slate-100 p-6">
-        <h3 class="text-[10px] font-bold text-slate-400 uppercase tracking-widest mb-6">Distribución de Calificaciones
-        </h3>
+        <h3 class="text-[10px] font-bold text-slate-400 uppercase tracking-widest mb-6">Distribución de Calificaciones</h3>
         <div class="space-y-4">
-          <div
-            *ngFor="let g of [{l:'AD', n:gradeDistribution.AD, c:'bg-green-500'}, {l:'A', n:gradeDistribution.A, c:'bg-blue-500'}, {l:'B', n:gradeDistribution.B, c:'bg-yellow-400'}, {l:'C', n:gradeDistribution.C, c:'bg-red-500'}]"
-            class="space-y-1.5">
+          <div *ngFor="let g of [{l:'AD', n:gradeDistribution.AD, c:'bg-green-500'}, {l:'A', n:gradeDistribution.A, c:'bg-blue-500'}, {l:'B', n:gradeDistribution.B, c:'bg-yellow-400'}, {l:'C', n:gradeDistribution.C, c:'bg-red-500'}]" class="space-y-1.5">
             <div class="flex items-center justify-between text-xs font-bold uppercase tracking-tight">
               <span class="text-slate-600">{{ g.l }}</span>
               <span class="text-slate-900">{{ g.n }}%</span>
@@ -290,17 +239,12 @@
       </div>
 
       <!-- Students at risk -->
-      <div
-        class="bg-white rounded-2xl border border-slate-100 shadow-sm p-6 relative overflow-hidden group hover:shadow-md transition-shadow">
+      <div class="bg-white rounded-2xl border border-slate-100 shadow-sm p-6 relative overflow-hidden group hover:shadow-md transition-shadow">
         <div class="absolute top-0 left-0 w-1 h-full bg-red-600"></div>
         <div class="flex items-center justify-between mb-4">
           <span class="text-4xl font-semibold text-slate-900 tracking-tighter">{{ studentsAtRisk }}</span>
           <div class="p-3 bg-red-50 rounded-xl">
-            <svg class="w-8 h-8 text-red-600" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
-              <circle cx="12" cy="12" r="10" />
-              <line x1="12" y1="8" x2="12" y2="12" />
-              <line x1="12" y1="16" x2="12.01" y2="16" />
-            </svg>
+            <svg class="w-8 h-8 text-red-600" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg>
           </div>
         </div>
         <p class="text-sm font-bold text-slate-900">Estudiantes en Riesgo Académico</p>
@@ -313,16 +257,13 @@
       <div class="px-6 py-5 border-b border-slate-50 flex flex-col sm:flex-row sm:items-center justify-between gap-4">
         <div>
           <h3 class="text-lg font-bold text-slate-900">Consolidado de Evaluación</h3>
-          <p class="text-xs text-slate-400 font-medium uppercase tracking-tight">{{ evaluationData.length }} alumnos
-            evaluados</p>
+          <p class="text-xs text-slate-400 font-medium uppercase tracking-tight">{{ evaluationData.length }} alumnos evaluados</p>
         </div>
         <div class="flex gap-2">
-          <button (click)="exportCSV('evaluation')"
-            class="flex items-center gap-2 px-4 py-2 border border-slate-200 text-slate-700 text-sm font-semibold rounded-lg hover:bg-slate-50 transition-all shadow-sm">
+          <button (click)="exportCSV('evaluation')" class="flex items-center gap-2 px-4 py-2 border border-slate-200 text-slate-700 text-sm font-semibold rounded-lg hover:bg-slate-50 transition-all shadow-sm">
             CSV
           </button>
-          <button (click)="exportPDF('evaluation')"
-            class="flex items-center gap-2 px-4 py-2 bg-blue-700 text-white text-sm font-semibold rounded-lg hover:bg-blue-600 transition-all shadow-md">
+          <button (click)="exportPDF('evaluation')" class="flex items-center gap-2 px-4 py-2 bg-blue-700 text-white text-sm font-semibold rounded-lg hover:bg-blue-600 transition-all shadow-md">
             Descargar Reporte PDF
           </button>
         </div>
@@ -348,15 +289,12 @@
                 <td class="py-4 px-4 text-xs font-mono text-slate-500">{{ row.student_code }}</td>
                 <td class="py-4 px-4 text-sm font-bold text-slate-800">{{ row.student_name }}</td>
                 <td *ngFor="let comp of competenciesList" class="py-4 px-2 text-center">
-                  <span class="w-8 h-8 flex items-center justify-center rounded-lg text-xs font-bold border"
-                    [class]="gradeBadgeClass(row.competencies[comp.id])">
+                  <span class="w-8 h-8 flex items-center justify-center rounded-lg text-xs font-bold border" [class]="gradeBadgeClass(row.competencies[comp.id])">
                     {{ row.competencies[comp.id] || '-' }}
                   </span>
                 </td>
                 <td class="py-4 px-4 text-center">
-                  <span
-                    class="w-10 h-10 flex items-center justify-center rounded-xl text-sm font-bold border-2 shadow-sm shrink-0 mx-auto"
-                    [class]="gradeBadgeClass(row.final_grade)">
+                  <span class="w-10 h-10 flex items-center justify-center rounded-xl text-sm font-bold border-2 shadow-sm shrink-0 mx-auto" [class]="gradeBadgeClass(row.final_grade)">
                     {{ row.final_grade }}
                   </span>
                 </td>
@@ -371,24 +309,17 @@
   <!-- ══════════════ TAB: SIAGIE ══════════════ -->
   <ng-container *ngIf="!loading && activeTab === 'siagie'">
     <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
-
+      
       <!-- Export Cards -->
-      <div
-        *ngFor="let exp of [{t:'Matrícula', d:'Lista consolidada de estudiantes matriculados', i:'M'}, {t:'Asistencia', d:'Consolidado de asistencia por periodos', i:'A'}, {t:'Evaluación', d:'Calificaciones por competencias y descriptores', i:'E'}]"
-        class="bg-white rounded-2xl p-6 border border-slate-100 shadow-sm group hover:border-blue-500/30 hover:shadow-md transition-all">
-        <div
-          class="w-12 h-12 bg-blue-50 text-blue-600 rounded-xl flex items-center justify-center font-bold text-xl mb-4 group-hover:bg-blue-600 group-hover:text-white transition-colors">
+      <div *ngFor="let exp of [{t:'Matrícula', d:'Lista consolidada de estudiantes matriculados', i:'M'}, {t:'Asistencia', d:'Consolidado de asistencia por periodos', i:'A'}, {t:'Evaluación', d:'Calificaciones por competencias y descriptores', i:'E'}]"
+           class="bg-white rounded-2xl p-6 border border-slate-100 shadow-sm group hover:border-blue-500/30 hover:shadow-md transition-all">
+        <div class="w-12 h-12 bg-blue-50 text-blue-600 rounded-xl flex items-center justify-center font-bold text-xl mb-4 group-hover:bg-blue-600 group-hover:text-white transition-colors">
           {{ exp.i }}
         </div>
         <h4 class="text-lg font-bold text-slate-900 mb-2">Exporte de {{ exp.t }}</h4>
         <p class="text-sm text-slate-500 mb-6 leading-relaxed">{{ exp.d }}</p>
-        <button (click)="exportSIAGIE('matricula')"
-          class="w-full flex items-center justify-center gap-2 px-4 py-3 bg-slate-50 hover:bg-slate-100 text-slate-700 text-sm font-bold rounded-xl transition-all border border-slate-200 uppercase tracking-widest text-[10px]">
-          <svg class="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-            <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4" />
-            <polyline points="7 10 12 15 17 10" />
-            <line x1="12" y1="15" x2="12" y2="3" />
-          </svg>
+        <button (click)="exportSIAGIE('matricula')" class="w-full flex items-center justify-center gap-2 px-4 py-3 bg-slate-50 hover:bg-slate-100 text-slate-700 text-sm font-bold rounded-xl transition-all border border-slate-200 uppercase tracking-widest text-[10px]">
+          <svg class="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
           Generar CSV
         </button>
       </div>
@@ -398,17 +329,11 @@
     <!-- Info Banner -->
     <div class="bg-blue-50/50 border border-blue-100 rounded-2xl p-6 flex items-start gap-4">
       <div class="p-2 bg-blue-100 rounded-lg shrink-0">
-        <svg class="w-5 h-5 text-blue-600" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
-          <circle cx="12" cy="12" r="10" />
-          <line x1="12" y1="16" x2="12" y2="12" />
-          <line x1="12" y1="8" x2="12.01" y2="8" />
-        </svg>
+        <svg class="w-5 h-5 text-blue-600" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><circle cx="12" cy="12" r="10"/><line x1="12" y1="16" x2="12" y2="12"/><line x1="12" y1="8" x2="12.01" y2="8"/></svg>
       </div>
       <div class="space-y-1">
         <p class="text-sm font-bold text-blue-900">Nota sobre exportes para el portal SIAGIE (MINEDU)</p>
-        <p class="text-xs text-blue-700/80 leading-relaxed font-medium">Los archivos se generan bajo el estándar UTF-8
-          con BOM para asegurar la correcta visualización de caracteres en Microsoft Excel. Recuerda verificar el
-          periodo actual habilitado en el portal del gobierno antes de realizar la carga masiva.</p>
+        <p class="text-xs text-blue-700/80 leading-relaxed font-medium">Los archivos se generan bajo el estándar UTF-8 con BOM para asegurar la correcta visualización de caracteres en Microsoft Excel. Recuerda verificar el periodo actual habilitado en el portal del gobierno antes de realizar la carga masiva.</p>
       </div>
     </div>
   </ng-container>

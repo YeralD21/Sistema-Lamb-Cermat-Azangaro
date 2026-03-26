@@ -1,19 +1,19 @@
 import { Component, OnInit } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
+import { BackButtonComponent } from '@shared/components/back-button/back-button.component';
 import { SettingMetricCardComponent } from '@shared/components/setting-metric-card/setting-metric-card.component';
 import { AcademicService, StudentCourseEnrollment } from '@core/services/academic.service';
 import Swal from 'sweetalert2';
-import { AdminBackButtonComponent } from "@shared/components/back-button/admin-back-button.component";
 
 @Component({
   selector: 'app-enrollment-config',
   standalone: true,
-  imports: [CommonModule, FormsModule, SettingMetricCardComponent, AdminBackButtonComponent],
+  imports: [CommonModule, FormsModule, BackButtonComponent, SettingMetricCardComponent],
   template: `
     <div class="min-h-[calc(100vh-80px)] p-6 sm:p-10 max-w-7xl mx-auto space-y-8 animate-fade-in text-slate-700">
       
-    <app-admin-back-button></app-admin-back-button>
+      <app-back-button></app-back-button>
 
       <!-- Header Section -->
       <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-6">
@@ -104,7 +104,7 @@ import { AdminBackButtonComponent } from "@shared/components/back-button/admin-b
 export class EnrollmentConfigComponent implements OnInit {
   enrollments: StudentCourseEnrollment[] = [];
   filteredEnrollments: StudentCourseEnrollment[] = [];
-
+  
   loading = false;
   searchTerm = '';
   statusFilter = '';
@@ -113,7 +113,7 @@ export class EnrollmentConfigComponent implements OnInit {
   get activeEnrollments() { return this.enrollments.filter(e => e.status === 'active').length; }
   get inactiveEnrollments() { return this.enrollments.filter(e => e.status !== 'active').length; }
 
-  constructor(private academicService: AcademicService) { }
+  constructor(private academicService: AcademicService) {}
 
   ngOnInit() {
     this.loadEnrollments();
@@ -137,12 +137,12 @@ export class EnrollmentConfigComponent implements OnInit {
 
   applyFilters() {
     this.filteredEnrollments = this.enrollments.filter(enrollment => {
-      const matchSearch = this.searchTerm === '' ||
-        (enrollment.user_id?.toLowerCase() || '').includes(this.searchTerm.toLowerCase()) ||
-        (enrollment.course_id?.toLowerCase() || '').includes(this.searchTerm.toLowerCase());
-
-      const matchStatus = this.statusFilter === '' ||
-        enrollment.status === this.statusFilter;
+      const matchSearch = this.searchTerm === '' || 
+                          (enrollment.user_id?.toLowerCase() || '').includes(this.searchTerm.toLowerCase()) || 
+                          (enrollment.course_id?.toLowerCase() || '').includes(this.searchTerm.toLowerCase());
+      
+      const matchStatus = this.statusFilter === '' || 
+                          enrollment.status === this.statusFilter;
 
       return matchSearch && matchStatus;
     });

@@ -5,5 +5,4 @@ export interface User {
   email: string;
   name: string;
   role: UserRole;
-  profile_id?: string;
 }

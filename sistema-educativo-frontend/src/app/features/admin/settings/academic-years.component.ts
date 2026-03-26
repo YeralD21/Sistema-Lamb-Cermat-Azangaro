@@ -6,18 +6,17 @@ import { ReactiveFormsModule, FormBuilder, FormGroup, Validators } from '@angula
 import { BackButtonComponent } from '@shared/components/back-button/back-button.component';
 import { SettingMetricCardComponent } from '@shared/components/setting-metric-card/setting-metric-card.component';
 import Swal from 'sweetalert2';
-import { AdminBackButtonComponent } from "@shared/components/back-button/admin-back-button.component";
 
 @Component({
   selector: 'app-academic-years',
   standalone: true,
-  imports: [CommonModule, ReactiveFormsModule, SettingMetricCardComponent, AdminBackButtonComponent],
+  imports: [CommonModule, ReactiveFormsModule, BackButtonComponent, SettingMetricCardComponent],
   template: `
     <div class="min-h-[calc(100vh-80px)] p-6 sm:p-10 max-w-7xl mx-auto space-y-8 animate-fade-in text-slate-700 relative">
       <!-- Header -->
       <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-6 mb-2">
         <div class="flex items-center gap-4">
-  <app-admin-back-button></app-admin-back-button>
+          <app-back-button></app-back-button>
           <div class="space-y-1">
             <h1 class="text-2xl sm:text-3xl font-medium text-[#0F172A] tracking-tight">Años Académicos</h1>
             <p class="text-slate-500 text-sm font-normal">Gestiona los años lectivos de la institución</p>

@@ -4,15 +4,14 @@ import { FormBuilder, FormGroup, Validators, ReactiveFormsModule, FormsModule } 
 import { BackButtonComponent } from '@shared/components/back-button/back-button.component';
 import { AcademicService, Course, GradeLevel } from '@core/services/academic.service';
 import Swal from 'sweetalert2';
-import { AdminBackButtonComponent } from "@shared/components/back-button/admin-back-button.component";
 
 @Component({
   selector: 'app-courses',
   standalone: true,
-  imports: [CommonModule, ReactiveFormsModule, FormsModule, AdminBackButtonComponent],
+  imports: [CommonModule, ReactiveFormsModule, FormsModule, BackButtonComponent],
   template: `
     <div class="min-h-[calc(100vh-80px)] p-6 sm:p-10 max-w-7xl mx-auto space-y-8 animate-fade-in text-slate-700 relative">
-    <app-admin-back-button></app-admin-back-button>
+      <app-back-button></app-back-button>
 
       <!-- Header Section -->
       <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-6">

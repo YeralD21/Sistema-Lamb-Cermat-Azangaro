@@ -2,17 +2,17 @@ import { Component, OnInit, inject, signal } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { RouterModule } from '@angular/router';
 import { FormsModule } from '@angular/forms';
+import { BackButtonComponent } from '@shared/components/back-button/back-button.component';
 import { Assignment, TaskService } from '@core/services/task.service';
 import { AcademicService, Course, Section } from '@core/services/academic.service';
-import { AdminBackButtonComponent } from "@shared/components/back-button/admin-back-button.component";
 
 @Component({
   selector: 'app-task-management',
   standalone: true,
-  imports: [CommonModule, RouterModule, FormsModule, AdminBackButtonComponent],
+  imports: [CommonModule, RouterModule, FormsModule, BackButtonComponent],
   template: `
     <div class="min-h-[calc(100vh-80px)] p-6 sm:p-10 max-w-7xl mx-auto space-y-8">
-    <app-admin-back-button></app-admin-back-button>
+      <app-back-button></app-back-button>
 
       <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-6">
         <div>

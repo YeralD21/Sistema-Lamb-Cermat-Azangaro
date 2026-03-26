@@ -10,15 +10,14 @@ import {
   TaskSubmission,
 } from '@core/services/task.service';
 import { AcademicService, Course } from '@core/services/academic.service';
-import { AdminBackButtonComponent } from "@shared/components/back-button/admin-back-button.component";
 
 @Component({
   selector: 'app-task-grading',
   standalone: true,
-  imports: [CommonModule, FormsModule, AdminBackButtonComponent],
+  imports: [CommonModule, FormsModule, BackButtonComponent],
   template: `
     <div class="min-h-[calc(100vh-80px)] p-6 sm:p-10 max-w-7xl mx-auto space-y-8">
-    <app-admin-back-button></app-admin-back-button>
+      <app-back-button></app-back-button>
 
       <div>
         <h1 class="text-3xl font-semibold text-blue-900 tracking-tight">Calificar Entregas</h1>

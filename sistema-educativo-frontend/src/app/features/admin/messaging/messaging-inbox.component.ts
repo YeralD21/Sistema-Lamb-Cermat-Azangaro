@@ -1,20 +1,18 @@
-import { Component, OnInit, ElementRef, ViewChild } from '@angular/core';
+import { Component, OnInit } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { HttpClient } from '@angular/common/http';
 import { BackButtonComponent } from '@shared/components/back-button/back-button.component';
 import { MessagingService, Message } from '@core/services/messaging.service';
-import { AuthService } from '@core/services/auth.service';
 import { environment } from '../../../../environments/environment';
-import { AdminBackButtonComponent } from '@shared/components/back-button/admin-back-button.component';
 
 @Component({
   selector: 'app-messaging-inbox',
   standalone: true,
-  imports: [CommonModule, FormsModule, AdminBackButtonComponent],
+  imports: [CommonModule, FormsModule, BackButtonComponent],
   template: `
     <div class="min-h-[calc(100vh-80px)] p-6 sm:p-10 max-w-7xl mx-auto space-y-8 animate-fade-in text-slate-700">
-  <app-admin-back-button></app-admin-back-button>
+      <app-back-button></app-back-button>
 
       <!-- Header Section -->
       <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-6">
@@ -28,15 +26,11 @@ import { AdminBackButtonComponent } from '@shared/components/back-button/admin-b
         
         <!-- Conversation List (Students) -->
         <div class="lg:col-span-4 bg-white border border-slate-100 rounded-3xl shadow-sm overflow-hidden flex flex-col">
-          <div class="p-6 border-b border-slate-50 bg-slate-50/10 flex flex-col gap-4">
-            <div class="flex items-center justify-between">
-              <h2 class="text-sm font-semibold text-slate-700 uppercase tracking-widest">Estudiantes (Contactos)</h2>
-            </div>
-            <div class="relative">
-              <input type="text" [(ngModel)]="searchTerm" placeholder="Buscar por nombre..." 
-                     class="w-full bg-white border border-slate-200 text-sm rounded-xl pl-10 pr-4 py-2.5 focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500/50 transition-all shadow-sm">
-              <svg class="w-4 h-4 text-slate-400 absolute left-3.5 top-3" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
-            </div>
+          <div class="p-6 border-b border-slate-50 bg-slate-50/10 flex items-center justify-between">
+            <h2 class="text-sm font-semibold text-slate-700 uppercase tracking-widest">Estudiantes (Contactos)</h2>
+            <button class="p-2 text-slate-400 hover:text-blue-900 transition-all">
+              <svg class="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><circle cx="11" cy="11" r="8"/><path d="m21 21-4.3-4.3"/></svg>
+            </button>
           </div>
           
           <div *ngIf="loadingStudents" class="p-8 text-center text-slate-400 text-sm font-medium">
@@ -44,7 +38,7 @@ import { AdminBackButtonComponent } from '@shared/components/back-button/admin-b
           </div>
           
           <div class="flex-1 overflow-y-auto p-4 space-y-2 custom-scrollbar">
-            <div *ngFor="let student of filteredStudents" 
+            <div *ngFor="let student of students" 
                  (click)="selectStudent(student)"
                  [class]="'p-4 rounded-2xl cursor-pointer transition-all group scale-100 active:scale-[0.98] ' + 
                           (selectedStudent?.id === student.id ? 'bg-blue-900 text-white shadow-lg selected-chat' : 'hover:bg-slate-50 border border-transparent hover:border-slate-100')">
@@ -100,36 +94,15 @@ import { AdminBackButtonComponent } from '@shared/components/back-button/admin-b
                <p class="text-sm text-slate-400 font-medium">No hay mensajes aún.</p>
             </div>
 
-            <div #messagesContainer class="flex-1 overflow-y-auto p-8 space-y-6 custom-scrollbar bg-slate-50/5">
-              
-              <div *ngFor="let group of groupedMessages" class="space-y-6">
-                <!-- Date Separator -->
-                <div class="flex justify-center my-4">
-                  <span class="bg-indigo-50 text-indigo-500 border border-indigo-100/50 text-[10px] font-bold uppercase tracking-wide py-1.5 px-3 rounded-full shadow-sm">
-                    {{ group.date }}
-                  </span>
-                </div>
-                
-                <div *ngFor="let msg of group.messages" 
-                     [class]="'flex ' + (msg.sender_id === currentUserProfileId ? 'justify-end' : 'justify-start')">
-                  <div [class]="'max-w-[80%] rounded-2xl p-4 shadow-sm relative group '"
-                       [ngClass]="msg.sender_id === currentUserProfileId ? 'bg-blue-900 text-white rounded-tr-none' : 'bg-white border border-slate-100 text-slate-700 rounded-tl-none'">
-                    <p class="text-sm font-medium leading-relaxed">{{ msg.content }}</p>
-                    <div [class]="'flex items-center gap-1 mt-2 ' + (msg.sender_id === currentUserProfileId ? 'justify-end text-blue-100' : 'text-slate-400')">
-                      <span class="text-[9px] font-bold uppercase tracking-widest">{{ msg.created_at | date:'shortTime' }}</span>
-                      
-                      <div *ngIf="msg.sender_id === currentUserProfileId" class="ml-0.5 flex items-center">
-                        <!-- Double check for read -->
-                        <svg *ngIf="msg.is_read" class="w-4 h-4 text-sky-400 drop-shadow-sm" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
-                          <polyline points="18 6 11 15 8 12"></polyline>
-                          <path d="M22 6l-7 9-1.5-1.5"></path>
-                        </svg>
-                        <!-- Single check for not read -->
-                        <svg *ngIf="!msg.is_read" class="w-4 h-4 text-white/50" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
-                          <polyline points="20 6 9 17 4 12"></polyline>
-                        </svg>
-                      </div>
-                    </div>
+            <div class="flex-1 overflow-y-auto p-8 space-y-6 custom-scrollbar bg-slate-50/5">
+              <div *ngFor="let msg of messages" 
+                   [class]="'flex ' + (msg.sender_id === simulatedSenderId ? 'justify-end' : 'justify-start')">
+                <div [class]="'max-w-[80%] rounded-2xl p-4 shadow-sm relative group '"
+                     [ngClass]="msg.sender_id === simulatedSenderId ? 'bg-blue-900 text-white rounded-tr-none' : 'bg-white border border-slate-100 text-slate-700 rounded-tl-none'">
+                  <p class="text-sm font-medium leading-relaxed">{{ msg.content }}</p>
+                  <div [class]="'flex items-center gap-1 mt-2 ' + (msg.sender_id === simulatedSenderId ? 'justify-end text-blue-100' : 'text-slate-400')">
+                    <span class="text-[9px] font-bold uppercase tracking-widest">{{ msg.created_at | date:'shortTime' }}</span>
+                    <svg *ngIf="msg.sender_id === simulatedSenderId" class="w-3 h-3" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3"><polyline points="20 6 9 17 4 12"/></svg>
                   </div>
                 </div>
               </div>
@@ -195,45 +168,34 @@ import { AdminBackButtonComponent } from '@shared/components/back-button/admin-b
 export class MessagingInboxComponent implements OnInit {
   newMessage = '';
   selectedStudent: any = null;
-
+  
   students: any[] = [];
   messages: Message[] = [];
-  groupedMessages: { date: string, messages: Message[] }[] = [];
-
+  
   loadingStudents = false;
   loadingMessages = false;
   sendingMessage = false;
-
-  searchTerm = '';
-  @ViewChild('messagesContainer') private messagesContainer!: ElementRef;
-
-  currentUserProfileId = '';
-  currentUserRole = '';
+  
+  // To simulate sending messages since the API requires a sender_id and sender_role
+  simulatedSenderId = '';
 
   constructor(
     private messagingService: MessagingService,
-    private http: HttpClient,
-    private authService: AuthService
-  ) { }
+    private http: HttpClient
+  ) {}
 
   ngOnInit() {
-    this.authService.currentUser$.subscribe(user => {
-      if (user && user.profile_id) {
-        this.currentUserProfileId = user.profile_id;
-        this.currentUserRole = user.role;
-      }
-    });
     this.loadStudents();
+    this.fetchSimulatorSenderId();
   }
-
-  get filteredStudents() {
-    if (!this.searchTerm.trim()) return this.students;
-    const term = this.searchTerm.toLowerCase();
-    return this.students.filter(s => {
-      const first = s.profile?.first_name?.toLowerCase() || '';
-      const last = s.profile?.last_name?.toLowerCase() || '';
-      const code = s.student_code?.toLowerCase() || '';
-      return first.includes(term) || last.includes(term) || code.includes(term);
+  
+  // Fetches any valid profile ID to use as a generic "Teacher/Admin" sender
+  fetchSimulatorSenderId() {
+    this.http.get<any>(`${environment.apiUrl}/profiles`).subscribe(res => {
+      const profiles = res.data || res;
+      if (profiles && profiles.length > 0) {
+        this.simulatedSenderId = profiles[0].id;
+      }
     });
   }
 
@@ -261,92 +223,41 @@ export class MessagingInboxComponent implements OnInit {
         // Reverse so deepest is bottom
         const fetchedMessages = res.data || res;
         this.messages = fetchedMessages.reverse();
-        this.groupedMessages = this.groupMessagesByDate(this.messages);
         this.loadingMessages = false;
-
-        setTimeout(() => this.scrollToBottom(), 100);
-
-        // Mark as read
-        const unreadIds = fetchedMessages
-          .filter((m: any) => !m.is_read && m.sender_id !== this.currentUserProfileId)
-          .map((m: any) => m.id);
-
-        unreadIds.forEach((id: string) => {
-          this.messagingService.markAsRead(id, { is_read: true }).subscribe();
-        });
       },
       error: () => this.loadingMessages = false
     });
   }
 
   sendMessage() {
-    if (!this.newMessage.trim() || !this.selectedStudent || !this.currentUserProfileId) return;
-
+    if (!this.newMessage.trim() || !this.selectedStudent || !this.simulatedSenderId) return;
+    
     this.sendingMessage = true;
-
+    
     const payload = {
       student_id: this.selectedStudent.id,
-      sender_role: 'teacher', // Solución al Check Violation: Postgres solo permite 'teacher' o 'guardian'
-      sender_id: this.currentUserProfileId,
+      sender_role: 'teacher' as 'teacher', // Valid backend enum
+      sender_id: this.simulatedSenderId,
       content: this.newMessage.trim()
     };
-
+    
     this.messagingService.sendMessage(payload).subscribe({
       next: (res) => {
         // Append newly created message to UI immediately
         const createdMsg = res.message || res;
         this.messages.push(createdMsg);
-        this.groupedMessages = this.groupMessagesByDate(this.messages);
-
+        
         this.newMessage = '';
         this.sendingMessage = false;
-
-        // Auto-scroll logic 
-        setTimeout(() => this.scrollToBottom(), 100);
+        
+        // Auto-scroll logic would go here in a real app
       },
       error: () => this.sendingMessage = false
     });
   }
 
-  getInitials(first: string | null = '', last: string | null = ''): string {
-    const f = first || '';
-    const l = last || '';
-    return (f.charAt(0) + l.charAt(0)).toUpperCase() || 'ST';
-  }
-
-  scrollToBottom(): void {
-    try {
-      this.messagesContainer.nativeElement.scrollTop = this.messagesContainer.nativeElement.scrollHeight;
-    } catch (err) { }
-  }
-
-  groupMessagesByDate(messages: Message[]): { date: string, messages: Message[] }[] {
-    const groups: { [key: string]: Message[] } = {};
-    messages.forEach(msg => {
-      const dateObj = new Date(msg.created_at || new Date());
-      const dateKey = dateObj.toISOString().split('T')[0];
-      if (!groups[dateKey]) groups[dateKey] = [];
-      groups[dateKey].push(msg);
-    });
-
-    return Object.keys(groups).sort().map(dateKey => {
-      return {
-        date: this.formatDateSeparator(dateKey),
-        messages: groups[dateKey]
-      };
-    });
-  }
-
-  formatDateSeparator(dateStr: string): string {
-    const d = new Date(dateStr + 'T12:00:00');
-    const today = new Date();
-    const yesterday = new Date();
-    yesterday.setDate(today.getDate() - 1);
-
-    if (d.toDateString() === today.toDateString()) return 'Hoy';
-    if (d.toDateString() === yesterday.toDateString()) return 'Ayer';
-
-    return d.toLocaleDateString('es-ES', { day: 'numeric', month: 'long' });
+  getInitials(first = '', last = ''): string {
+    return (first.charAt(0) + last.charAt(0)).toUpperCase() || 'ST';
   }
 }
 

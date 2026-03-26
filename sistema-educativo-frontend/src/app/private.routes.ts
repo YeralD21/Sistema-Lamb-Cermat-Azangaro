@@ -186,7 +186,7 @@ export const PRIVATE_ROUTES: Routes = [
         loadComponent: () => import('./features/admin/schedule/admin-schedule/admin-schedule.component').then(m => m.AdminScheduleComponent),
         title: 'CERMAT - Gestión de Horarios'
       },
-
+      
       // ── Evaluación ───────────────────────────────────────
       {
         path: 'evaluation/grade-entry',
@@ -255,12 +255,12 @@ export const PRIVATE_ROUTES: Routes = [
 
       // ── Mensajería y Comunicados ──────────────────────────
       {
-        path: 'messages/admin',
+        path: 'messages/teacher',
         loadComponent: () => import('./features/admin/messaging/messaging-inbox.component').then(m => m.MessagingInboxComponent),
         title: 'CERMAT - Bandeja de Entrada'
       },
       {
-        path: 'communications/admin',
+        path: 'communications/teacher',
         loadComponent: () => import('./features/admin/communications/communications-management.component').then(m => m.CommunicationsManagementComponent),
         title: 'CERMAT - Gestionar Comunicados'
       },

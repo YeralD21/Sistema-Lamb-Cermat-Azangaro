@@ -16,7 +16,7 @@ class StoreMessageRequest extends FormRequest
     {
         return [
             'student_id' => ['required', 'uuid', 'exists:students,id'],
-            'sender_role' => ['required', 'string'],
+            'sender_role' => ['required', Rule::in(['teacher', 'guardian'])],
             'sender_id' => ['required', 'uuid', 'exists:profiles,id'],
             'content' => ['required', 'string'],
         ];

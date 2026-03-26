@@ -9,7 +9,6 @@ import { ReportService } from '@core/services/report.service';
 import { EvaluationSummary, FinalCompetencyResult, EvaluationService } from '@core/services/evaluation.service';
 import { forkJoin, of } from 'rxjs';
 import { catchError } from 'rxjs/operators';
-import { AdminBackButtonComponent } from '@shared/components/back-button/admin-back-button.component';
 
 type TabType = 'attendance' | 'evaluation' | 'siagie';
 
@@ -40,7 +39,7 @@ interface SectionStudent {
 @Component({
   selector: 'app-academic-reports',
   standalone: true,
-  imports: [CommonModule, FormsModule, RouterModule, AdminBackButtonComponent],
+  imports: [CommonModule, FormsModule, RouterModule, BackButtonComponent],
   templateUrl: './academic-reports.component.html',
 })
 export class AcademicReportsComponent implements OnInit {

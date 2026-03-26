@@ -1,16 +1,16 @@
 import { Component } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { RouterModule } from '@angular/router';
-import { AdminBackButtonComponent } from "@shared/components/back-button/admin-back-button.component";
+import { BackButtonComponent } from '@shared/components/back-button/back-button.component';
 
 @Component({
   selector: 'app-admin-users',
   standalone: true,
-  imports: [CommonModule, RouterModule, AdminBackButtonComponent],
+  imports: [CommonModule, RouterModule, BackButtonComponent],
   template: `
     <div class="min-h-[calc(100vh-80px)] p-6 sm:p-10 max-w-7xl mx-auto space-y-8">
       
-    <app-admin-back-button></app-admin-back-button> 
+      <app-back-button></app-back-button>
 
       <!-- Header Section -->
       <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-6">
@@ -108,7 +108,7 @@ import { AdminBackButtonComponent } from "@shared/components/back-button/admin-b
 })
 export class AdminUsersComponent {
   roles = ['Todos', 'Admin', 'Director', 'Coordinador', 'Docente', 'Secretaría', 'Finanzas'];
-
+  
   stats = [
     { label: 'Total Usuarios', value: 31, color: 'text-slate-900' },
     { label: 'Activos', value: 31, color: 'text-green-600' },

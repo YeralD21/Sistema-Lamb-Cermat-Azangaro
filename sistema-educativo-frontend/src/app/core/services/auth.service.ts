@@ -12,7 +12,6 @@ interface LoginResponse {
     email: string;
     name: string;
     profile: {
-      id?: string;
       role: string;
       full_name?: string;
     };
@@ -124,8 +123,7 @@ export class AuthService {
       id: backendUser.id,
       email: backendUser.email,
       name: backendUser.profile?.full_name || backendUser.name || 'Usuario',
-      role: role,
-      profile_id: backendUser.profile?.id
+      role: role
     };
   }
 
