@@ -16,6 +16,7 @@ import {
   TeacherAttendanceContextResponse,
 } from '@core/services/attendance.service';
 import { BackButtonComponent } from '@shared/components/back-button/back-button.component';
+import { AdminBackButtonComponent } from '@shared/components/back-button/admin-back-button.component';
 
 interface AttendanceState {
   attendanceId?: string;
@@ -32,7 +33,7 @@ interface AttendanceState {
 @Component({
   selector: 'app-attendance-approvals',
   standalone: true,
-  imports: [CommonModule, FormsModule, BackButtonComponent],
+  imports: [CommonModule, FormsModule, AdminBackButtonComponent],
   templateUrl: './attendance-approvals.component.html',
 })
 export class AttendanceApprovalsComponent implements OnInit, AfterViewInit {

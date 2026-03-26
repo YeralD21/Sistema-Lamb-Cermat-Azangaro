@@ -12,6 +12,7 @@ import {
   FinalCompetencyResult,
   StudentFinalStatus,
 } from '@core/services/evaluation.service';
+import { AdminBackButtonComponent } from '@shared/components/back-button/admin-back-button.component';
 
 interface ReviewKpi {
   label: string;
@@ -65,7 +66,7 @@ type ReviewFinalCompetencyResult = FinalCompetencyResult & {
 @Component({
   selector: 'app-evaluation-review',
   standalone: true,
-  imports: [CommonModule, BackButtonComponent, FormsModule],
+  imports: [CommonModule, AdminBackButtonComponent, FormsModule],
   templateUrl: './evaluation-review.component.html',
   styles: [`
     :host { display: block; }

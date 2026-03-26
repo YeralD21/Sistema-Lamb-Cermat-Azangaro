@@ -1,20 +1,20 @@
 import { Component, OnInit } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule, ReactiveFormsModule, FormBuilder, FormGroup, Validators } from '@angular/forms';
-import { BackButtonComponent } from '@shared/components/back-button/back-button.component';
 import { FinanceService, Discount, FeeConcept } from '@core/services/finance.service';
 
 import { SettingMetricCardComponent } from '@shared/components/setting-metric-card/setting-metric-card.component';
 import { SettingFilterDropdownComponent } from '@shared/components/setting-filter-dropdown/setting-filter-dropdown.component';
+import { AdminBackButtonComponent } from '@shared/components/back-button/admin-back-button.component';
 
 @Component({
   selector: 'app-finance-discounts',
   standalone: true,
-  imports: [CommonModule, BackButtonComponent, FormsModule, ReactiveFormsModule, SettingMetricCardComponent, SettingFilterDropdownComponent],
+  imports: [CommonModule, AdminBackButtonComponent, FormsModule, ReactiveFormsModule, SettingMetricCardComponent, SettingFilterDropdownComponent],
   template: `
     <div class="min-h-[calc(100vh-80px)] p-6 sm:p-10 max-w-7xl mx-auto space-y-8 animate-fade-in">
       
-      <app-back-button></app-back-button>
+  <app-admin-back-button></app-admin-back-button>
 
       <!-- Header Section -->
       <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-6">
@@ -232,7 +232,7 @@ export class FinanceDiscountsComponent implements OnInit {
   discounts: Discount[] = [];
   concepts: FeeConcept[] = [];
   filters: any = { type: '', scope: '', is_active: '' };
-  
+
   showModal = false;
   isEditing = false;
   currentId: string | null = null;
@@ -302,7 +302,7 @@ export class FinanceDiscountsComponent implements OnInit {
   saveDiscount(): void {
     if (this.discountForm.invalid) return;
     const data = this.discountForm.value;
-    
+
     // Cleanup specific_concept_id if scope is 'todos'
     if (data.scope === 'todos') {
       data.specific_concept_id = null;

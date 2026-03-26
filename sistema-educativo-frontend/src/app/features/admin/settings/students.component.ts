@@ -2,13 +2,13 @@
 import { Component, OnInit } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
-import { BackButtonComponent } from '@shared/components/back-button/back-button.component';
 import { SettingMetricCardComponent } from '@shared/components/setting-metric-card/setting-metric-card.component';
 import { SettingFilterDropdownComponent } from '@shared/components/setting-filter-dropdown/setting-filter-dropdown.component';
 import { AcademicService, StudentCourseEnrollment } from '@core/services/academic.service';
 import { UserService, UserProfile } from '@core/services/user.service';
 import { forkJoin } from 'rxjs';
 import Swal from 'sweetalert2';
+import { AdminBackButtonComponent } from "@shared/components/back-button/admin-back-button.component";
 
 interface StudentRecord {
   id: string;
@@ -22,11 +22,11 @@ interface StudentRecord {
 @Component({
   selector: 'app-students',
   standalone: true,
-  imports: [CommonModule, FormsModule, BackButtonComponent, SettingMetricCardComponent, SettingFilterDropdownComponent],
+  imports: [CommonModule, FormsModule, SettingMetricCardComponent, SettingFilterDropdownComponent, AdminBackButtonComponent],
   template: `
     <div class="min-h-[calc(100vh-80px)] p-6 sm:p-10 max-w-7xl mx-auto space-y-8 animate-fade-in text-slate-700">
 
-      <app-back-button></app-back-button>
+    <app-admin-back-button></app-admin-back-button>
 
       <!-- Header Section -->
       <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-6">

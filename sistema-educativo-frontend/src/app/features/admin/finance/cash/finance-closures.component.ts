@@ -5,15 +5,16 @@ import { FinanceService, CashClosure } from '@core/services/finance.service';
 import { AuthService } from '@core/services/auth.service';
 import Swal from 'sweetalert2';
 import { FormsModule } from '@angular/forms';
+import { AdminBackButtonComponent } from '@shared/components/back-button/admin-back-button.component';
 
 @Component({
   selector: 'app-finance-closures',
   standalone: true,
-  imports: [CommonModule, BackButtonComponent],
+  imports: [CommonModule, AdminBackButtonComponent],
   template: `
     <div class="min-h-[calc(100vh-80px)] p-6 sm:p-10 max-w-7xl mx-auto space-y-8 animate-fade-in text-slate-700">
       
-      <app-back-button></app-back-button>
+  <app-admin-back-button></app-admin-back-button>
 
       <div *ngIf="loading" class="flex flex-col items-center justify-center py-20">
         <div class="w-12 h-12 border-4 border-blue-900/10 border-t-blue-900 rounded-full animate-spin mb-4"></div>
@@ -164,7 +165,7 @@ export class FinanceClosuresComponent implements OnInit {
   constructor(
     private financeService: FinanceService,
     private authService: AuthService
-  ) {}
+  ) { }
 
   ngOnInit() {
     this.authService.currentUser$.subscribe(user => {
@@ -181,7 +182,7 @@ export class FinanceClosuresComponent implements OnInit {
     this.financeService.getClosures().subscribe({
       next: (response) => {
         this.closures = response.data || response;
-        
+
         // Verificar si ya cerró hoy
         const todayClosure = this.closures.find(c => {
           if (!c.closure_date) return false;
@@ -211,9 +212,9 @@ export class FinanceClosuresComponent implements OnInit {
       next: (res) => {
         const payments = res.data || res;
         const todayPayments = (Array.isArray(payments) ? payments : []).filter((p: any) => {
-            if (!p.paid_at && !p.created_at) return false;
-            const date = (p.paid_at || p.created_at).split('T')[0];
-            return date === todayDate;
+          if (!p.paid_at && !p.created_at) return false;
+          const date = (p.paid_at || p.created_at).split('T')[0];
+          return date === todayDate;
         });
 
         let totalEfectivo = 0;
@@ -221,29 +222,29 @@ export class FinanceClosuresComponent implements OnInit {
         let egresos = 0;
 
         todayPayments.forEach((p: any) => {
-            const isEgreso = p.notes && p.notes.includes('(EGRESO)');
-            const amount = parseFloat(p.amount) || 0;
-            
-            if (isEgreso) {
-                egresos += amount;
+          const isEgreso = p.notes && p.notes.includes('(EGRESO)');
+          const amount = parseFloat(p.amount) || 0;
+
+          if (isEgreso) {
+            egresos += amount;
+          } else {
+            if (p.method?.toLowerCase() === 'efectivo') {
+              totalEfectivo += amount;
             } else {
-                if (p.method?.toLowerCase() === 'efectivo') {
-                    totalEfectivo += amount;
-                } else {
-                    totalTransferencias += amount;
-                }
+              totalTransferencias += amount;
             }
+          }
         });
 
         const cashNeto = totalEfectivo - egresos;
 
         this.activeClosure = {
-           opening_time: new Date().toISOString(),
-           cashier: this.currentUser,
-           cash_received: cashNeto,
-           total_transfers: totalTransferencias,
-           total_amount: cashNeto + totalTransferencias,
-           payments_count: todayPayments.length
+          opening_time: new Date().toISOString(),
+          cashier: this.currentUser,
+          cash_received: cashNeto,
+          total_transfers: totalTransferencias,
+          total_amount: cashNeto + totalTransferencias,
+          payments_count: todayPayments.length
         };
         this.loading = false;
       },
@@ -279,22 +280,22 @@ export class FinanceClosuresComponent implements OnInit {
         const actual = (document.getElementById('swal-actual') as HTMLInputElement).value;
         const notes = (document.getElementById('swal-notes') as HTMLInputElement).value;
         if (!actual) {
-           Swal.showValidationMessage('Debes ingresar el efectivo contado.');
-           return false;
+          Swal.showValidationMessage('Debes ingresar el efectivo contado.');
+          return false;
         }
         return { actual_balance: parseFloat(actual), notes };
       }
     }).then((result) => {
       if (result.isConfirmed) {
-        
+
         const payload = {
-            closure_date: new Date().toISOString().split('T')[0],
-            cash_received: this.activeClosure.cash_received,
-            actual_balance: result.value.actual_balance,
-            total_cash: this.activeClosure.cash_received,
-            total_transfers: this.activeClosure.total_transfers,
-            payments_count: this.activeClosure.payments_count,
-            notes: result.value.notes
+          closure_date: new Date().toISOString().split('T')[0],
+          cash_received: this.activeClosure.cash_received,
+          actual_balance: result.value.actual_balance,
+          total_cash: this.activeClosure.cash_received,
+          total_transfers: this.activeClosure.total_transfers,
+          payments_count: this.activeClosure.payments_count,
+          notes: result.value.notes
         };
 
         this.financeService.createClosure(payload).subscribe({

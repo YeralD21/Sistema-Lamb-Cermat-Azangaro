@@ -3,16 +3,16 @@ import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { Router } from '@angular/router';
 import Swal from 'sweetalert2';
-import { BackButtonComponent } from '@shared/components/back-button/back-button.component';
 import { FinanceService, Payment } from '@core/services/finance.service';
+import { AdminBackButtonComponent } from '@shared/components/back-button/admin-back-button.component';
 
 @Component({
   selector: 'app-finance-cash',
   standalone: true,
-  imports: [CommonModule, BackButtonComponent, FormsModule],
+  imports: [CommonModule, AdminBackButtonComponent, FormsModule],
   template: `
     <div class="min-h-[calc(100vh-80px)] p-6 sm:p-10 max-w-7xl mx-auto space-y-8 text-slate-700">
-      <app-back-button></app-back-button>
+  <app-admin-back-button></app-admin-back-button>
 
       <div class="flex flex-col md:flex-row md:items-center justify-between gap-4">
         <div>
@@ -173,7 +173,7 @@ export class FinanceCashComponent implements OnInit {
   constructor(
     private financeService: FinanceService,
     private router: Router
-  ) {}
+  ) { }
 
   ngOnInit() {
     this.loadData();

@@ -8,6 +8,7 @@ import { catchError, finalize, switchMap } from 'rxjs/operators';
 import { BackButtonComponent } from '@shared/components/back-button/back-button.component';
 import { AcademicService, Competency, Course, Period } from '@core/services/academic.service';
 import { Evaluation, EvaluationService, SectionEvaluationDashboardStudent } from '@core/services/evaluation.service';
+import { AdminBackButtonComponent } from '@shared/components/back-button/admin-back-button.component';
 
 interface EnrolledStudent {
   id: string;
@@ -38,7 +39,7 @@ interface EnrolledStudent {
 @Component({
   selector: 'app-grade-entry',
   standalone: true,
-  imports: [CommonModule, FormsModule, BackButtonComponent],
+  imports: [CommonModule, FormsModule, AdminBackButtonComponent],
   templateUrl: './grade-entry.component.html',
   styles: [`
     :host { display: block; }
@@ -250,29 +251,29 @@ export class GradeEntryComponent implements OnInit {
         rawRows
           .filter((item: any) => item?.status === 'active')
           .forEach((item: any) => {
-          const student = item.student;
-          if (!student?.id || enrollmentsMap.has(student.id)) {
-            return;
-          }
+            const student = item.student;
+            if (!student?.id || enrollmentsMap.has(student.id)) {
+              return;
+            }
 
-          if (item.section?.id) {
-            sectionIds.add(item.section.id);
-            sectionLabel = this.formatSectionLabel(item.section);
-          }
+            if (item.section?.id) {
+              sectionIds.add(item.section.id);
+              sectionLabel = this.formatSectionLabel(item.section);
+            }
 
-          enrollmentsMap.set(student.id, {
-            id: student.id,
-            name: student.full_name || 'N/A',
-            code: student.student_code || 'N/A',
-            initials: this.getInitials(student.full_name || 'N A'),
-            grade: null,
-            observation: '',
-            status: '',
-            dirty: false,
-            section_id: item.section?.id || '',
-            section_label: this.formatSectionLabel(item.section),
+            enrollmentsMap.set(student.id, {
+              id: student.id,
+              name: student.full_name || 'N/A',
+              code: student.student_code || 'N/A',
+              initials: this.getInitials(student.full_name || 'N A'),
+              grade: null,
+              observation: '',
+              status: '',
+              dirty: false,
+              section_id: item.section?.id || '',
+              section_label: this.formatSectionLabel(item.section),
+            });
           });
-        });
 
         console.log('[grade-entry] active enrollments loaded:', rawRows.length, 'filtered active:', enrollmentsMap.size);
 

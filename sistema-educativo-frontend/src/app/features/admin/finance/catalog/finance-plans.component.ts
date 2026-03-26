@@ -1,7 +1,6 @@
 import { Component, OnInit } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule, ReactiveFormsModule, FormBuilder, FormGroup, Validators, FormArray } from '@angular/forms';
-import { BackButtonComponent } from '@shared/components/back-button/back-button.component';
 import { FinanceService, FinancialPlan, FeeConcept, PlanInstallment } from '@core/services/finance.service';
 import { AcademicService } from '@core/services/academic.service';
 import { SettingMetricCardComponent } from '@shared/components/setting-metric-card/setting-metric-card.component';
@@ -9,15 +8,16 @@ import { SettingFilterDropdownComponent } from '@shared/components/setting-filte
 import { forkJoin, Observable, of } from 'rxjs';
 import { catchError } from 'rxjs/operators';
 import Swal from 'sweetalert2';
+import { AdminBackButtonComponent } from '@shared/components/back-button/admin-back-button.component';
 
 @Component({
   selector: 'app-finance-plans',
   standalone: true,
-  imports: [CommonModule, BackButtonComponent, FormsModule, ReactiveFormsModule, SettingMetricCardComponent, SettingFilterDropdownComponent],
+  imports: [CommonModule, AdminBackButtonComponent, FormsModule, ReactiveFormsModule, SettingMetricCardComponent, SettingFilterDropdownComponent],
   template: `
     <div class="min-h-[calc(100vh-80px)] p-6 sm:p-10 max-w-7xl mx-auto space-y-8 animate-fade-in text-slate-700">
       
-      <app-back-button></app-back-button>
+  <app-admin-back-button></app-admin-back-button>
 
       <!-- Header Section -->
       <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-6">
@@ -237,15 +237,15 @@ export class FinancePlansComponent implements OnInit {
   plans: FinancialPlan[] = [];
   concepts: FeeConcept[] = [];
   years: any[] = [];
-  
+
   statusOptions = [
     { id: 'true', name: 'Activos' },
     { id: 'false', name: 'Inactivos' }
   ];
-  yearOptions: {id: string, name: string}[] = [];
+  yearOptions: { id: string, name: string }[] = [];
 
   filters: any = { is_active: '', academic_year_id: '' };
-  
+
   showModal = false;
   isEditing = false;
   currentId: string | null = null;
@@ -285,7 +285,7 @@ export class FinancePlansComponent implements OnInit {
   generateInstallments() {
     const numInstallments = this.planForm.get('number_of_installments')?.value || 1;
     const conceptId = this.planForm.get('concept_id')?.value;
-    
+
     if (!conceptId) {
       alert('Por favor selecciona unConcepto Base primero para conocer el monto.');
       return;
@@ -298,18 +298,18 @@ export class FinancePlansComponent implements OnInit {
     const amountPerInstallment = parseFloat((baseAmount / numInstallments).toFixed(2));
 
     this.installmentsFormArray.clear();
-    
-    for (let i = 0; i < numInstallments; i++) {
-       // Calcular una fecha estimada mensual (+ i meses) si quisieras
-       const d = new Date();
-       d.setMonth(d.getMonth() + i);
-       const dateStr = d.toISOString().split('T')[0];
 
-       this.installmentsFormArray.push(this.fb.group({
-         installment_number: [i + 1, Validators.required],
-         due_date: [dateStr, Validators.required],
-         amount: [amountPerInstallment, [Validators.required, Validators.min(0)]]
-       }));
+    for (let i = 0; i < numInstallments; i++) {
+      // Calcular una fecha estimada mensual (+ i meses) si quisieras
+      const d = new Date();
+      d.setMonth(d.getMonth() + i);
+      const dateStr = d.toISOString().split('T')[0];
+
+      this.installmentsFormArray.push(this.fb.group({
+        installment_number: [i + 1, Validators.required],
+        due_date: [dateStr, Validators.required],
+        amount: [amountPerInstallment, [Validators.required, Validators.min(0)]]
+      }));
     }
   }
 
@@ -372,17 +372,17 @@ export class FinancePlansComponent implements OnInit {
       description: p.description || '',
       is_active: p.is_active
     });
-    
+
     // Load installments if present
     if (p.installments && p.installments.length > 0) {
-       p.installments.forEach(i => {
-         this.installmentsFormArray.push(this.fb.group({
-           id: [i.id],
-           installment_number: [i.installment_number, Validators.required],
-           due_date: [i.due_date, Validators.required],
-           amount: [i.amount, [Validators.required, Validators.min(0)]]
-         }));
-       });
+      p.installments.forEach(i => {
+        this.installmentsFormArray.push(this.fb.group({
+          id: [i.id],
+          installment_number: [i.installment_number, Validators.required],
+          due_date: [i.due_date, Validators.required],
+          amount: [i.amount, [Validators.required, Validators.min(0)]]
+        }));
+      });
     }
   }
 
@@ -396,9 +396,9 @@ export class FinancePlansComponent implements OnInit {
 
   savePlan(): void {
     if (this.planForm.invalid || this.isSaving) return;
-    
+
     this.isSaving = true;
-    
+
     // Clone form without installments field for the Plan endpoint
     const data = { ...this.planForm.value };
     delete data.installments;
@@ -410,43 +410,43 @@ export class FinancePlansComponent implements OnInit {
     request.subscribe({
       next: (res: any) => {
         const planId = this.isEditing ? this.currentId : (res.id || res.data?.id || res.body?.id);
-        
+
         // Save installments
         if (planId && this.installmentsFormArray.length > 0) {
-           const requests: Observable<any>[] = [];
-           
-           this.installmentsFormArray.controls.forEach(ctrl => {
-              const instVal = ctrl.value;
-              
-              if (instVal.id) {
-                 // Update existing
-                 requests.push(this.financeService.updateInstallment(instVal.id, instVal));
-              } else {
-                 // Create new
-                 requests.push(this.financeService.createInstallment({
-                    ...instVal,
-                    plan_id: planId
-                 }).pipe(catchError(err => of(err)))); // Avoid cancelling the whole forkJoin on one failure
+          const requests: Observable<any>[] = [];
+
+          this.installmentsFormArray.controls.forEach(ctrl => {
+            const instVal = ctrl.value;
+
+            if (instVal.id) {
+              // Update existing
+              requests.push(this.financeService.updateInstallment(instVal.id, instVal));
+            } else {
+              // Create new
+              requests.push(this.financeService.createInstallment({
+                ...instVal,
+                plan_id: planId
+              }).pipe(catchError(err => of(err)))); // Avoid cancelling the whole forkJoin on one failure
+            }
+          });
+
+          if (requests.length > 0) {
+            forkJoin(requests).subscribe({
+              next: () => {
+                this.isSaving = false;
+                Swal.fire('¡Éxito!', 'Plan y cuotas guardados correctamente', 'success');
+                this.loadPlans();
+                this.closeModal();
+              },
+              error: (err) => {
+                this.isSaving = false;
+                Swal.fire('Atención', 'El plan se creó, pero hubo un error con algunas cuotas.', 'warning');
+                this.loadPlans();
+                this.closeModal();
               }
-           });
-           
-           if (requests.length > 0) {
-               forkJoin(requests).subscribe({
-                  next: () => {
-                     this.isSaving = false;
-                     Swal.fire('¡Éxito!', 'Plan y cuotas guardados correctamente', 'success');
-                     this.loadPlans();
-                     this.closeModal();
-                  },
-                  error: (err) => {
-                     this.isSaving = false;
-                     Swal.fire('Atención', 'El plan se creó, pero hubo un error con algunas cuotas.', 'warning');
-                     this.loadPlans();
-                     this.closeModal();
-                  }
-               });
-               return; // Exit here, close modal after installments finish
-           }
+            });
+            return; // Exit here, close modal after installments finish
+          }
         }
 
         this.isSaving = false;
@@ -475,8 +475,8 @@ export class FinancePlansComponent implements OnInit {
       if (result.isConfirmed) {
         this.financeService.deletePlan(id).subscribe({
           next: () => {
-             Swal.fire('¡Eliminado!', 'El plan ha sido eliminado.', 'success');
-             this.loadPlans();
+            Swal.fire('¡Eliminado!', 'El plan ha sido eliminado.', 'success');
+            this.loadPlans();
           },
           error: (err) => Swal.fire('Error', 'No se pudo eliminar el plan. ' + (err.error?.message || ''), 'error')
         });

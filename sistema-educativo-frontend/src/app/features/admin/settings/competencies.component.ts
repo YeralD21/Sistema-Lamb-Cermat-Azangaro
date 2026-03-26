@@ -6,14 +6,16 @@ import { SettingMetricCardComponent } from '@shared/components/setting-metric-ca
 import { SettingFilterDropdownComponent, FilterOption } from '@shared/components/setting-filter-dropdown/setting-filter-dropdown.component';
 import { AcademicService, Competency, Course } from '@core/services/academic.service';
 import Swal from 'sweetalert2';
+import { AdminBackButtonComponent } from "@shared/components/back-button/admin-back-button.component";
 
 @Component({
   selector: 'app-competencies',
   standalone: true,
-  imports: [CommonModule, ReactiveFormsModule, FormsModule, BackButtonComponent, SettingMetricCardComponent, SettingFilterDropdownComponent],
+  imports: [CommonModule, ReactiveFormsModule, FormsModule, SettingMetricCardComponent, SettingFilterDropdownComponent, AdminBackButtonComponent],
   template: `
     <div class="min-h-[calc(100vh-80px)] p-6 sm:p-10 max-w-7xl mx-auto space-y-8 animate-fade-in text-slate-700 relative">
-      <app-back-button></app-back-button>
+  
+    <app-admin-back-button></app-admin-back-button>
 
       <!-- Header Section -->
       <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-6">
@@ -171,7 +173,7 @@ export class CompetenciesComponent implements OnInit {
   courses: Course[] = [];
   groupedCompetencies: { courseId: string, courseName: string, courseCode: string, competencies: Competency[] }[] = [];
   filteredGroupedCompetencies: any[] = [];
-  
+
   loading = false;
   showModal = false;
   isEditing = false;
@@ -216,7 +218,7 @@ export class CompetenciesComponent implements OnInit {
     this.academicService.getCourses({ per_page: 100 }).subscribe((resC) => {
       this.courses = resC.data || resC;
       this.courseFilterOptions = this.courses.map(c => ({ id: c.id, name: c.name, level: c.code }));
-      
+
       this.academicService.getCompetencies({ per_page: 200 }).subscribe({
         next: (resComp) => {
           this.competencies = resComp.data || resComp;
@@ -231,7 +233,7 @@ export class CompetenciesComponent implements OnInit {
 
   groupCompetencies() {
     const groups: { [key: string]: { courseId: string, courseName: string, courseCode: string, competencies: Competency[] } } = {};
-    
+
     this.courses.forEach(c => {
       groups[c.id] = { courseId: c.id, courseName: c.name, courseCode: c.code, competencies: [] };
     });
@@ -261,15 +263,15 @@ export class CompetenciesComponent implements OnInit {
       this.currentEditId = null;
       let nextOrder = 1;
       if (this.selectedCourseFilter) {
-         const group = this.groupedCompetencies.find(g => g.courseId === this.selectedCourseFilter);
-         if (group && group.competencies.length > 0) {
-            nextOrder = Math.max(...group.competencies.map(c => c.order || 0)) + 1;
-         }
+        const group = this.groupedCompetencies.find(g => g.courseId === this.selectedCourseFilter);
+        if (group && group.competencies.length > 0) {
+          nextOrder = Math.max(...group.competencies.map(c => c.order || 0)) + 1;
+        }
       }
-      this.competencyForm.reset({ 
-        course_id: this.selectedCourseFilter || '', 
+      this.competencyForm.reset({
+        course_id: this.selectedCourseFilter || '',
         name: '',
-        description: '', 
+        description: '',
         order: nextOrder
       });
     }

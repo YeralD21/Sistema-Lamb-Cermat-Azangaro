@@ -4,15 +4,16 @@ import { FormsModule } from '@angular/forms';
 import { BackButtonComponent } from '@shared/components/back-button/back-button.component';
 import { FinanceService } from '@core/services/finance.service';
 import { AcademicService } from '@core/services/academic.service';
+import { AdminBackButtonComponent } from '@shared/components/back-button/admin-back-button.component';
 
 @Component({
   selector: 'app-finance-reports',
   standalone: true,
-  imports: [CommonModule, BackButtonComponent, FormsModule],
+  imports: [CommonModule, AdminBackButtonComponent, FormsModule],
   template: `
     <div class="min-h-[calc(100vh-80px)] p-6 sm:p-10 max-w-7xl mx-auto space-y-8 animate-fade-in text-slate-700">
       
-      <app-back-button></app-back-button>
+  <app-admin-back-button></app-admin-back-button>
 
       <!-- Header Section -->
       <div class="flex flex-col md:flex-row md:items-center justify-between gap-6">
@@ -178,7 +179,7 @@ export class FinanceReportsComponent implements OnInit {
   selectedMonth = '';
 
   allCharges: any[] = [];
-  
+
   stats = {
     adeudado: 0,
     vencido: 0,
@@ -190,7 +191,7 @@ export class FinanceReportsComponent implements OnInit {
   constructor(
     private financeService: FinanceService,
     private academicService: AcademicService
-  ) {}
+  ) { }
 
   ngOnInit() {
     this.academicService.getAcademicYears().subscribe({
@@ -212,7 +213,7 @@ export class FinanceReportsComponent implements OnInit {
   loadData() {
     if (!this.selectedYearId) return;
     this.loading = true;
-    
+
     // Fetch directly from charges to build local global metrics
     // A robust paginated logic is recommended, we do a basic filtered pull.
     // Given backend limitations, we fetch latest for the year.
@@ -234,15 +235,15 @@ export class FinanceReportsComponent implements OnInit {
     let adeudado = 0;
     let vencido = 0;
     let totalEmitido = 0;
-    
+
     // Filtros
     let filteredCharges = this.allCharges.filter(c => c.status !== 'anulado');
 
     if (this.selectedMonth) {
       filteredCharges = filteredCharges.filter(c => {
-         if (!c.due_date) return false;
-         const d = new Date(c.due_date);
-         return (d.getMonth() + 1).toString() === this.selectedMonth;
+        if (!c.due_date) return false;
+        const d = new Date(c.due_date);
+        return (d.getMonth() + 1).toString() === this.selectedMonth;
       });
     }
 
@@ -252,7 +253,7 @@ export class FinanceReportsComponent implements OnInit {
       const isPaid = c.status === 'pagado';
       const isPartial = c.status === 'pagado_parcial';
       const isPending = c.status === 'pendiente' || c.status === 'vencido' || isPartial;
-      
+
       const totalAmount = parseFloat(c.amount) - (parseFloat(c.discount_amount) || 0);
       const paidStr = parseFloat(c.paid_amount) || 0;
       const debt = totalAmount - paidStr;
@@ -261,7 +262,7 @@ export class FinanceReportsComponent implements OnInit {
 
       if (isPending && debt > 0) {
         adeudado += debt;
-        
+
         let isPastDue = c.status === 'vencido';
         if (c.due_date && new Date(c.due_date) < new Date() && !isPaid) {
           isPastDue = true;

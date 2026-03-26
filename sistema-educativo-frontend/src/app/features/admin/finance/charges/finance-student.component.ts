@@ -4,14 +4,15 @@ import { FormBuilder, FormGroup, ReactiveFormsModule } from '@angular/forms';
 import { Subject, debounceTime, distinctUntilChanged, takeUntil } from 'rxjs';
 import { BackButtonComponent } from '@shared/components/back-button/back-button.component';
 import { Charge, FinanceService } from '@core/services/finance.service';
+import { AdminBackButtonComponent } from '@shared/components/back-button/admin-back-button.component';
 
 @Component({
   selector: 'app-finance-student',
   standalone: true,
-  imports: [CommonModule, BackButtonComponent, ReactiveFormsModule],
+  imports: [CommonModule, AdminBackButtonComponent, ReactiveFormsModule],
   template: `
     <div class="min-h-[calc(100vh-80px)] p-6 sm:p-10 max-w-7xl mx-auto space-y-8">
-      <app-back-button></app-back-button>
+  <app-admin-back-button></app-admin-back-button>
 
       <div>
         <h1 class="text-3xl font-semibold text-blue-900 tracking-tight">Cuenta Corriente Estudiante</h1>

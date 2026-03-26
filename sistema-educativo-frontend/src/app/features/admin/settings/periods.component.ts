@@ -1,24 +1,24 @@
 import { Component, OnInit } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { ReactiveFormsModule, FormBuilder, FormGroup, Validators } from '@angular/forms';
-import { BackButtonComponent } from '@shared/components/back-button/back-button.component';
 import { Period } from '@core/services/academic.service';
 import { AcademicService } from '@core/services/academic.service';
 import { AcademicYear } from '@core/models/AcademicYear';
 import { SettingMetricCardComponent } from '@shared/components/setting-metric-card/setting-metric-card.component';
 
 import Swal from 'sweetalert2';
+import { AdminBackButtonComponent } from "@shared/components/back-button/admin-back-button.component";
 
 @Component({
   selector: 'app-periods',
   standalone: true,
-  imports: [CommonModule, ReactiveFormsModule, BackButtonComponent, SettingMetricCardComponent],
+  imports: [CommonModule, ReactiveFormsModule, SettingMetricCardComponent, AdminBackButtonComponent],
   template: `
     <div class="min-h-[calc(100vh-80px)] p-6 sm:p-10 max-w-7xl mx-auto space-y-8 animate-fade-in text-slate-700 relative">
       <!-- Header Section -->
       <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-6 mb-2">
         <div class="flex items-center gap-4">
-          <app-back-button></app-back-button>
+    <app-admin-back-button></app-admin-back-button>
           <div class="space-y-1">
             <h1 class="text-3xl font-bold text-[#0F172A] tracking-tight">Periodos Académicos</h1>
             <p class="text-slate-500 text-sm font-medium">Gestiona los periodos (bimestres/trimestres) por año lectivo</p>

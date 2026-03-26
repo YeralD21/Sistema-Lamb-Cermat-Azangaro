@@ -7,15 +7,16 @@ import { BackButtonComponent } from '@shared/components/back-button/back-button.
 import { SettingFilterDropdownComponent } from '@shared/components/setting-filter-dropdown/setting-filter-dropdown.component';
 import { Subject, takeUntil } from 'rxjs';
 import Swal from 'sweetalert2';
+import { AdminBackButtonComponent } from '@shared/components/back-button/admin-back-button.component';
 
 @Component({
   selector: 'app-finance-emission',
   standalone: true,
-  imports: [CommonModule, BackButtonComponent, ReactiveFormsModule, SettingFilterDropdownComponent],
+  imports: [CommonModule, AdminBackButtonComponent, ReactiveFormsModule, SettingFilterDropdownComponent],
   template: `
     <div class="min-h-[calc(100vh-80px)] p-6 sm:p-10 max-w-7xl mx-auto space-y-8 animate-fade-in text-slate-700">
       
-      <app-back-button></app-back-button>
+  <app-admin-back-button></app-admin-back-button>
 
       <!-- Header Section -->
       <div class="space-y-1">
@@ -105,12 +106,12 @@ export class FinanceEmissionComponent {
   financialPlans: any[] = [];
   gradeLevels: any[] = [];
   sections: any[] = [];
-  
-  yearOptions: {id: string, name: string}[] = [];
-  planOptions: {id: string, name: string}[] = [];
-  gradeOptions: {id: string, name: string}[] = [];
-  sectionOptions: {id: string, name: string}[] = [];
-  
+
+  yearOptions: { id: string, name: string }[] = [];
+  planOptions: { id: string, name: string }[] = [];
+  gradeOptions: { id: string, name: string }[] = [];
+  sectionOptions: { id: string, name: string }[] = [];
+
   loading = false;
   private destroy$ = new Subject<void>();
 
@@ -129,7 +130,7 @@ export class FinanceEmissionComponent {
 
   ngOnInit() {
     this.loadInitialData();
-    
+
     // Al cambiar grado, cargar secciones
     this.emissionForm.get('grade_level_id')?.valueChanges.subscribe(val => {
       this.loadSections(val);

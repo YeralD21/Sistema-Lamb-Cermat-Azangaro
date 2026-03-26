@@ -11,14 +11,15 @@ import Swal from 'sweetalert2';
 import { forkJoin } from 'rxjs';
 import { AcademicService } from '@core/services/academic.service';
 import { AcademicYear } from '@core/models/AcademicYear';
+import { AdminBackButtonComponent } from "@shared/components/back-button/admin-back-button.component";
 
 @Component({
   selector: 'app-teacher-assignments',
   standalone: true,
-  imports: [CommonModule, ReactiveFormsModule, FormsModule, BackButtonComponent, SettingMetricCardComponent],
+  imports: [CommonModule, ReactiveFormsModule, FormsModule, SettingMetricCardComponent, AdminBackButtonComponent],
   template: `
     <div class="min-h-[calc(100vh-80px)] p-6 sm:p-10 max-w-7xl mx-auto space-y-8 animate-fade-in text-slate-700 relative">
-      <app-back-button></app-back-button>
+    <app-admin-back-button></app-admin-back-button>
 
       <!-- Header Section -->
       <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-6">
