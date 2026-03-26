@@ -1,16 +1,15 @@
 import { Component, OnInit, inject } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { RouterModule } from '@angular/router';
-import { BackButtonComponent } from '@shared/components/back-button/back-button.component';
 import { ReportService } from '@core/services/report.service';
-
+import { AdminBackButtonComponent } from '@shared/components/back-button/admin-back-button.component';
 @Component({
   selector: 'app-admin-metrics',
   standalone: true,
-  imports: [CommonModule, RouterModule, BackButtonComponent],
+  imports: [CommonModule, RouterModule, AdminBackButtonComponent],
   template: `
     <div class="min-h-[calc(100vh-80px)] p-6 sm:p-10 max-w-7xl mx-auto space-y-8">
-      <app-back-button></app-back-button>
+  <app-admin-back-button></app-admin-back-button>
       <div class="flex items-center gap-4">
         <div class="p-3 bg-blue-50 rounded-2xl border border-blue-100 shadow-sm">
           <svg class="w-6 h-6 text-blue-700" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M22 12h-4l-3 9L9 3l-3 9H2"/></svg>

@@ -6,15 +6,16 @@ import { FormsModule } from '@angular/forms';
 import { BackButtonComponent } from '@shared/components/back-button/back-button.component';
 import { SettingMetricCardComponent } from '@shared/components/setting-metric-card/setting-metric-card.component';
 import Swal from 'sweetalert2';
+import { AdminBackButtonComponent } from "@shared/components/back-button/admin-back-button.component";
 
 @Component({
   selector: 'app-admin-users',
   standalone: true,
-  imports: [CommonModule, FormsModule, BackButtonComponent, SettingMetricCardComponent],
+  imports: [CommonModule, FormsModule, SettingMetricCardComponent, AdminBackButtonComponent],
   template: `
     <div class="min-h-[calc(100vh-80px)] p-6 sm:p-10 max-w-7xl mx-auto space-y-8 animate-fade-in text-slate-700">
       
-      <app-back-button></app-back-button>
+  <app-admin-back-button></app-admin-back-button>
 
       <!-- Header Section -->
 
@@ -214,7 +215,7 @@ export class AdminUsersComponent implements OnInit {
   loading = signal(false);
   showModal = signal(false);
   submitting = signal(false);
-  
+
   newUser = {
     name: '',
     email: '',
@@ -246,12 +247,12 @@ export class AdminUsersComponent implements OnInit {
         // the backend returns { stats: { total: X, active: Y, ... } }
         const data = res.data || res;
         if (data && typeof data === 'object') {
-            this.stats.set({
-               total: data.total || 0,
-               active: data.active || 0,
-               inactive: data.inactive || 0,
-               teachers: data.teachers || 0
-            });
+          this.stats.set({
+            total: data.total || 0,
+            active: data.active || 0,
+            inactive: data.inactive || 0,
+            teachers: data.teachers || 0
+          });
         }
       },
       error: (err) => console.error('Error loading stats:', err)
@@ -341,12 +342,12 @@ export class AdminUsersComponent implements OnInit {
     }).then((result: any) => {
       if (result.isConfirmed) {
         this.userService.deleteProfile(user.id).subscribe({
-           next: () => {
-             Swal.fire({ icon: 'success', title: 'Eliminado', toast: true, position: 'top-end', timer: 3000, showConfirmButton: false });
-             this.loadUsers();
-             this.loadStats();
-           },
-           error: (err) => Swal.fire('Error', err.error?.message || 'No se pudo eliminar el usuario', 'error')
+          next: () => {
+            Swal.fire({ icon: 'success', title: 'Eliminado', toast: true, position: 'top-end', timer: 3000, showConfirmButton: false });
+            this.loadUsers();
+            this.loadStats();
+          },
+          error: (err) => Swal.fire('Error', err.error?.message || 'No se pudo eliminar el usuario', 'error')
         });
       }
     });

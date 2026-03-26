@@ -23,7 +23,7 @@ export interface Announcement {
 export interface Message {
   id: string;
   student_id: string;
-  sender_role: 'teacher' | 'guardian';
+  sender_role: string;
   sender_id: string;
   title?: string;
   content: string;

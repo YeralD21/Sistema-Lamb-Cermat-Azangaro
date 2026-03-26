@@ -1,19 +1,19 @@
 import { Component, OnInit } from '@angular/core';
 import { CommonModule } from '@angular/common';
-import { BackButtonComponent } from '@shared/components/back-button/back-button.component';
 import { MessagingService, Announcement } from '@core/services/messaging.service';
 import { AcademicService } from '@core/services/academic.service';
 import { FormsModule, ReactiveFormsModule, FormBuilder, FormGroup, Validators } from '@angular/forms';
 import Swal from 'sweetalert2';
+import { AdminBackButtonComponent } from '@shared/components/back-button/admin-back-button.component';
 
 @Component({
   selector: 'app-communications-management',
   standalone: true,
-  imports: [CommonModule, BackButtonComponent, FormsModule, ReactiveFormsModule],
+  imports: [CommonModule, AdminBackButtonComponent, FormsModule, ReactiveFormsModule],
   template: `
     <div class="min-h-[calc(100vh-80px)] p-6 sm:p-10 max-w-7xl mx-auto space-y-8 animate-fade-in text-slate-700">
       
-      <app-back-button></app-back-button>
+  <app-admin-back-button></app-admin-back-button>
 
       <!-- Header Section -->
       <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-6">
@@ -225,9 +225,9 @@ export class CommunicationsManagementComponent implements OnInit {
   sections: any[] = [];
   loading = false;
   saving = false;
-  
+
   filters = { status: '', audience: '' };
-  
+
   showModal = false;
   isEditing = false;
   currentId: string | null = null;
@@ -329,7 +329,7 @@ export class CommunicationsManagementComponent implements OnInit {
   saveAnnouncement() {
     if (this.form.invalid) return;
     this.saving = true;
-    
+
     // Always create as draft from the backend logic
     const request = this.isEditing && this.currentId
       ? this.messagingService.updateAnnouncement(this.currentId, this.form.value)
@@ -372,7 +372,7 @@ export class CommunicationsManagementComponent implements OnInit {
       if (result.isConfirmed) {
         this.messagingService.requestApproval(id).subscribe({
           next: () => {
-             Swal.fire({
+            Swal.fire({
               icon: 'success',
               title: 'Enviado',
               text: 'Se ha solicitado aprobación.',

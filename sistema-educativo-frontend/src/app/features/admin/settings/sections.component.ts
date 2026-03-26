@@ -6,17 +6,18 @@ import { AcademicService, Section, GradeLevel } from '@core/services/academic.se
 import { SettingMetricCardComponent } from '@shared/components/setting-metric-card/setting-metric-card.component';
 import { SettingFilterDropdownComponent } from '@shared/components/setting-filter-dropdown/setting-filter-dropdown.component';
 import Swal from 'sweetalert2';
+import { AdminBackButtonComponent } from "@shared/components/back-button/admin-back-button.component";
 
 @Component({
   selector: 'app-sections',
   standalone: true,
-  imports: [CommonModule, ReactiveFormsModule, FormsModule, BackButtonComponent, SettingMetricCardComponent, SettingFilterDropdownComponent],
+  imports: [CommonModule, ReactiveFormsModule, FormsModule, SettingMetricCardComponent, SettingFilterDropdownComponent, AdminBackButtonComponent],
   template: `
     <div class="min-h-[calc(100vh-80px)] p-6 sm:p-10 max-w-7xl mx-auto space-y-8 animate-fade-in text-slate-700 relative">
       <!-- Header Section -->
       <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-6 mb-2">
         <div class="flex items-center gap-4">
-          <app-back-button></app-back-button>
+    <app-admin-back-button></app-admin-back-button>
           <div class="space-y-1">
             <h1 class="text-3xl font-bold text-[#0F172A] tracking-tight">Secciones</h1>
             <p class="text-slate-500 text-sm font-medium">Gestiona las secciones por grado académico</p>
@@ -249,8 +250,8 @@ export class SectionsComponent implements OnInit {
   }
 
   get otrosGroups() {
-    return this.filteredGroupedSections.filter(g => 
-      !g.level?.toUpperCase().includes('PRIMARIA') && 
+    return this.filteredGroupedSections.filter(g =>
+      !g.level?.toUpperCase().includes('PRIMARIA') &&
       !g.level?.toUpperCase().includes('SECUNDARIA')
     );
   }
@@ -374,7 +375,7 @@ export class SectionsComponent implements OnInit {
 
   saveSection() {
     if (this.sectionForm.invalid) return;
-    
+
     if (!this.activeAcademicYearId && !this.isEditing) {
       Swal.fire('Error', 'No hay un año académico activo configurado.', 'error');
       return;
@@ -384,7 +385,7 @@ export class SectionsComponent implements OnInit {
     const data = this.sectionForm.value;
     data.name = data.name.toUpperCase();
     data.section_letter = data.name; // Required by Backend
-    
+
     if (!this.isEditing) {
       data.academic_year_id = this.activeAcademicYearId;
     }

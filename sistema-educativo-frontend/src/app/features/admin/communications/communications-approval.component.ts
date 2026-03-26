@@ -1,17 +1,17 @@
 import { Component, OnInit } from '@angular/core';
 import { CommonModule } from '@angular/common';
-import { BackButtonComponent } from '@shared/components/back-button/back-button.component';
 import { MessagingService, Announcement } from '@core/services/messaging.service';
 import Swal from 'sweetalert2';
+import { AdminBackButtonComponent } from '@shared/components/back-button/admin-back-button.component';
 
 @Component({
   selector: 'app-communications-approval',
   standalone: true,
-  imports: [CommonModule, BackButtonComponent],
+  imports: [CommonModule, AdminBackButtonComponent],
   template: `
     <div class="min-h-[calc(100vh-80px)] p-6 sm:p-10 max-w-7xl mx-auto space-y-8 animate-fade-in text-slate-700">
       
-      <app-back-button></app-back-button>
+  <app-admin-back-button></app-admin-back-button>
 
       <!-- Header Section -->
       <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-6">
@@ -126,7 +126,7 @@ export class CommunicationsApprovalComponent implements OnInit {
   pendingAnnouncements: Announcement[] = [];
   loading = false;
 
-  constructor(private messagingService: MessagingService) {}
+  constructor(private messagingService: MessagingService) { }
 
   ngOnInit() {
     this.loadData();
@@ -138,11 +138,11 @@ export class CommunicationsApprovalComponent implements OnInit {
       next: (res) => {
         const allAnnouncements: Announcement[] = res.data || res;
         this.pendingAnnouncements = allAnnouncements.filter(a => a.status === 'pendiente_aprobacion');
-        
+
         this.stats[0].value = this.pendingAnnouncements.length;
         this.stats[1].value = allAnnouncements.filter(a => a.status === 'publicado').length;
         this.stats[2].value = allAnnouncements.filter(a => a.status === 'archivado').length;
-        
+
         this.loading = false;
       },
       error: () => this.loading = false
@@ -163,7 +163,7 @@ export class CommunicationsApprovalComponent implements OnInit {
       if (result.isConfirmed) {
         this.messagingService.approveAnnouncement(id).subscribe({
           next: () => {
-             Swal.fire({
+            Swal.fire({
               icon: 'success',
               title: 'Publicado',
               text: 'El comunicado es ahora visible.',
@@ -193,7 +193,7 @@ export class CommunicationsApprovalComponent implements OnInit {
       if (result.isConfirmed) {
         this.messagingService.archiveAnnouncement(id).subscribe({
           next: () => {
-             Swal.fire({
+            Swal.fire({
               icon: 'info',
               title: 'Comunicado Rechazado',
               toast: true,

@@ -1,14 +1,15 @@
 import { Component } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { BackButtonComponent } from '@shared/components/back-button/back-button.component';
+import { AdminBackButtonComponent } from "@shared/components/back-button/admin-back-button.component";
 
 @Component({
   selector: 'app-news-management',
   standalone: true,
-  imports: [CommonModule, BackButtonComponent],
+  imports: [CommonModule, AdminBackButtonComponent],
   template: `
     <div class="min-h-[calc(100vh-80px)] p-6 sm:p-10 max-w-7xl mx-auto space-y-8 animate-fade-in text-slate-700">
-      <app-back-button></app-back-button>
+    <app-admin-back-button></app-admin-back-button>
       
       <!-- Header Section with Stats -->
       <div class="flex flex-col xl:flex-row xl:items-center gap-6 pb-6 border-b border-slate-100">
