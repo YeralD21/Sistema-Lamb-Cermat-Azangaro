@@ -5,8 +5,9 @@ import { FormsModule } from '@angular/forms';
 import { forkJoin } from 'rxjs';
 import Swal from 'sweetalert2';
 import { BackButtonComponent } from '@shared/components/back-button/back-button.component';
-import { AcademicService } from '@core/services/academic.service';
-import { CashClosure, Charge, FinanceService, Payment } from '@core/services/finance.service';
+import { AcademicService, AcademicYear, GradeLevel, Section } from '@core/services/academic.service';
+import { FinanceService, Charge, Payment, CashClosure } from '@core/services/finance.service';
+import { EnrollmentService } from '@core/services/enrollment.service';
 
 type FinanceTab = 'morosidad' | 'recaudacion';
 
@@ -327,22 +328,27 @@ export class FinanceReportsComponent implements OnInit {
 
   constructor(
     private financeService: FinanceService,
-    private academicService: AcademicService
+    private academicService: AcademicService,
+    private enrollmentService: EnrollmentService
   ) {}
 
   ngOnInit(): void {
+    this.loading = true;
+    
+    // Usar EnrollmentService para años y grados (públicos)
+    // AcademicService para secciones (requiere rol admin/director)
     forkJoin({
-      years: this.academicService.getAcademicYears(),
-      gradeLevels: this.academicService.getGradeLevels({ per_page: 100 }),
-      sections: this.academicService.getSections({ per_page: 300 })
+      options: this.enrollmentService.getPublicOptions(),
+      sections: this.academicService.getSections({ per_page: 500 })
     }).subscribe({
-      next: ({ years, gradeLevels, sections }) => {
-        const yearItems = Array.isArray((years as any).data) ? (years as any).data : years;
-        this.academicYears = Array.isArray(yearItems) ? yearItems : [];
+      next: ({ options, sections }) => {
+        this.academicYears = options.academic_years || [];
+        this.gradeLevels = options.grade_levels || [];
+        this.sections = this.extractCollection(sections);
+
         const activeYear = this.academicYears.find((year: any) => year.is_active);
         this.selectedYearId = activeYear?.id || this.academicYears[0]?.id || '';
-        this.gradeLevels = this.extractCollection(gradeLevels);
-        this.sections = this.extractCollection(sections);
+        
         this.loadData();
       },
       error: () => {

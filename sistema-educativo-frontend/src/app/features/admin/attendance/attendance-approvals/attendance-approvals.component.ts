@@ -17,6 +17,9 @@ import {
 } from '@core/services/attendance.service';
 import { BackButtonComponent } from '@shared/components/back-button/back-button.component';
 import { AdminBackButtonComponent } from "@shared/components/back-button/admin-back-button.component";
+import { EnrollmentService } from '@core/services/enrollment.service';
+import { AcademicYear } from '@core/models/AcademicYear';
+import { GradeLevel } from '@core/services/academic.service';
 
 interface AttendanceState {
   attendanceId?: string;
@@ -38,6 +41,7 @@ interface AttendanceState {
 })
 export class AttendanceApprovalsComponent implements OnInit, AfterViewInit {
   private attendanceService = inject(AttendanceService);
+  private enrollmentService = inject(EnrollmentService);
 
   loading = false;
   saving = false;
@@ -47,6 +51,8 @@ export class AttendanceApprovalsComponent implements OnInit, AfterViewInit {
   selectedCourseId = '';
   selectedSectionId = '';
   selectedDate = new Date().toISOString().split('T')[0];
+  selectedYearId = '';
+  selectedGradeId = '';
   searchTerm = '';
   error = '';
   success = '';
@@ -56,6 +62,8 @@ export class AttendanceApprovalsComponent implements OnInit, AfterViewInit {
 
   context: TeacherAttendanceContextResponse | null = null;
   adminOverview: AdminAttendanceOverview | null = null;
+  academicYears: AcademicYear[] = [];
+  gradeLevels: GradeLevel[] = [];
   assignments: AttendanceAssignment[] = [];
   selectedAssignment: AttendanceAssignment | null = null;
   students: StudentSummary[] = [];
@@ -63,6 +71,7 @@ export class AttendanceApprovalsComponent implements OnInit, AfterViewInit {
   attendanceRecords: Record<string, AttendanceState> = {};
 
   ngOnInit(): void {
+    this.loadPublicOptions();
     this.loadContext();
   }
 
@@ -80,6 +89,14 @@ export class AttendanceApprovalsComponent implements OnInit, AfterViewInit {
       const matchesStatus = this.statusFilter === 'todos' || this.attendanceRecords[student.id]?.status === this.statusFilter;
 
       return matchesSearch && matchesStatus;
+    });
+  }
+
+  get filteredAssignments(): AttendanceAssignment[] {
+    return this.assignments.filter(a => {
+      const yearMatch = !this.selectedYearId || a.academic_year_id === this.selectedYearId;
+      const gradeMatch = !this.selectedGradeId || a.section?.grade_level?.id === this.selectedGradeId;
+      return yearMatch && gradeMatch;
     });
   }
 
@@ -124,6 +141,24 @@ export class AttendanceApprovalsComponent implements OnInit, AfterViewInit {
     return ['falta', 'justificado'].includes(this.recordFor(studentId).status);
   }
 
+  loadPublicOptions(): void {
+    this.enrollmentService.getPublicOptions().subscribe({
+      next: (res) => {
+        this.academicYears = res.academic_years || [];
+        this.gradeLevels = res.grade_levels || [];
+        
+        // Select active year if none selected
+        if (!this.selectedYearId) {
+          const active = this.academicYears.find(y => y.is_active);
+          if (active) this.selectedYearId = active.id;
+        }
+      },
+      error: () => {
+        console.error('Error loading public options');
+      }
+    });
+  }
+
   loadContext(): void {
     this.loading = true;
     this.error = '';
@@ -132,25 +167,33 @@ export class AttendanceApprovalsComponent implements OnInit, AfterViewInit {
       next: (response) => {
         this.context = response;
         this.assignments = response.assignments || [];
-        this.loadAdminOverview();
-
+        
         if (this.assignments.length === 0) {
           this.error = 'No hay asignaciones activas para gestionar asistencia.';
           this.loading = false;
           this.justifications = [];
+          this.loadAdminOverview();
           return;
         }
 
-        this.selectedAssignment = this.assignments[0];
-        this.selectedCourseId = this.selectedAssignment.course_id;
-        this.selectedSectionId = this.selectedAssignment.section_id;
+        // Si hay un año seleccionado, intentamos pre-seleccionar la primera asignación que coincida
+        const matches = this.filteredAssignments;
+        if (matches.length > 0) {
+          this.selectedAssignment = matches[0];
+          this.selectedCourseId = this.selectedAssignment.course_id;
+          this.selectedSectionId = this.selectedAssignment.section_id;
+        }
 
-        this.loadStudents();
-        this.loadJustifications();
+        this.loadAdminOverview();
+        if (this.selectedAssignment) {
+          this.loadStudents();
+          this.loadJustifications();
+        }
       },
       error: (err) => {
         this.error = err.error?.message || 'Error al cargar el contexto de asistencia.';
         this.loading = false;
+        this.loadAdminOverview();
       }
     });
   }
@@ -174,15 +217,32 @@ export class AttendanceApprovalsComponent implements OnInit, AfterViewInit {
     this.loadJustifications();
   }
 
-  onDateChange(): void {
-    if (!this.selectedAssignment) {
-      this.loadAdminOverview();
-      return;
+  onYearGradeChange(): void {
+    this.selectedAssignment = null;
+    this.selectedCourseId = '';
+    this.selectedSectionId = '';
+    this.students = [];
+    this.attendanceRecords = {};
+    
+    // Si hay coincidencias en el nuevo filtro, seleccionamos la primera
+    const matches = this.filteredAssignments;
+    if (matches.length > 0) {
+      this.selectedAssignment = matches[0];
+      this.selectedCourseId = this.selectedAssignment.course_id;
+      this.selectedSectionId = this.selectedAssignment.section_id;
+      this.loadStudents();
+      this.loadJustifications();
     }
-
+    
     this.loadAdminOverview();
-    this.loadStudents();
-    this.loadJustifications();
+  }
+
+  onDateChange(): void {
+    this.loadAdminOverview();
+    if (this.selectedAssignment) {
+      this.loadStudents();
+      this.loadJustifications();
+    }
   }
 
   loadStudents(): void {
@@ -217,6 +277,8 @@ export class AttendanceApprovalsComponent implements OnInit, AfterViewInit {
 
     this.attendanceService.getAdminOverview({
       date: this.selectedDate || undefined,
+      academic_year_id: this.selectedYearId || undefined,
+      grade_level_id: this.selectedGradeId || undefined
     }).subscribe({
       next: (response) => {
         this.adminOverview = response;

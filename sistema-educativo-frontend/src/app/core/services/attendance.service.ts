@@ -191,6 +191,8 @@ export interface AdminAttendanceOverviewFilters {
   course_id?: string;
   section_id?: string;
   teacher_id?: string;
+  academic_year_id?: string;
+  grade_level_id?: string;
 }
 
 @Injectable({
