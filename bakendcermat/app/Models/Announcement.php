@@ -4,10 +4,15 @@ namespace App\Models;
 
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
+use Illuminate\Database\Eloquent\Concerns\HasUuids;
 
 class Announcement extends Model
 {
+    use HasUuids;
+
     protected $table = 'announcements';
+    public $incrementing = false;
+    protected $keyType = 'string';
 
     protected $fillable = [
         'title',

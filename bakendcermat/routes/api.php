@@ -23,6 +23,8 @@ use App\Http\Controllers\Api\PromotionRuleController;
 use App\Http\Controllers\Api\RecoveryProcessController;
 use App\Http\Controllers\Api\RecoveryResultController;
 use App\Http\Controllers\Api\StudentFinalStatusController;
+use App\Http\Controllers\Api\PeriodHistoryController;
+use App\Http\Controllers\Api\BulkImportController;
 
 // Personas
 use App\Http\Controllers\Api\ProfileController;
@@ -65,6 +67,8 @@ use App\Http\Controllers\Api\CashClosureController;
 // Auditoría
 use App\Http\Controllers\Api\AuditLogController;
 use App\Http\Controllers\Api\UserController;
+
+Route::pattern('announcement', '[0-9a-fA-F-]{36}');
 
 /*
 |--------------------------------------------------------------------------
@@ -126,6 +130,8 @@ Route::middleware('auth:sanctum')->group(function () {
         ->middleware('role:admin,director,coordinator,secretary,teacher,student,guardian');
     Route::get('periods/{id}', [PeriodController::class, 'show'])
         ->middleware('role:admin,director,coordinator,secretary,teacher,student,guardian');
+    Route::get('periods/{period}/history', [PeriodHistoryController::class, 'show'])
+        ->middleware('role:admin,director,coordinator,secretary,teacher,student,guardian');
 
     Route::middleware('role:admin,director,coordinator,secretary')->group(function () {
         Route::apiResource('academic-years', AcademicYearController::class);
@@ -135,6 +141,7 @@ Route::middleware('auth:sanctum')->group(function () {
         Route::put('periods/{id}', [PeriodController::class, 'update']);
         Route::patch('periods/{id}', [PeriodController::class, 'update']);
         Route::delete('periods/{id}', [PeriodController::class, 'destroy']);
+        Route::post('periods/{period}/history/regenerate', [PeriodHistoryController::class, 'regenerate']);
         Route::apiResource('courses', CourseController::class);
     });
 
@@ -158,6 +165,9 @@ Route::middleware('auth:sanctum')->group(function () {
         Route::apiResource('student-guardians', StudentGuardianController::class);
         Route::get('users', [UserController::class, 'index']);
         Route::post('users', [UserController::class, 'store']);
+        Route::delete('users/{id}', [UserController::class, 'destroy']);
+        Route::post('bulk-import/{type}/preview', [BulkImportController::class, 'preview']);
+        Route::post('bulk-import/{type}', [BulkImportController::class, 'store']);
     });
 
     Route::get('teachers', [TeacherController::class, 'index'])
@@ -412,6 +422,11 @@ Route::middleware('auth:sanctum')->group(function () {
     | - resumen financiero
     |--------------------------------------------------------------------------
     */
+    Route::middleware('role:admin,director,coordinator,secretary')->group(function () {
+        Route::get('reports/sections/{section}/attendance-summary', [ReportController::class, 'sectionAttendanceSummary']);
+        Route::get('reports/sections/{section}/evaluation-summary', [ReportController::class, 'sectionEvaluationSummary']);
+    });
+
     Route::middleware('role:admin,director,coordinator,secretary,teacher,student,guardian')->group(function () {
         Route::get('reports/students/{student}/report-card', [ReportController::class, 'reportCard'])
             ->middleware('student.guardian.access');
@@ -444,6 +459,7 @@ Route::middleware('auth:sanctum')->group(function () {
     |--------------------------------------------------------------------------
     */
     Route::middleware('role:admin,director,coordinator,secretary,teacher,guardian')->group(function () {
+        Route::get('messages/threads', [MessageController::class, 'threads']);
         Route::apiResource('messages', MessageController::class)
             ->only(['index', 'store', 'show', 'update', 'destroy']);
     });
@@ -471,7 +487,7 @@ Route::middleware('auth:sanctum')->group(function () {
     | Gestión de noticias visibles públicamente.
     |--------------------------------------------------------------------------
     */
-    Route::middleware('role:admin,director,coordinator,secretary')->group(function () {
+    Route::middleware('role:admin,director,coordinator,secretary,web_editor')->group(function () {
         Route::apiResource('public-news', PublicNewsController::class);
     });
 
@@ -482,11 +498,14 @@ Route::middleware('auth:sanctum')->group(function () {
     | Conceptos, cobros, pagos y recibos.
     |--------------------------------------------------------------------------
     */
-    Route::middleware('role:admin,director,coordinator,secretary')->group(function () {
+    Route::middleware('role:admin,director,coordinator,secretary,finance')->group(function () {
         Route::apiResource('fee-concepts', FeeConceptController::class);
         Route::post('charges/batch', [ChargeController::class, 'batchStore']);
         Route::post('charges/{charge}/void', [ChargeController::class, 'void']);
         Route::apiResource('charges', ChargeController::class);
+    });
+
+    Route::middleware('role:admin,director,secretary,finance,cashier')->group(function () {
         Route::post('payments/{payment}/void', [PaymentController::class, 'void']);
         Route::apiResource('payments', PaymentController::class)->only(['index', 'store', 'show', 'destroy']);
         Route::apiResource('receipts', ReceiptController::class)->only(['index', 'store', 'show', 'destroy']);
@@ -499,11 +518,14 @@ Route::middleware('auth:sanctum')->group(function () {
     | Descuentos, planes financieros, cuotas y cierres de caja.
     |--------------------------------------------------------------------------
     */
-    Route::middleware('role:admin,director,coordinator,secretary')->group(function () {
+    Route::middleware('role:admin,director,coordinator,secretary,finance')->group(function () {
         Route::apiResource('discounts', DiscountController::class);
         Route::apiResource('student-discounts', StudentDiscountController::class);
         Route::apiResource('financial-plans', FinancialPlanController::class);
         Route::apiResource('plan-installments', PlanInstallmentController::class);
+    });
+
+    Route::middleware('role:admin,director,secretary,finance,cashier')->group(function () {
         Route::apiResource('cash-closures', CashClosureController::class);
     });
 

@@ -40,6 +40,12 @@ class AcademicYear extends Model
     {
         return $this->hasMany(Section::class);
     }
+
+    public function periodHistories()
+    {
+        return $this->hasMany(AcademicPeriodHistory::class, 'academic_year_id');
+    }
+
     public function studentDiscounts()
 {
     return $this->hasMany(StudentDiscount::class, 'academic_year_id');

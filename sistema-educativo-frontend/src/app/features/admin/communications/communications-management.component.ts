@@ -12,16 +12,14 @@ import Swal from 'sweetalert2';
   imports: [CommonModule, BackButtonComponent, FormsModule, ReactiveFormsModule],
   template: `
     <div class="min-h-[calc(100vh-80px)] p-6 sm:p-10 max-w-7xl mx-auto space-y-8 animate-fade-in text-slate-700">
-      
       <app-back-button></app-back-button>
 
-      <!-- Header Section -->
       <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-6">
         <div class="space-y-1">
           <h1 class="text-3xl font-semibold text-blue-900 tracking-tight">Gestionar Comunicados</h1>
           <p class="text-slate-500 text-sm font-medium">Administra los avisos y anuncios institucionales</p>
         </div>
-        <button 
+        <button
           (click)="openModal()"
           class="px-6 py-2.5 bg-gradient-to-r from-blue-900 to-red-600 hover:opacity-90 text-white text-sm font-semibold rounded-xl transition-all shadow-lg active:scale-95 flex items-center justify-center gap-2">
           <svg class="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
@@ -29,7 +27,6 @@ import Swal from 'sweetalert2';
         </button>
       </div>
 
-      <!-- KPI Grid -->
       <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
         <div *ngFor="let kpi of kpis" class="bg-white border border-slate-100 rounded-2xl p-6 shadow-sm group hover:shadow-md transition-all relative overflow-hidden">
           <div class="flex items-start justify-between relative z-10">
@@ -45,7 +42,6 @@ import Swal from 'sweetalert2';
         </div>
       </div>
 
-      <!-- Filters Card -->
       <div class="bg-white border border-slate-100 rounded-2xl shadow-sm overflow-hidden">
         <div class="p-5 border-b border-slate-50 bg-slate-50/10 flex items-center gap-2 px-6">
           <svg class="w-4 h-4 text-slate-400" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polygon points="22 3 2 3 10 12.46 10 19 14 21 14 12.46 22 3"/></svg>
@@ -82,7 +78,6 @@ import Swal from 'sweetalert2';
         </div>
       </div>
 
-      <!-- Communications List -->
       <div class="bg-white border border-slate-100 rounded-3xl overflow-hidden shadow-sm">
         <div class="p-6 border-b border-slate-50 flex items-center justify-between bg-slate-50/10 px-8">
           <h2 class="text-base font-bold text-slate-800 tracking-tight uppercase">Mis Comunicados ({{ filteredCommunications.length }})</h2>
@@ -91,7 +86,7 @@ import Swal from 'sweetalert2';
         <div class="divide-y divide-slate-50">
           <div *ngIf="loading" class="p-8 text-center text-slate-400">Cargando comunicados...</div>
           <div *ngIf="!loading && filteredCommunications.length === 0" class="p-8 text-center text-slate-400">No hay comunicados registrados.</div>
-          
+
           <div *ngFor="let comm of filteredCommunications" class="p-8 hover:bg-slate-50/50 transition-all group scale-100 active:scale-[0.99]">
             <div class="flex flex-col md:flex-row md:items-start justify-between gap-6">
               <div class="space-y-4 flex-1">
@@ -107,36 +102,35 @@ import Swal from 'sweetalert2';
                   </p>
                 </div>
                 <div class="flex flex-wrap items-center gap-4 text-[11px] font-bold text-slate-400 uppercase tracking-widest pt-2">
-                  <div class="flex items-center gap-1.5"><svg class="w-3.5 h-3.5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg> 
-                    {{ comm.audience === 'seccion_especifica' && comm.section ? 'Sección: ' + comm.section.name : comm.audience }}
-                  </div>
-                  <div class="flex items-center gap-1.5"><svg class="w-3.5 h-3.5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><rect width="18" height="18" x="3" y="4" rx="2" ry="2"/><line x1="16" x2="16" y1="2" y2="6"/><line x1="8" x2="8" y1="2" y2="6"/><line x1="3" x2="21" y1="10" y2="10"/></svg> Creado: {{ comm.created_at | date:'dd MMM yyyy' }}</div>
+                  <div class="flex items-center gap-1.5"><svg class="w-3.5 h-3.5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg>{{ getAudienceLabel(comm) }}</div>
+                  <div class="flex items-center gap-1.5"><svg class="w-3.5 h-3.5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M12 12c2.21 0 4-1.79 4-4S14.21 4 12 4 8 5.79 8 8s1.79 4 4 4z"/><path d="M6 20c0-3.31 2.69-6 6-6s6 2.69 6 6"/></svg>{{ getCreatorLabel(comm) }}</div>
+                  <div class="flex items-center gap-1.5"><svg class="w-3.5 h-3.5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><rect width="18" height="18" x="3" y="4" rx="2" ry="2"/><line x1="16" x2="16" y1="2" y2="6"/><line x1="8" x2="8" y1="2" y2="6"/><line x1="3" x2="21" y1="10" y2="10"/></svg>Creado: {{ comm.created_at | date:'dd MMM yyyy' }}</div>
                 </div>
               </div>
-              
+
               <div class="flex items-center gap-2">
-                <button 
+                <button
                   *ngIf="comm.status === 'borrador'"
                   (click)="requestApproval(comm.id)"
                   title="Solicitar Aprobación"
                   class="p-3 text-slate-400 hover:text-green-600 hover:bg-green-50 rounded-2xl transition-all shadow-sm active:scale-95">
                   <svg class="w-5 h-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"/><polyline points="22 4 12 14.01 9 11.01"/></svg>
                 </button>
-                <button 
+                <button
                   *ngIf="comm.status === 'borrador'"
                   (click)="editAnnouncement(comm)"
                   title="Editar"
                   class="p-3 text-slate-400 hover:text-blue-900 hover:bg-blue-50 rounded-2xl transition-all shadow-sm active:scale-95">
                   <svg class="w-5 h-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/></svg>
                 </button>
-                <button 
+                <button
                   *ngIf="comm.status === 'publicado'"
                   (click)="archive(comm.id)"
                   title="Archivar"
                   class="p-3 text-slate-400 hover:text-orange-500 hover:bg-orange-50 rounded-2xl transition-all shadow-sm active:scale-95">
                   <svg class="w-5 h-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="21 8 21 21 3 21 3 8"/><rect width="22" height="5" x="1" y="3" rx="1"/><line x1="10" x2="14" y1="12" y2="12"/></svg>
                 </button>
-                <button 
+                <button
                   (click)="deleteAnnouncement(comm.id)"
                   title="Eliminar"
                   class="p-3 text-slate-400 hover:text-red-500 hover:bg-red-50 rounded-2xl transition-all shadow-sm active:scale-95">
@@ -148,7 +142,6 @@ import Swal from 'sweetalert2';
         </div>
       </div>
 
-      <!-- Modal Crear/Editar -->
       <div *ngIf="showModal" class="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/60 backdrop-blur-sm animate-fade-in">
         <div class="bg-white rounded-3xl w-full max-w-2xl shadow-2xl overflow-hidden animate-slide-up">
           <div class="p-6 border-b border-slate-100 flex items-center justify-between bg-slate-50/50">
@@ -163,7 +156,7 @@ import Swal from 'sweetalert2';
                 <label class="text-[10px] font-semibold text-slate-400 uppercase tracking-widest pl-1">Título del Comunicado</label>
                 <input formControlName="title" type="text" placeholder="Escribe el título aquí..." class="w-full bg-slate-50 border border-slate-200 rounded-xl px-4 py-3 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500/10 focus:border-blue-500 transition-all font-medium">
               </div>
-              
+
               <div class="space-y-2">
                 <label class="text-[10px] font-semibold text-slate-400 uppercase tracking-widest pl-1">Audiencia (Público Objetivo)</label>
                 <select formControlName="audience" class="w-full bg-slate-50 border border-slate-200 rounded-xl px-4 py-3 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500/10 focus:border-blue-500 transition-all font-medium">
@@ -179,7 +172,7 @@ import Swal from 'sweetalert2';
                 <label class="text-[10px] font-semibold text-slate-400 uppercase tracking-widest pl-1">Seleccionar Sección</label>
                 <select formControlName="section_id" class="w-full bg-slate-50 border border-slate-200 rounded-xl px-4 py-3 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500/10 focus:border-blue-500 transition-all font-medium">
                   <option value="">Seleccione...</option>
-                  <option *ngFor="let sec of sections" [value]="sec.id">{{ sec.name }} ({{ sec.grade_level?.name }})</option>
+                  <option *ngFor="let sec of sections" [value]="sec.id">{{ getSectionLabel(sec) }}</option>
                 </select>
               </div>
 
@@ -188,7 +181,7 @@ import Swal from 'sweetalert2';
                 <textarea formControlName="content" rows="6" placeholder="Detalla el contenido del anuncio..." class="w-full bg-slate-50 border border-slate-200 rounded-xl px-4 py-3 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500/10 focus:border-blue-500 transition-all font-medium resize-none"></textarea>
               </div>
             </div>
-            
+
             <div class="flex gap-4 pt-4">
               <button (click)="closeModal()" type="button" class="flex-1 px-6 py-3 bg-slate-100 hover:bg-slate-200 text-slate-600 text-sm font-bold rounded-xl transition-all active:scale-95">
                 Cancelar
@@ -201,7 +194,6 @@ import Swal from 'sweetalert2';
           </form>
         </div>
       </div>
-
     </div>
   `,
   styles: [`
@@ -225,9 +217,9 @@ export class CommunicationsManagementComponent implements OnInit {
   sections: any[] = [];
   loading = false;
   saving = false;
-  
+
   filters = { status: '', audience: '' };
-  
+
   showModal = false;
   isEditing = false;
   currentId: string | null = null;
@@ -245,72 +237,119 @@ export class CommunicationsManagementComponent implements OnInit {
       section_id: ['']
     });
 
-    this.form.get('audience')?.valueChanges.subscribe(val => {
-      const sectionCtrl = this.form.get('section_id');
-      if (val === 'seccion_especifica') {
-        sectionCtrl?.setValidators(Validators.required);
+    this.form.get('audience')?.valueChanges.subscribe(value => {
+      const sectionControl = this.form.get('section_id');
+
+      if (value === 'seccion_especifica') {
+        sectionControl?.setValidators(Validators.required);
       } else {
-        sectionCtrl?.clearValidators();
-        sectionCtrl?.setValue('');
+        sectionControl?.clearValidators();
+        sectionControl?.setValue('');
       }
-      sectionCtrl?.updateValueAndValidity();
+
+      sectionControl?.updateValueAndValidity();
     });
   }
 
-  ngOnInit() {
+  ngOnInit(): void {
     this.loadAnnouncements();
     this.loadSections();
   }
 
-  loadAnnouncements() {
+  loadAnnouncements(): void {
     this.loading = true;
     this.messagingService.getAnnouncements(this.filters).subscribe({
-      next: (res) => {
-        this.communications = res.data || res;
+      next: (response) => {
+        this.communications = response.data || [];
         this.filteredCommunications = [...this.communications];
         this.updateKPIs();
         this.loading = false;
       },
-      error: () => this.loading = false
+      error: () => {
+        this.loading = false;
+      }
     });
   }
 
-  loadSections() {
-    this.academicService.getSections().subscribe(res => {
-      this.sections = res.data || res;
+  loadSections(): void {
+    this.academicService.getSections({ per_page: 200 }).subscribe(response => {
+      this.sections = response.data || response;
     });
   }
 
-  applyFilters(key: 'status' | 'audience', value: string) {
+  applyFilters(key: 'status' | 'audience', value: string): void {
     this.filters[key] = value;
     this.loadAnnouncements();
   }
 
-  updateKPIs() {
+  updateKPIs(): void {
     this.kpis[0].value = this.communications.length;
-    this.kpis[1].value = this.communications.filter(c => c.status === 'publicado').length;
-    this.kpis[2].value = this.communications.filter(c => c.status === 'borrador').length;
-    this.kpis[3].value = this.communications.filter(c => c.status === 'pendiente_aprobacion').length;
+    this.kpis[1].value = this.communications.filter(comm => comm.status === 'publicado').length;
+    this.kpis[2].value = this.communications.filter(comm => comm.status === 'borrador').length;
+    this.kpis[3].value = this.communications.filter(comm => comm.status === 'pendiente_aprobacion').length;
+  }
+
+  getAudienceLabel(comm: Announcement): string {
+    if (comm.audience === 'seccion_especifica') {
+      return `Sección: ${this.getSectionLabel(comm.section)}`;
+    }
+
+    const labels: Record<string, string> = {
+      todos: 'Todos',
+      docentes: 'Docentes',
+      estudiantes: 'Estudiantes',
+      apoderados: 'Apoderados'
+    };
+
+    return labels[comm.audience] || comm.audience;
+  }
+
+  getSectionLabel(section: any): string {
+    if (!section) {
+      return 'Sin sección';
+    }
+
+    const gradeName = section.grade_level?.name || section.gradeLevel?.name || '';
+    const sectionName = section.name || section.section_letter || '';
+
+    if (!gradeName && !sectionName) {
+      return 'Sección';
+    }
+
+    if (!gradeName) {
+      return `Sección ${sectionName}`;
+    }
+
+    if (!sectionName) {
+      return gradeName;
+    }
+
+    return `${gradeName} - Sección ${sectionName}`;
+  }
+
+  getCreatorLabel(comm: Announcement): string {
+    return comm.creator?.full_name || 'Creado por administración';
   }
 
   getStatusClass(status: string): string {
-    const map: any = {
-      'borrador': 'bg-orange-50 text-orange-600',
-      'pendiente_aprobacion': 'bg-purple-50 text-purple-600',
-      'publicado': 'bg-green-50 text-green-600',
-      'archivado': 'bg-slate-100 text-slate-500'
+    const map: Record<string, string> = {
+      borrador: 'bg-orange-50 text-orange-600',
+      pendiente_aprobacion: 'bg-purple-50 text-purple-600',
+      publicado: 'bg-green-50 text-green-600',
+      archivado: 'bg-slate-100 text-slate-500'
     };
+
     return map[status] || 'bg-slate-100 text-slate-500';
   }
 
-  openModal() {
+  openModal(): void {
     this.isEditing = false;
     this.currentId = null;
     this.form.reset({ audience: 'todos' });
     this.showModal = true;
   }
 
-  editAnnouncement(comm: Announcement) {
+  editAnnouncement(comm: Announcement): void {
     this.isEditing = true;
     this.currentId = comm.id;
     this.form.patchValue({
@@ -322,15 +361,17 @@ export class CommunicationsManagementComponent implements OnInit {
     this.showModal = true;
   }
 
-  closeModal() {
+  closeModal(): void {
     this.showModal = false;
   }
 
-  saveAnnouncement() {
-    if (this.form.invalid) return;
+  saveAnnouncement(): void {
+    if (this.form.invalid) {
+      return;
+    }
+
     this.saving = true;
-    
-    // Always create as draft from the backend logic
+
     const request = this.isEditing && this.currentId
       ? this.messagingService.updateAnnouncement(this.currentId, this.form.value)
       : this.messagingService.createAnnouncement(this.form.value);
@@ -358,10 +399,10 @@ export class CommunicationsManagementComponent implements OnInit {
     });
   }
 
-  requestApproval(id: string) {
+  requestApproval(id: string): void {
     Swal.fire({
       title: '¿Solicitar Aprobación?',
-      text: "El comunicado pasará a revisión por un administrador.",
+      text: 'El comunicado pasará a revisión por un administrador.',
       icon: 'question',
       showCancelButton: true,
       confirmButtonColor: '#1e3a8a',
@@ -372,7 +413,7 @@ export class CommunicationsManagementComponent implements OnInit {
       if (result.isConfirmed) {
         this.messagingService.requestApproval(id).subscribe({
           next: () => {
-             Swal.fire({
+            Swal.fire({
               icon: 'success',
               title: 'Enviado',
               text: 'Se ha solicitado aprobación.',
@@ -388,16 +429,16 @@ export class CommunicationsManagementComponent implements OnInit {
     });
   }
 
-  archive(id: string) {
+  archive(id: string): void {
     this.messagingService.archiveAnnouncement(id).subscribe({
       next: () => this.loadAnnouncements()
     });
   }
 
-  deleteAnnouncement(id: string) {
+  deleteAnnouncement(id: string): void {
     Swal.fire({
       title: '¿Eliminar Comunicado?',
-      text: "Esta acción no se puede deshacer.",
+      text: 'Esta acción no se puede deshacer.',
       icon: 'warning',
       showCancelButton: true,
       confirmButtonColor: '#d33',
@@ -423,4 +464,3 @@ export class CommunicationsManagementComponent implements OnInit {
     });
   }
 }
-

@@ -36,19 +36,7 @@ export class LoginMockComponent {
           this.error = res.error || 'Autenticación fallida.';
           this.loading = false;
         } else {
-          // Success! Redirect to app dashboard based on role
-          const role = this.authService.getRole();
-          if (role === 'admin') {
-            this.router.navigate(['/app/dashboard']);
-          } else if (role === 'student') {
-            this.router.navigate(['/app/dashboard/student']);
-          } else if (role === 'teacher') {
-            this.router.navigate(['/app/dashboard/teacher']);
-          } else if (role === 'apoderado') {
-            this.router.navigate(['/app/dashboard/apoderado']);
-          } else {
-            this.router.navigate(['/app']);
-          }
+          this.router.navigateByUrl(this.authService.getHomeRoute());
         }
       },
       error: (err) => {

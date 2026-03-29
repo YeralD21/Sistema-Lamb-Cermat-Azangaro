@@ -404,13 +404,16 @@ class AttendanceController extends Controller
             return;
         }
 
-        $query->whereExists(function ($subQuery) use ($teacherId) {
+        $query->whereExists(function ($subQuery) use ($teacherId, $request) {
             $subQuery->select(DB::raw(1))
                 ->from('teacher_course_assignments as tca')
                 ->whereColumn('tca.course_id', 'attendance.course_id')
                 ->whereColumn('tca.section_id', 'attendance.section_id')
-                ->where('tca.teacher_id', $teacherId)
-                ->where('tca.is_active', true);
+                ->where('tca.teacher_id', $teacherId);
+
+            if (!$request->boolean('history_scope', false)) {
+                $subQuery->where('tca.is_active', true);
+            }
         });
     }
 

@@ -1,8 +1,8 @@
 import { Component, OnInit, inject } from '@angular/core';
 import { CommonModule } from '@angular/common';
-import { FormsModule, ReactiveFormsModule, FormBuilder, FormGroup, Validators } from '@angular/forms';
+import { FormBuilder, FormGroup, FormsModule, ReactiveFormsModule, Validators } from '@angular/forms';
 import { BackButtonComponent } from '@shared/components/back-button/back-button.component';
-import { AcademicService, GradeLevel, Section, Course } from '@core/services/academic.service';
+import { AcademicService, Course, GradeLevel, Section } from '@core/services/academic.service';
 import { ScheduleService } from '@core/services/schedule.service';
 import Swal from 'sweetalert2';
 
@@ -11,297 +11,300 @@ import Swal from 'sweetalert2';
   standalone: true,
   imports: [CommonModule, FormsModule, ReactiveFormsModule, BackButtonComponent],
   template: `
-    <div class="print:m-0 print:p-0 min-h-[calc(100vh-80px)] p-6 sm:p-10 max-w-[1400px] mx-auto space-y-8 text-slate-700">
-      
-      <div class="print:hidden">
-        <app-back-button></app-back-button>
-      </div>
+    <div class="min-h-[calc(100vh-80px)] p-6 sm:p-8 max-w-7xl mx-auto space-y-6 text-slate-700">
+      <app-back-button></app-back-button>
 
-      <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-4 print:hidden">
-        <div class="flex items-center gap-4">
-          <div class="p-3 bg-blue-50 rounded-2xl border border-blue-100 shadow-sm print:hidden">
-            <svg class="w-6 h-6 text-blue-700" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="4" width="18" height="18" rx="2" ry="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg>
+      <div class="relative overflow-hidden rounded-[2rem] border border-slate-200 bg-[radial-gradient(circle_at_top_left,_rgba(14,58,138,0.16),_transparent_38%),linear-gradient(135deg,#ffffff_0%,#eff6ff_48%,#f8fafc_100%)] p-6 sm:p-8 shadow-sm">
+        <div class="absolute -right-14 -top-14 h-40 w-40 rounded-full bg-blue-200/30 blur-3xl"></div>
+        <div class="absolute bottom-0 left-1/3 h-24 w-24 rounded-full bg-cyan-200/20 blur-2xl"></div>
+
+        <div class="relative flex flex-col gap-6 lg:flex-row lg:items-end lg:justify-between">
+          <div class="max-w-2xl">
+            <p class="text-[11px] font-black uppercase tracking-[0.35em] text-blue-700">Planificador Academico</p>
+            <h1 class="mt-3 text-3xl sm:text-4xl font-semibold text-slate-900 tracking-tight">Horario Semanal</h1>
+            <p class="mt-3 text-sm sm:text-base text-slate-600 font-medium leading-relaxed">
+              Organiza bloques por seccion, curso, docente y aula con control visual de carga semanal.
+            </p>
           </div>
-          <div>
-            <h1 class="text-3xl font-semibold text-slate-900 tracking-tight">Horario Semanal</h1>
-            <p class="text-slate-500 text-sm font-medium print:hidden">Visualiza y organiza los bloques horarios</p>
+
+          <div class="flex flex-wrap items-center gap-3">
+            <button
+              type="button"
+              (click)="printSchedule()"
+              [disabled]="schedules.length === 0"
+              class="px-4 py-2.5 rounded-xl border border-slate-200 bg-white/90 backdrop-blur text-sm font-bold text-slate-600 hover:border-blue-600 hover:text-blue-700 disabled:opacity-50">
+              Imprimir
+            </button>
+            <button
+              type="button"
+              (click)="openModal()"
+              [disabled]="!selectedSectionId || !activeAcademicYearId || loading"
+              class="px-4 py-2.5 rounded-xl bg-blue-700 text-white text-sm font-bold hover:bg-blue-600 disabled:opacity-50 shadow-lg shadow-blue-700/20">
+              Agregar Bloque
+            </button>
           </div>
         </div>
-        <div class="flex items-center gap-3">
-          <button (click)="printSchedule()" *ngIf="schedules.length > 0" class="px-5 py-2.5 bg-white border-2 border-slate-200 hover:border-blue-700 text-slate-600 hover:text-blue-700 text-sm font-bold rounded-xl transition-all active:scale-95 flex items-center justify-center gap-2">
-            <svg class="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="6 9 6 2 18 2 18 9"/><path d="M6 18H4a2 2 0 0 1-2-2v-5a2 2 0 0 1 2-2h16a2 2 0 0 1 2 2v5a2 2 0 0 1-2 2h-2"/><rect x="6" y="14" width="12" height="8"/></svg>
-            Imprimir PDF
-          </button>
-          <button (click)="openModal()" [disabled]="!selectedSectionId" class="px-6 py-2.5 bg-blue-700 hover:bg-blue-600 text-white text-sm font-bold rounded-xl transition-all shadow-lg active:scale-95 flex items-center justify-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed">
-            <svg class="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
-            Agregar Bloque
-          </button>
-        </div>
       </div>
 
-      <!-- Filters -->
-      <div class="bg-white border border-slate-200 rounded-2xl p-4 shadow-sm inline-flex gap-4 flex-wrap print:hidden">
-        <div class="flex flex-col gap-1 w-full sm:w-64">
-          <label class="text-[10px] font-bold text-slate-400 uppercase tracking-widest pl-1">Grado</label>
-          <select 
-            [(ngModel)]="selectedGradeId" 
+      <div class="grid grid-cols-1 md:grid-cols-3 gap-4 bg-white border border-slate-200 rounded-2xl p-4 shadow-sm">
+        <div class="space-y-1">
+          <label class="text-[11px] font-bold uppercase tracking-widest text-slate-400">Grado</label>
+          <select
+            [(ngModel)]="selectedGradeId"
             (change)="onGradeChange()"
-            class="bg-slate-50 border border-slate-200 text-slate-700 rounded-xl px-4 py-3 text-xs font-bold uppercase tracking-widest focus:outline-none focus:border-blue-500 transition-all cursor-pointer">
-            <option value="">Seleccionar Grado</option>
-            <option *ngFor="let g of grades" [value]="g.id">{{ g.name || g.level + ' ' + g.grade + '°' }}</option>
+            class="w-full rounded-xl border border-slate-200 bg-slate-50 px-4 py-3 text-sm font-semibold focus:outline-none focus:border-blue-500">
+            <option value="">Seleccionar grado</option>
+            <option *ngFor="let grade of grades" [value]="grade.id">{{ grade.name || (grade.level + ' ' + grade.grade + '°') }}</option>
           </select>
         </div>
-        
-        <div class="flex flex-col gap-1 w-full sm:w-64">
-          <label class="text-[10px] font-bold text-slate-400 uppercase tracking-widest pl-1">Sección</label>
-          <select 
-            [(ngModel)]="selectedSectionId" 
-            (change)="loadSchedules()"
-            [disabled]="!selectedGradeId"
-            class="bg-slate-50 border border-slate-200 text-slate-700 rounded-xl px-4 py-3 text-xs font-bold uppercase tracking-widest focus:outline-none focus:border-blue-500 transition-all cursor-pointer disabled:opacity-50">
-            <option value="">Seleccionar Sección</option>
-            <option *ngFor="let s of sections" [value]="s.id">Sección {{ s.section_letter }}</option>
+
+        <div class="space-y-1">
+          <label class="text-[11px] font-bold uppercase tracking-widest text-slate-400">Seccion</label>
+          <select
+            [(ngModel)]="selectedSectionId"
+            (change)="onSectionChange()"
+            [disabled]="!selectedGradeId || !activeAcademicYearId"
+            class="w-full rounded-xl border border-slate-200 bg-slate-50 px-4 py-3 text-sm font-semibold focus:outline-none focus:border-blue-500 disabled:opacity-50">
+            <option value="">Seleccionar seccion</option>
+            <option *ngFor="let section of sections" [value]="section.id">Seccion {{ section.section_letter }}</option>
           </select>
         </div>
-      </div>
 
-      <!-- Schedule Printer Header -->
-      <div class="hidden print:block mb-8 text-center pb-6 border-b-2 border-slate-200">
-        <h2 class="text-2xl font-black text-slate-900 uppercase tracking-widest">{{ getSelectedGradeName() }} - Sección {{ getSelectedSectionLetter() }}</h2>
-        <p class="text-slate-500 mt-1 font-medium">Horario de Clases</p>
-      </div>
-
-      <!-- Current Schedule View -->
-      <div class="bg-white border border-slate-200 rounded-3xl overflow-hidden shadow-sm relative print:border-none print:shadow-none" *ngIf="selectedSectionId">
-        <div *ngIf="loading" class="absolute inset-0 bg-white/80 backdrop-blur-sm z-50 flex items-center justify-center print:hidden">
-           <div class="w-10 h-10 border-4 border-blue-600 border-t-transparent rounded-full animate-spin"></div>
+        <div class="rounded-xl border border-slate-200 bg-slate-50 px-4 py-3">
+          <p class="text-[11px] font-bold uppercase tracking-widest text-slate-400">Estado</p>
+          <p class="mt-1 text-sm font-semibold text-slate-700">
+            {{ activeAcademicYearId ? 'Ano academico activo detectado' : 'Sin ano academico activo' }}
+          </p>
+          <p class="text-xs text-slate-500 mt-1">
+            {{ selectedSectionId ? 'Seccion lista para editar horario.' : 'Selecciona grado y seccion para continuar.' }}
+          </p>
         </div>
-        
-        <!-- Render main grid -->
-        <ng-container *ngTemplateOutlet="scheduleGrid; context: { isPreview: false }"></ng-container>
       </div>
 
-      <div *ngIf="!selectedSectionId && selectedGradeId" class="text-center py-16 bg-white border border-slate-100 rounded-3xl print:hidden">
-        <p class="text-slate-400 font-medium">Selecciona una sección para ver o editar el horario.</p>
+      <div class="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-4 gap-4">
+        <div class="rounded-3xl border border-slate-200 bg-white p-5 shadow-sm">
+          <p class="text-[11px] font-black uppercase tracking-[0.25em] text-slate-400">Bloques</p>
+          <p class="mt-3 text-3xl font-semibold text-slate-900">{{ schedules.length }}</p>
+          <p class="mt-2 text-sm font-medium text-slate-500">Total de sesiones registradas</p>
+        </div>
+
+        <div class="rounded-3xl border border-slate-200 bg-white p-5 shadow-sm">
+          <p class="text-[11px] font-black uppercase tracking-[0.25em] text-slate-400">Horas</p>
+          <p class="mt-3 text-3xl font-semibold text-slate-900">{{ getTotalScheduledHoursLabel() }}</p>
+          <p class="mt-2 text-sm font-medium text-slate-500">Carga total programada en la semana</p>
+        </div>
+
+        <div class="rounded-3xl border border-slate-200 bg-white p-5 shadow-sm">
+          <p class="text-[11px] font-black uppercase tracking-[0.25em] text-slate-400">Cursos</p>
+          <p class="mt-3 text-3xl font-semibold text-slate-900">{{ getScheduledCourseCount() }}</p>
+          <p class="mt-2 text-sm font-medium text-slate-500">Cursos con al menos un bloque</p>
+        </div>
+
+        <div class="rounded-3xl border border-slate-200 bg-white p-5 shadow-sm">
+          <p class="text-[11px] font-black uppercase tracking-[0.25em] text-slate-400">Docentes</p>
+          <p class="mt-3 text-3xl font-semibold text-slate-900">{{ getAssignedTeacherCount() }}</p>
+          <p class="mt-2 text-sm font-medium text-slate-500">Docentes asignados al horario actual</p>
+        </div>
       </div>
 
-      <!-- Add/Edit Modal (Expands up to 1300px for a wide editing view) -->
-      <div *ngIf="showModal" class="fixed inset-0 z-[100] flex items-center justify-center p-4 print:hidden">
+      <div *ngIf="!activeAcademicYearId" class="rounded-2xl border border-amber-200 bg-amber-50 px-4 py-3 text-sm font-semibold text-amber-700">
+        No hay un ano academico activo. Activa uno antes de registrar horarios.
+      </div>
+
+      <div *ngIf="loadErrorMessage" class="rounded-2xl border border-red-200 bg-red-50 px-4 py-3 text-sm font-semibold text-red-700">
+        {{ loadErrorMessage }}
+      </div>
+
+      <div *ngIf="selectedSectionId" class="bg-white border border-slate-200 rounded-3xl shadow-sm overflow-hidden">
+        <div class="flex items-center justify-between px-6 py-4 border-b border-slate-100">
+          <div>
+            <h2 class="text-lg font-bold text-slate-900">{{ getSelectedGradeName() }} - Seccion {{ getSelectedSectionLetter() }}</h2>
+            <p class="text-sm text-slate-500">Bloques cargados: {{ schedules.length }}</p>
+          </div>
+          <div *ngIf="loading" class="w-6 h-6 border-2 border-blue-600 border-t-transparent rounded-full animate-spin"></div>
+        </div>
+
+        <div class="grid grid-cols-1 xl:grid-cols-3 gap-px bg-slate-100">
+          <div *ngFor="let day of days" class="bg-white p-5 min-h-[220px]">
+            <div class="flex items-center justify-between mb-4">
+              <h3 class="text-sm font-black uppercase tracking-widest text-slate-800">{{ day.name }}</h3>
+              <span class="text-[11px] font-bold text-slate-400">{{ getSchedulesByDay(day.id).length }} bloques</span>
+            </div>
+
+            <div class="space-y-3" *ngIf="getSchedulesByDay(day.id).length > 0; else emptyDay">
+              <div *ngFor="let block of getSchedulesByDay(day.id)" [class]="'rounded-2xl p-4 text-white shadow-sm ' + getCourseColor(block.course_id)">
+                <div class="flex items-start justify-between gap-3">
+                  <div class="min-w-0">
+                    <p class="text-sm font-black uppercase leading-tight">{{ block.course?.name || getCourseName(block.course_id) }}</p>
+                    <p class="text-xs font-bold text-white/90 mt-1">{{ formatTime(block.start_time) }} - {{ formatTime(block.end_time) }}</p>
+                  </div>
+                  <div class="flex items-center gap-2 shrink-0">
+                    <button type="button" (click)="editBlock(block)" class="text-[11px] font-black uppercase text-white/90 hover:text-white">Editar</button>
+                    <button type="button" (click)="deleteBlock(block.id, $event)" class="text-[11px] font-black uppercase text-white/90 hover:text-white">Eliminar</button>
+                  </div>
+                </div>
+
+                <div class="mt-3 space-y-1 text-xs font-semibold text-white/90">
+                  <p *ngIf="block.teacher">Docente: {{ block.teacher.first_name }} {{ block.teacher.last_name }}</p>
+                  <p *ngIf="block.room_number">Aula: {{ block.room_number }}</p>
+                </div>
+              </div>
+            </div>
+
+            <ng-template #emptyDay>
+              <div class="rounded-2xl border border-dashed border-slate-200 bg-slate-50 p-5 text-sm font-medium text-slate-400 text-center">
+                Sin bloques registrados
+              </div>
+            </ng-template>
+          </div>
+        </div>
+      </div>
+
+      <div *ngIf="selectedSectionId && getCourseLoadRows().length > 0" class="rounded-3xl border border-slate-200 bg-white p-5 shadow-sm">
+        <div class="flex flex-col gap-2 sm:flex-row sm:items-end sm:justify-between mb-4">
+          <div>
+            <h3 class="text-lg font-bold text-slate-900">Carga por Curso</h3>
+            <p class="text-sm font-medium text-slate-500">Comparacion entre horas configuradas y horas ya programadas.</p>
+          </div>
+          <p class="text-xs font-bold uppercase tracking-[0.25em] text-slate-400">Control Semanal</p>
+        </div>
+
+        <div class="grid grid-cols-1 lg:grid-cols-2 gap-4">
+          <div *ngFor="let row of getCourseLoadRows()" class="rounded-2xl border border-slate-200 bg-slate-50 p-4">
+            <div class="flex items-start justify-between gap-4">
+              <div class="min-w-0">
+                <p class="text-sm font-black uppercase text-slate-900 leading-tight">{{ row.name }}</p>
+                <p class="mt-1 text-xs font-semibold text-slate-500">
+                  {{ row.scheduledHoursLabel }} programadas de {{ row.limitHoursLabel }} configuradas
+                </p>
+              </div>
+              <span class="px-2.5 py-1 rounded-full text-[11px] font-black uppercase tracking-widest"
+                    [ngClass]="row.statusClass">
+                {{ row.statusLabel }}
+              </span>
+            </div>
+
+            <div class="mt-4">
+              <div class="h-3 rounded-full bg-slate-200 overflow-hidden">
+                <div class="h-full rounded-full transition-all duration-500"
+                     [style.width.%]="row.progress"
+                     [ngClass]="row.barClass"></div>
+              </div>
+              <div class="mt-2 flex items-center justify-between text-[11px] font-bold uppercase tracking-widest text-slate-400">
+                <span>{{ row.blocks }} bloques</span>
+                <span>{{ row.progress | number:'1.0-0' }}%</span>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div *ngIf="!selectedSectionId && selectedGradeId" class="rounded-3xl border border-slate-200 bg-white py-16 text-center text-slate-400 font-medium">
+        Selecciona una seccion para ver o editar el horario.
+      </div>
+
+      <div *ngIf="showModal" class="fixed inset-0 z-[100] flex items-center justify-center p-4">
         <div class="absolute inset-0 bg-slate-900/60 backdrop-blur-sm" (click)="closeModal()"></div>
-        <div class="bg-white rounded-[2rem] shadow-2xl w-full max-w-[1300px] h-[90vh] relative z-10 overflow-hidden border border-slate-100 flex flex-col md:flex-row">
-          
-          <!-- Compact Form Panel -->
-          <div class="w-full md:w-[320px] p-6 bg-slate-50 border-r border-slate-200 flex flex-col justify-between overflow-y-auto shrink-0 z-10 shadow-[4px_0_24px_-12px_rgba(0,0,0,0.1)]">
-            <div>
-              <h2 class="text-lg font-bold text-slate-800 tracking-tight flex items-center gap-2">
-                <svg class="w-5 h-5 text-blue-600" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><rect x="3" y="4" width="18" height="18" rx="2" ry="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/><path d="M12 16v-4"/><path d="M8 12h8"/></svg>
-                {{ editingBlockId ? 'Editar' : 'Agregar' }} Bloque
-              </h2>
-              <p class="text-[10px] font-bold text-red-500 uppercase tracking-widest mt-3 mb-1" *ngIf="overlapError">
-                ⚠️ Conflicto detectado
-              </p>
-            </div>
-            
-            <form [formGroup]="scheduleForm" (ngSubmit)="saveBlock()" class="space-y-3.5 flex-grow mt-3">
-              
-              <div class="space-y-1 focus-within:text-blue-600">
-                <label class="text-[9px] font-bold uppercase tracking-widest text-slate-400 flex items-center gap-1">Curso <span class="text-red-500">*</span></label>
-                <select formControlName="course_id" class="w-full bg-white border border-slate-200 text-slate-800 rounded-lg px-3 py-2 text-sm font-semibold focus:outline-none focus:border-blue-500 shadow-sm transition-all focus:ring-4 focus:ring-blue-500/10 h-10">
-                  <option value="">Seleccionar curso</option>
-                  <option *ngFor="let c of courses" [value]="c.id">{{ c.name }}</option>
-                </select>
-                <p *ngIf="courses.length === 0" class="text-xs text-orange-500 mt-1 leading-tight">No hay cursos registrados en el grado.</p>
+        <div class="relative z-10 w-full max-w-3xl rounded-[2rem] border border-slate-100 bg-white shadow-2xl overflow-hidden">
+          <div class="grid grid-cols-1 lg:grid-cols-[360px_1fr]">
+            <div class="p-6 border-b lg:border-b-0 lg:border-r border-slate-200 bg-slate-50">
+              <div class="mb-4">
+                <h2 class="text-xl font-bold text-slate-900">{{ editingBlockId ? 'Editar Bloque' : 'Agregar Bloque' }}</h2>
+                <p class="text-sm text-slate-500 mt-1">{{ getSelectedGradeName() }} - Seccion {{ getSelectedSectionLetter() }}</p>
               </div>
 
-              <div class="space-y-1 focus-within:text-blue-600">
-                <label class="text-[9px] font-bold uppercase tracking-widest text-slate-400">Docente (Opcional)</label>
-                <select formControlName="teacher_id" class="w-full bg-white border border-slate-200 text-slate-800 rounded-lg px-3 py-2 text-sm font-semibold focus:outline-none focus:border-blue-500 shadow-sm transition-all focus:ring-4 focus:ring-blue-500/10 h-10">
-                  <option value="">Sin docente asignado</option>
-                  <option *ngFor="let t of teachers" [value]="t.id">{{ t.first_name }} {{ t.last_name }}</option>
-                </select>
+              <div *ngIf="overlapError" class="mb-4 rounded-xl border border-red-200 bg-red-50 px-3 py-2 text-sm font-semibold text-red-700">
+                {{ saveErrorMessage || 'Revisa la informacion antes de guardar.' }}
               </div>
 
-              <div class="space-y-1 focus-within:text-blue-600">
-                <label class="text-[9px] font-bold uppercase tracking-widest text-slate-400 flex items-center gap-1">Día <span class="text-red-500">*</span></label>
-                <select formControlName="day_of_week" class="w-full bg-white border border-slate-200 text-slate-800 rounded-lg px-3 py-2 text-sm font-semibold focus:outline-none focus:border-blue-500 shadow-sm transition-all focus:ring-4 focus:ring-blue-500/10 h-10">
-                  <option *ngFor="let d of days" [value]="d.id">{{ d.name }}</option>
-                </select>
-              </div>
-
-              <div class="grid grid-cols-2 gap-2">
-                <div class="space-y-1 focus-within:text-blue-600">
-                  <label class="text-[9px] font-bold uppercase tracking-widest text-slate-400 flex items-center gap-1">Inicio <span class="text-red-500">*</span></label>
-                  <input type="time" formControlName="start_time" class="w-full bg-white border border-slate-200 text-slate-800 rounded-lg px-2 py-2 text-sm font-semibold focus:outline-none focus:border-blue-500 shadow-sm transition-all focus:ring-4 focus:ring-blue-500/10 h-10">
+              <form [formGroup]="scheduleForm" (ngSubmit)="saveBlock()" class="space-y-4">
+                <div class="space-y-1">
+                  <label class="text-[11px] font-bold uppercase tracking-widest text-slate-400">Curso</label>
+                  <select formControlName="course_id" class="w-full rounded-xl border border-slate-200 bg-white px-4 py-3 text-sm font-semibold focus:outline-none focus:border-blue-500">
+                    <option value="">Seleccionar curso</option>
+                    <option *ngFor="let course of courses" [value]="course.id">{{ course.name }}</option>
+                  </select>
                 </div>
-                <div class="space-y-1 focus-within:text-blue-600">
-                  <label class="text-[9px] font-bold uppercase tracking-widest text-slate-400 flex items-center gap-1">Fin <span class="text-red-500">*</span></label>
-                  <input type="time" formControlName="end_time" class="w-full bg-white border border-slate-200 text-slate-800 rounded-lg px-2 py-2 text-sm font-semibold focus:outline-none focus:border-blue-500 shadow-sm transition-all focus:ring-4 focus:ring-blue-500/10 h-10">
+
+                <div class="space-y-1">
+                  <label class="text-[11px] font-bold uppercase tracking-widest text-slate-400">Docente</label>
+                  <select formControlName="teacher_id" class="w-full rounded-xl border border-slate-200 bg-white px-4 py-3 text-sm font-semibold focus:outline-none focus:border-blue-500">
+                    <option value="">Sin docente asignado</option>
+                    <option *ngFor="let teacher of teachers" [value]="teacher.id">{{ teacher.first_name }} {{ teacher.last_name }}</option>
+                  </select>
                 </div>
-              </div>
 
-              <div class="space-y-1 focus-within:text-blue-600 pb-3">
-                <label class="text-[9px] font-bold uppercase tracking-widest text-slate-400">Aula (Opcional)</label>
-                <input type="text" formControlName="room_number" placeholder="Ej: A-101" class="w-full bg-white border border-slate-200 text-slate-800 rounded-lg px-3 py-2 text-sm font-semibold focus:outline-none focus:border-blue-500 shadow-sm transition-all focus:ring-4 focus:ring-blue-500/10 h-10">
-              </div>
+                <div class="space-y-1">
+                  <label class="text-[11px] font-bold uppercase tracking-widest text-slate-400">Dia</label>
+                  <select formControlName="day_of_week" class="w-full rounded-xl border border-slate-200 bg-white px-4 py-3 text-sm font-semibold focus:outline-none focus:border-blue-500">
+                    <option *ngFor="let day of days" [value]="day.id">{{ day.name }}</option>
+                  </select>
+                </div>
 
-              <div class="grid grid-cols-2 gap-2 pt-1 border-t border-slate-200">
-                <button type="button" (click)="closeModal()" class="py-3 bg-white border border-slate-200 hover:border-slate-300 hover:bg-slate-50 text-slate-600 text-[10px] font-bold uppercase tracking-widest rounded-lg transition-all shadow-sm active:scale-95 text-center">
-                  Cancelar
-                </button>
-                <button type="submit" [disabled]="scheduleForm.invalid || saving" class="py-3 bg-blue-600 hover:bg-blue-700 text-white text-[10px] font-bold uppercase tracking-widest rounded-lg transition-all shadow-md shadow-blue-600/20 active:scale-95 disabled:opacity-50 disabled:shadow-none flex items-center justify-center gap-1.5 text-center">
-                  <span *ngIf="saving" class="w-3 h-3 border-2 border-white/30 border-t-white rounded-full animate-spin"></span>
-                  {{ editingBlockId ? 'Editar' : 'Guardar' }}
-                </button>
-              </div>
+                <div class="grid grid-cols-2 gap-3">
+                  <div class="space-y-1">
+                    <label class="text-[11px] font-bold uppercase tracking-widest text-slate-400">Inicio</label>
+                    <input type="time" formControlName="start_time" class="w-full rounded-xl border border-slate-200 bg-white px-4 py-3 text-sm font-semibold focus:outline-none focus:border-blue-500">
+                  </div>
+                  <div class="space-y-1">
+                    <label class="text-[11px] font-bold uppercase tracking-widest text-slate-400">Fin</label>
+                    <input type="time" formControlName="end_time" class="w-full rounded-xl border border-slate-200 bg-white px-4 py-3 text-sm font-semibold focus:outline-none focus:border-blue-500">
+                  </div>
+                </div>
 
-              <div class="mt-2 text-center" *ngIf="editingBlockId">
-                 <button type="button" (click)="resetFormToNew()" class="text-[9px] font-bold text-blue-500 uppercase hover:underline">Volver a Agregar</button>
-              </div>
+                <div class="space-y-1">
+                  <label class="text-[11px] font-bold uppercase tracking-widest text-slate-400">Aula</label>
+                  <input type="text" formControlName="room_number" placeholder="Ej: A-101" class="w-full rounded-xl border border-slate-200 bg-white px-4 py-3 text-sm font-semibold focus:outline-none focus:border-blue-500">
+                </div>
 
-            </form>
-          </div>
+                <div class="grid grid-cols-2 gap-3 pt-2">
+                  <button type="button" (click)="closeModal()" class="rounded-xl border border-slate-200 bg-white px-4 py-3 text-sm font-bold text-slate-600">
+                    Cancelar
+                  </button>
+                  <button type="submit" [disabled]="scheduleForm.invalid || saving" class="rounded-xl bg-blue-700 px-4 py-3 text-sm font-bold text-white disabled:opacity-50">
+                    {{ saving ? 'Guardando...' : (editingBlockId ? 'Actualizar' : 'Guardar') }}
+                  </button>
+                </div>
 
-          <!-- Extended Scale 100% Live Preview in Modal -->
-          <div class="hidden md:flex flex-1 bg-white relative overflow-hidden flex-col">
-            <div class="absolute inset-0 p-6 overflow-auto bg-slate-50 pb-[100px]">
-              <div class="flex justify-between items-center mb-4 sticky left-0 right-0">
-                <h3 class="text-[10px] font-bold text-slate-500 uppercase tracking-widest px-2 backdrop-blur-sm bg-slate-50/80 rounded block">Simulador de Horario Interactivo</h3>
-                <span class="text-[9px] font-bold text-slate-400 bg-slate-200 px-2 py-1 rounded-full">Las vistas se ajustan al 100% (Click para editar bloques)</span>
-              </div>
-              
-              <!-- Scale 100%, Native Width. Looks stunning and usable. -->
-              <div class="w-full shadow-lg rounded-3xl border border-slate-200 overflow-hidden bg-white">
-                <ng-container *ngTemplateOutlet="scheduleGrid; context: { isPreview: true }"></ng-container>
+                <div class="text-center" *ngIf="editingBlockId">
+                  <button type="button" (click)="resetFormToNew()" class="text-xs font-bold uppercase text-blue-600 hover:underline">
+                    Volver a Agregar
+                  </button>
+                </div>
+              </form>
+            </div>
+
+            <div class="p-6 bg-white">
+              <h3 class="text-sm font-black uppercase tracking-widest text-slate-500 mb-4">Vista Rapida</h3>
+              <div class="rounded-3xl border border-slate-200 bg-slate-50 p-6 space-y-4">
+                <div>
+                  <p class="text-[11px] font-bold uppercase tracking-widest text-slate-400">Curso</p>
+                  <p class="text-lg font-bold text-slate-900">{{ getCourseName(scheduleForm.get('course_id')?.value) || 'Selecciona un curso' }}</p>
+                </div>
+                <div>
+                  <p class="text-[11px] font-bold uppercase tracking-widest text-slate-400">Horario</p>
+                  <p class="text-base font-semibold text-slate-700">{{ formatTime(scheduleForm.get('start_time')?.value) || '--:--' }} - {{ formatTime(scheduleForm.get('end_time')?.value) || '--:--' }}</p>
+                </div>
+                <div>
+                  <p class="text-[11px] font-bold uppercase tracking-widest text-slate-400">Dia</p>
+                  <p class="text-base font-semibold text-slate-700">{{ getLiveDayName() }}</p>
+                </div>
+                <div *ngIf="scheduleForm.get('room_number')?.value">
+                  <p class="text-[11px] font-bold uppercase tracking-widest text-slate-400">Aula</p>
+                  <p class="text-base font-semibold text-slate-700">{{ scheduleForm.get('room_number')?.value }}</p>
+                </div>
               </div>
             </div>
           </div>
-          
         </div>
       </div>
-
     </div>
-
-    <!-- Reusable Grid Template -->
-    <ng-template #scheduleGrid let-isPreview="isPreview">
-      <div class="overflow-x-auto print:overflow-visible overflow-y-hidden h-full">
-          <div class="min-w-[800px] w-full relative bg-white">
-            
-            <!-- Table Header -->
-            <div class="grid grid-cols-[80px_repeat(6,1fr)] bg-[#0E3A8A] border-b border-[#0A265B] print:bg-slate-100 print:border-slate-300">
-              <div class="py-4 text-center text-[10px] font-black text-blue-100 uppercase tracking-widest print:text-slate-800">Hora</div>
-              <div *ngFor="let day of days" class="py-4 text-center text-xs font-black text-white uppercase tracking-widest border-l border-blue-800/50 print:text-slate-800 print:border-slate-300 relative z-10">
-                {{ day.name }}
-              </div>
-            </div>
-            
-            <!-- Body Grid -->
-            <!-- We push background down 16px to give 07:00 a bit of margin so it isn't clipped by the header -->
-            <!-- We tie the background-size directly to rowHeightPixels -->
-            <div class="grid grid-cols-[80px_repeat(6,1fr)] relative" 
-                 [style.height.px]="gridHeightPixels + 30" 
-                 [style.background-size]="'100% ' + rowHeightPixels + 'px'"
-                 style="background-image: linear-gradient(to bottom, #f1f5f9 1px, transparent 1px); background-position: 0 16px;">
-                 
-              <!-- Time scale lines -->
-              <div class="col-span-1 border-r border-slate-100 print:border-slate-300 pt-4">
-                <div *ngFor="let time of timeScale" [style.height.px]="rowHeightPixels" class="relative text-right pr-3 -mt-3 hidden sm:block">
-                  <span class="text-[10px] font-bold text-slate-400 select-none print:text-slate-600 bg-white px-1 relative z-10">{{ time }}</span>
-                </div>
-                <div *ngFor="let time of timeScale" [style.height.px]="rowHeightPixels" class="relative text-right pr-3 -mt-3 sm:hidden">
-                  <span class="text-[9px] font-bold text-slate-400 select-none bg-white px-px relative z-10">{{ time.substring(0, 5) }}</span>
-                </div>
-              </div>
-
-              <!-- Content Columns -->
-              <div *ngFor="let day of days" class="relative col-span-1 border-r border-slate-100 border-dashed print:border-solid print:border-slate-300 last:border-r-0 h-full pt-4">
-                
-                <!-- Recorded Blocks -->
-                <ng-container *ngFor="let block of getSchedulesByDay(day.id)">
-                  <div [style.top.px]="getBlockTop(block) + 16" 
-                       [style.height.px]="getBlockHeight(block)"
-                       (click)="editBlock(block)"
-                       class="absolute left-1 right-1 rounded-xl p-3 flex flex-col overflow-y-auto shadow-sm transition-all border border-black/5 print:border-slate-400 print:shadow-none print:break-inside-avoid print:static print:h-auto print:mb-2 cursor-pointer hover:shadow-lg hover:-translate-y-0.5 hover:z-20 group-grid-item hide-scrollbar"
-                       [class.ring-2]="editingBlockId === block.id && isPreview"
-                       [class.ring-black]="editingBlockId === block.id && isPreview"
-                       [class.opacity-40]="editingBlockId && editingBlockId !== block.id && isPreview"
-                       [ngClass]="getCourseColor(block.course_id)">
-                    
-                    <div class="flex justify-between items-start gap-1">
-                      <h4 class="text-[10px] sm:text-[11px] font-black text-white uppercase tracking-normal leading-tight drop-shadow-sm print:text-slate-900 print:drop-shadow-none cursor-pointer">{{ block.course?.name || getCourseName(block.course_id) }}</h4>
-                      <button (click)="deleteBlock(block.id, $event)" class="opacity-0 hover:opacity-100 text-white/80 hover:text-white transition-opacity print:hidden !opacity-100 md:!opacity-0 md:group-hover:!opacity-100 focus:opacity-100 mt-0.5 z-10 p-1">
-                        <svg class="w-3.5 h-3.5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3"><path d="M3 6h18"/><path d="M19 6v14c0 1-1 2-2 2H7c-1 0-2-1-2-2V6"/><path d="M8 6V4c0-1 1-2 2-2h4c1 0 2 1 2 2v2"/></svg>
-                      </button>
-                    </div>
-                    
-                    <span class="text-[9px] sm:text-[10px] font-bold text-white/95 mt-1 drop-shadow-sm flex items-center gap-1 print:text-slate-700">
-                      {{ formatTime(block.start_time) }} - {{ formatTime(block.end_time) }}
-                    </span>
-                    
-                    <div class="mt-auto pt-2 grid gap-1">
-                      <span *ngIf="block.room_number" class="text-[9px] sm:text-[10px] font-bold text-white/95 inline-block bg-white/20 px-1.5 py-0.5 rounded print:text-slate-700 print:bg-slate-100 print:border print:border-slate-200 w-max">
-                        Aula {{ block.room_number }}
-                      </span>
-                      <span *ngIf="block.teacher" class="text-[9px] sm:text-[10px] font-medium text-white/95 truncate print:text-slate-600 block w-full leading-tight" [title]="block.teacher.first_name + ' ' + block.teacher.last_name">
-                        <span class="font-bold print:hidden opacity-70">Doc:</span> {{ block.teacher.first_name }} {{ block.teacher.last_name }}
-                      </span>
-                    </div>
-                  </div>
-                </ng-container>
-
-                <!-- Ghost Block for Preview (Only when NOT editing an existing block, so we see "NUEVO") -->
-                <ng-container *ngIf="isPreview && !editingBlockId && isLiveBlockValid(day.id)">
-                  <div [style.top.px]="getLiveBlockTop() + 16" 
-                       [style.height.px]="getLiveBlockHeight()"
-                       class="absolute left-1 right-1 rounded-xl p-3 flex flex-col overflow-y-auto shadow-2xl z-30 border-[3px] border-blue-400 bg-blue-500/95 backdrop-blur-md animate-pulse hide-scrollbar pointer-events-none">
-                    
-                    <h4 class="text-[10px] sm:text-[11px] font-black text-white uppercase tracking-normal leading-tight drop-shadow-md">
-                      <span class="text-blue-200">[NUEVO]</span> {{ getCourseName(scheduleForm.get('course_id')?.value) || 'Seleccione Curso' }}
-                    </h4>
-                    
-                    <span class="text-[9px] sm:text-[10px] font-bold text-white/95 mt-1 drop-shadow-sm flex items-center gap-1">
-                      {{ formatTime(scheduleForm.get('start_time')?.value) }} - {{ formatTime(scheduleForm.get('end_time')?.value) }}
-                    </span>
-                    
-                    <div class="mt-auto pt-2 grid gap-1">
-                      <span *ngIf="scheduleForm.get('room_number')?.value" class="text-[9px] sm:text-[10px] font-bold text-white/95 inline-block bg-white/20 px-1.5 py-0.5 rounded w-max">
-                        Aula {{ scheduleForm.get('room_number')?.value }}
-                      </span>
-                    </div>
-                  </div>
-                </ng-container>
-
-                <!-- Edited Block Preview Indicator (When Editing) -->
-                <ng-container *ngIf="isPreview && editingBlockId && isLiveBlockValid(day.id)">
-                  <div [style.top.px]="getLiveBlockTop() + 16" 
-                       [style.height.px]="getLiveBlockHeight()"
-                       class="absolute left-1 right-1 rounded-xl border-[4px] border-black/80 shadow-[0_0_20px_rgba(0,0,0,0.3)] z-30 pointer-events-none transition-all duration-300 bg-black/10 backdrop-blur-[1px] flex items-center justify-center">
-                       <span class="text-white font-black uppercase text-[10px] tracking-widest bg-black/80 px-2 py-1 rounded">Moviendo...</span>
-                  </div>
-                </ng-container>
-
-              </div>
-            </div>
-          </div>
-        </div>
-    </ng-template>
   `,
   styles: [`
     :host { display: block; }
-    .group-grid-item:hover button { opacity: 1 !important; }
-    .hide-scrollbar::-webkit-scrollbar { display: none; }
-    .hide-scrollbar { -ms-overflow-style: none; scrollbar-width: none; }
-    
     @media print {
       @page { size: landscape; margin: 0.5cm; }
       body { -webkit-print-color-adjust: exact; print-color-adjust: exact; background-color: white !important; }
-      .print\\:border-none { border: none !important; }
-      .print\\:shadow-none { box-shadow: none !important; }
-      .print\\:bg-slate-100 { background-color: #f1f5f9 !important; }
-      .print\\:text-slate-800 { color: #1e293b !important; }
-      .print\\:overflow-visible { overflow: visible !important; height: auto !important; max-height: none !important; }
-      .bg-\\[\\#0E3A8A\\] { background-color: #0e3a8a !important; }
-      /* Reset widths for printing so grid expands visually instead of scrolling */
-      .min-w-\\[800px\\] { min-width: 100% !important; }
     }
   `]
 })
@@ -313,29 +316,24 @@ export class AdminScheduleComponent implements OnInit {
   days = [
     { id: 1, name: 'Lunes' },
     { id: 2, name: 'Martes' },
-    { id: 3, name: 'Miércoles' },
+    { id: 3, name: 'Miercoles' },
     { id: 4, name: 'Jueves' },
     { id: 5, name: 'Viernes' },
-    { id: 6, name: 'Sábado' }
+    { id: 6, name: 'Sabado' }
   ];
-
-  /* 07:45 intervals */
-  timeScale = [
-    '07:00','07:45','08:30','09:15','10:00','10:45','11:30',
-    '12:15','13:00','13:45','14:30','15:15','16:00','16:45',
-    '17:30','18:15'
-  ];
-  startMinutes = 7 * 60; // 07:00
-  endMinutes = 18 * 60 + 15; // 18:15
-  rowHeightPixels = 90; // Height of each 45-minute block
-  pixelsPerMinute = this.rowHeightPixels / 45; // 2 pixels per minute
-  gridHeightPixels = (this.endMinutes - this.startMinutes) * this.pixelsPerMinute;
 
   colorPalette = [
-    'bg-[#8B5CF6]', 'bg-[#10B981]', 'bg-[#00A1DE]', 'bg-[#84CC16]', // Matching image 2 colors: Purple, Green, Blue, Light Green
-    'bg-[#EC4899]', 'bg-[#F59E0B]', 'bg-[#EF4444]', 'bg-[#06B6D4]', 'bg-[#6366F1]'
+    'bg-[#8B5CF6]',
+    'bg-[#10B981]',
+    'bg-[#00A1DE]',
+    'bg-[#84CC16]',
+    'bg-[#EC4899]',
+    'bg-[#F59E0B]',
+    'bg-[#EF4444]',
+    'bg-[#06B6D4]',
+    'bg-[#6366F1]'
   ];
-  courseColorMap: { [key: string]: string } = {};
+  courseColorMap: Record<string, string> = {};
 
   grades: GradeLevel[] = [];
   sections: Section[] = [];
@@ -346,11 +344,13 @@ export class AdminScheduleComponent implements OnInit {
   selectedGradeId = '';
   selectedSectionId = '';
   activeAcademicYearId = '';
-  
+
   loading = false;
   showModal = false;
   saving = false;
   overlapError = false;
+  loadErrorMessage = '';
+  saveErrorMessage = '';
   editingBlockId: string | null = null;
   scheduleForm: FormGroup;
 
@@ -366,86 +366,208 @@ export class AdminScheduleComponent implements OnInit {
   }
 
   ngOnInit() {
-    this.academicService.getAcademicYears().subscribe(res => {
-      const data = res.data?.data || res.data || res;
-      if (Array.isArray(data)) {
-         const active = data.find((y: any) => y.is_active);
-         if (active) this.activeAcademicYearId = active.id;
+    this.loadAcademicYears();
+    this.loadGrades();
+    this.loadTeachers();
+  }
+
+  private loadAcademicYears() {
+    this.academicService.getAcademicYears({ per_page: 200 }).subscribe({
+      next: (response) => {
+        const items = this.extractItems<any>(response);
+        const activeYear = items.find((year) => year.is_active);
+        this.activeAcademicYearId = activeYear?.id || '';
+        this.loadErrorMessage = this.activeAcademicYearId ? '' : 'No existe un ano academico activo para gestionar horarios.';
+      },
+      error: (error) => {
+        this.activeAcademicYearId = '';
+        this.loadErrorMessage = this.getErrorMessage(error, 'No se pudo cargar el ano academico activo.');
       }
     });
+  }
 
-    this.academicService.getGradeLevels().subscribe(res => {
-      let data = res.data?.data || res.data || res;
-      this.grades = Array.isArray(data) ? data : [];
+  private loadGrades() {
+    this.academicService.getGradeLevels({ per_page: 200 }).subscribe({
+      next: (response) => {
+        this.grades = this.extractItems<GradeLevel>(response);
+      },
+      error: () => {
+        this.grades = [];
+      }
     });
-    
-    this.academicService.getTeachers().subscribe(res => {
-      let data = res.data?.data || res.data || res;
-      this.teachers = Array.isArray(data) ? data : [];
+  }
+
+  private loadTeachers() {
+    this.academicService.getTeachers({ per_page: 200 }).subscribe({
+      next: (response) => {
+        this.teachers = this.extractItems<any>(response);
+      },
+      error: () => {
+        this.teachers = [];
+      }
     });
   }
 
   onGradeChange() {
     this.sections = [];
-    this.selectedSectionId = '';
     this.courses = [];
     this.schedules = [];
-    if (this.selectedGradeId) {
-      this.academicService.getSections({ grade_level_id: this.selectedGradeId }).subscribe(res => {
-        let items = res.data?.data || res.data || res;
-        this.sections = Array.isArray(items) ? items : [];
-      });
-      this.academicService.getCourses({ grade_level_id: this.selectedGradeId }).subscribe(res => {
-        let items = res.data?.data || res.data || res;
-        this.courses = Array.isArray(items) ? items : [];
-      });
+    this.courseColorMap = {};
+    this.selectedSectionId = '';
+    this.loadErrorMessage = '';
+
+    if (!this.selectedGradeId) {
+      return;
     }
-  }
 
-  loadSchedules() {
-    if (!this.selectedSectionId || !this.activeAcademicYearId) return;
-    this.loading = true;
-    this.scheduleService.getSchedules({ 
+    if (!this.activeAcademicYearId) {
+      this.loadErrorMessage = 'Primero debes tener un ano academico activo para gestionar horarios.';
+      return;
+    }
+
+    this.academicService.getSections({
       academic_year_id: this.activeAcademicYearId,
-      section_id: this.selectedSectionId 
+      grade_level_id: this.selectedGradeId,
+      per_page: 200
     }).subscribe({
-      next: (res) => {
-        let items = res.data?.data || res.data || res;
-        this.schedules = Array.isArray(items) ? items : [];
-        this.assignColors();
-        this.loading = false;
+      next: (response) => {
+        this.sections = this.extractItems<Section>(response);
       },
-      error: () => this.loading = false
-    });
-  }
-
-  private sortCoursesInOrder() {
-    const courseIds = this.schedules.map(s => s.course_id);
-    const uniqueIds = [...new Set(courseIds)];
-    const ordered = uniqueIds.sort((a, b) => {
-       const aTime = Math.min(...this.schedules.filter(s => s.course_id === a).map(s => this.timeToMinutes(s.start_time)));
-       const bTime = Math.min(...this.schedules.filter(s => s.course_id === b).map(s => this.timeToMinutes(s.start_time)));
-       return aTime - bTime;
-    });
-    return ordered;
-  }
-
-  assignColors() {
-    let colorIndex = 0;
-    const uniqueCourseIds = this.sortCoursesInOrder();
-    uniqueCourseIds.forEach(id => {
-      if (!this.courseColorMap[id as string]) {
-        this.courseColorMap[id as string] = this.colorPalette[colorIndex % this.colorPalette.length];
-        colorIndex++;
+      error: (error) => {
+        this.sections = [];
+        this.loadErrorMessage = this.getErrorMessage(error, 'No se pudieron cargar las secciones del grado.');
       }
     });
   }
 
+  onSectionChange() {
+    this.courses = [];
+    this.schedules = [];
+    this.courseColorMap = {};
+    this.loadErrorMessage = '';
+
+    if (!this.selectedSectionId) {
+      return;
+    }
+
+    if (!this.activeAcademicYearId) {
+      this.loadErrorMessage = 'No existe un ano academico activo para cargar el horario.';
+      return;
+    }
+
+    this.loadCoursesForSection();
+    this.loadSchedules();
+  }
+
+  private loadCoursesForSection() {
+    if (!this.selectedSectionId || !this.activeAcademicYearId) {
+      this.courses = [];
+      return;
+    }
+
+    this.academicService.getCourses({
+      section_id: this.selectedSectionId,
+      academic_year_id: this.activeAcademicYearId,
+      per_page: 200
+    }).subscribe({
+      next: (response) => {
+        this.courses = this.extractItems<Course>(response);
+      },
+      error: (error) => {
+        this.courses = [];
+        this.loadErrorMessage = this.getErrorMessage(error, 'No se pudieron cargar los cursos de la seccion.');
+      }
+    });
+  }
+
+  loadSchedules() {
+    if (!this.selectedSectionId || !this.activeAcademicYearId) {
+      return;
+    }
+
+    this.loading = true;
+    this.loadErrorMessage = '';
+
+    this.scheduleService.getSchedules({
+      academic_year_id: this.activeAcademicYearId,
+      section_id: this.selectedSectionId,
+      per_page: 200,
+      sort: 'day_of_week',
+      dir: 'asc'
+    }).subscribe({
+      next: (response) => {
+        this.schedules = this.extractItems<any>(response);
+        this.assignColors();
+        this.loading = false;
+      },
+      error: (error) => {
+        this.schedules = [];
+        this.courseColorMap = {};
+        this.loadErrorMessage = this.getErrorMessage(error, 'No se pudo cargar el horario de la seccion.');
+        this.loading = false;
+      }
+    });
+  }
+
+  private extractItems<T>(response: any): T[] {
+    if (Array.isArray(response)) {
+      return response;
+    }
+
+    if (Array.isArray(response?.data?.data)) {
+      return response.data.data;
+    }
+
+    if (Array.isArray(response?.data)) {
+      return response.data;
+    }
+
+    return [];
+  }
+
+  private sortCoursesInOrder() {
+    const uniqueIds = [...new Set(this.schedules.map((schedule) => schedule.course_id))];
+    return uniqueIds.sort((left, right) => {
+      const leftTime = Math.min(...this.schedules
+        .filter((schedule) => schedule.course_id === left)
+        .map((schedule) => this.timeToMinutes(schedule.start_time)));
+      const rightTime = Math.min(...this.schedules
+        .filter((schedule) => schedule.course_id === right)
+        .map((schedule) => this.timeToMinutes(schedule.start_time)));
+      return leftTime - rightTime;
+    });
+  }
+
+  assignColors() {
+    this.courseColorMap = {};
+    let colorIndex = 0;
+    this.sortCoursesInOrder().forEach((courseId) => {
+      this.courseColorMap[String(courseId)] = this.colorPalette[colorIndex % this.colorPalette.length];
+      colorIndex++;
+    });
+  }
+
   getSchedulesByDay(dayId: number) {
-    return Array.isArray(this.schedules) ? this.schedules.filter(s => Number(s.day_of_week) === dayId) : [];
+    return this.schedules
+      .filter((schedule) => Number(schedule.day_of_week) === dayId)
+      .sort((left, right) => this.timeToMinutes(left.start_time) - this.timeToMinutes(right.start_time));
   }
 
   openModal() {
+    if (!this.activeAcademicYearId) {
+      Swal.fire('Ano academico', 'Debes activar un ano academico antes de registrar horarios.', 'warning');
+      return;
+    }
+
+    if (!this.selectedSectionId) {
+      return;
+    }
+
+    if (this.courses.length === 0) {
+      Swal.fire('Sin cursos', 'La seccion seleccionada no tiene cursos disponibles para programar.', 'warning');
+      return;
+    }
+
     this.resetFormToNew();
     this.showModal = true;
   }
@@ -453,11 +575,13 @@ export class AdminScheduleComponent implements OnInit {
   closeModal() {
     this.showModal = false;
     this.overlapError = false;
+    this.saveErrorMessage = '';
     this.editingBlockId = null;
   }
 
   editBlock(block: any) {
     this.overlapError = false;
+    this.saveErrorMessage = '';
     this.editingBlockId = block.id;
     this.scheduleForm.patchValue({
       course_id: block.course_id,
@@ -472,57 +596,78 @@ export class AdminScheduleComponent implements OnInit {
 
   resetFormToNew() {
     this.overlapError = false;
+    this.saveErrorMessage = '';
     this.editingBlockId = null;
-    this.scheduleForm.reset({ day_of_week: 1, start_time: '07:00', end_time: '08:00', room_number: '' });
+    this.scheduleForm.reset({
+      course_id: '',
+      teacher_id: '',
+      day_of_week: 1,
+      start_time: '07:00',
+      end_time: '08:00',
+      room_number: ''
+    });
   }
 
   saveBlock() {
-    if (this.scheduleForm.invalid) return;
+    if (this.scheduleForm.invalid) {
+      this.scheduleForm.markAllAsTouched();
+      return;
+    }
+
+    if (!this.activeAcademicYearId || !this.selectedSectionId) {
+      this.overlapError = true;
+      this.saveErrorMessage = 'Selecciona un ano academico activo y una seccion antes de guardar.';
+      return;
+    }
+
     this.saving = true;
     this.overlapError = false;
-    
+    this.saveErrorMessage = '';
+
+    const isEditing = !!this.editingBlockId;
     const payload = {
-      ...this.scheduleForm.value,
+      ...this.scheduleForm.getRawValue(),
+      teacher_id: this.toNullableString(this.scheduleForm.get('teacher_id')?.value),
+      room_number: this.toNullableString(this.scheduleForm.get('room_number')?.value),
       academic_year_id: this.activeAcademicYearId,
       section_id: this.selectedSectionId
     };
 
-    if (this.editingBlockId) {
-      // Editing Mode
-      this.scheduleService.updateSchedule(this.editingBlockId, payload).subscribe({
-        next: () => {
-          this.saving = false;
-          this.closeModal();
-          Swal.fire({ icon: 'success', title: 'Bloque actualizado', toast: true, position: 'top-end', timer: 3000, showConfirmButton: false });
-          this.loadSchedules();
-        },
-        error: (err: any) => {
-          this.saving = false;
-          this.overlapError = true;
-        }
-      });
-    } else {
-      // Creation Mode
-      this.scheduleService.createSchedule(payload).subscribe({
-        next: () => {
-          this.saving = false;
-          this.closeModal();
-          Swal.fire({ icon: 'success', title: 'Bloque guardado', toast: true, position: 'top-end', timer: 3000, showConfirmButton: false });
-          this.loadSchedules();
-        },
-        error: (err: any) => {
-          this.saving = false;
-          this.overlapError = true;
-        }
-      });
-    }
+    const request$ = isEditing
+      ? this.scheduleService.updateSchedule(this.editingBlockId as string, payload)
+      : this.scheduleService.createSchedule(payload);
+
+    request$.subscribe({
+      next: () => {
+        this.saving = false;
+        this.closeModal();
+        Swal.fire({
+          icon: 'success',
+          title: isEditing ? 'Bloque actualizado' : 'Bloque guardado',
+          toast: true,
+          position: 'top-end',
+          timer: 3000,
+          showConfirmButton: false
+        });
+        this.loadSchedules();
+      },
+      error: (error: any) => {
+        this.saving = false;
+        this.overlapError = true;
+        this.saveErrorMessage = this.getErrorMessage(
+          error,
+          isEditing ? 'No se pudo actualizar el bloque horario.' : 'No se pudo guardar el bloque horario.'
+        );
+      }
+    });
   }
 
   deleteBlock(id: string, event: Event) {
-    event.stopPropagation(); // Prevents activating the edit click handler
+    event.stopPropagation();
+
     Swal.fire({
-      title: '¿Eliminar bloque?',
-      text: "No podrás revertir esta acción.",
+      title: 'Eliminar bloque',
+      text: 'No podras revertir esta accion.',
       icon: 'warning',
       showCancelButton: true,
       confirmButtonColor: '#d33',
@@ -530,21 +675,57 @@ export class AdminScheduleComponent implements OnInit {
       confirmButtonText: 'Eliminar',
       cancelButtonText: 'Cancelar'
     }).then((result) => {
-      if (result.isConfirmed) {
-        this.scheduleService.deleteSchedule(id).subscribe({
-          next: () => {
-            if (this.editingBlockId === id) this.resetFormToNew();
-            Swal.fire({ icon: 'success', title: 'Eliminado', toast: true, position: 'top-end', timer: 2000, showConfirmButton: false });
-            this.loadSchedules();
-          },
-          error: (err: any) => Swal.fire('Error', 'No se pudo eliminar', 'error')
-        });
+      if (!result.isConfirmed) {
+        return;
       }
+
+      this.scheduleService.deleteSchedule(id).subscribe({
+        next: () => {
+          if (this.editingBlockId === id) {
+            this.resetFormToNew();
+          }
+
+          Swal.fire({
+            icon: 'success',
+            title: 'Eliminado',
+            toast: true,
+            position: 'top-end',
+            timer: 2000,
+            showConfirmButton: false
+          });
+          this.loadSchedules();
+        },
+        error: (error: any) => {
+          Swal.fire('Error', this.getErrorMessage(error, 'No se pudo eliminar el bloque.'), 'error');
+        }
+      });
     });
   }
 
   printSchedule() {
     window.print();
+  }
+
+  private toNullableString(value: any): string | null {
+    if (value === null || value === undefined) {
+      return null;
+    }
+
+    const trimmedValue = String(value).trim();
+    return trimmedValue === '' ? null : trimmedValue;
+  }
+
+  private getErrorMessage(error: any, fallback: string): string {
+    const validationErrors = error?.error?.errors;
+    if (validationErrors && typeof validationErrors === 'object') {
+      const firstError = Object.values(validationErrors).flat()[0];
+      if (typeof firstError === 'string' && firstError.trim() !== '') {
+        return firstError;
+      }
+    }
+
+    const backendMessage = error?.error?.message;
+    return typeof backendMessage === 'string' && backendMessage.trim() !== '' ? backendMessage : fallback;
   }
 
   private timeToMinutes(timeStr: string): number {
@@ -553,56 +734,96 @@ export class AdminScheduleComponent implements OnInit {
     return parseInt(parts[0], 10) * 60 + parseInt(parts[1] || '0', 10);
   }
 
-  getBlockTop(block: any): number {
-    if (!block || !block.start_time) return 0;
-    const m = this.timeToMinutes(block.start_time);
-    const offset = Math.max(0, m - this.startMinutes);
-    return offset * this.pixelsPerMinute;
-  }
-
-  getBlockHeight(block: any): number {
-    if (!block || !block.start_time || !block.end_time) return 60;
-    const s = this.timeToMinutes(block.start_time);
-    const e = this.timeToMinutes(block.end_time);
-    const duration = Math.max(15, e - s);
-    return duration * this.pixelsPerMinute;
-  }
-
   formatTime(timeStr: string): string {
-    if (!timeStr) return '';
-    return timeStr.substring(0, 5);
+    return timeStr ? timeStr.substring(0, 5) : '';
   }
 
   getCourseColor(courseId: string): string {
-    return this.courseColorMap[courseId] || 'bg-slate-400';
+    return this.courseColorMap[courseId] || 'bg-slate-500';
   }
 
   getCourseName(courseId: string): string {
-    return this.courses.find(c => c.id === courseId)?.name || '';
+    return this.courses.find((course) => course.id === courseId)?.name
+      || this.schedules.find((schedule) => schedule.course_id === courseId)?.course?.name
+      || '';
   }
 
   getSelectedGradeName() {
-    const g = this.grades.find(g => g.id === this.selectedGradeId);
-    return g ? (g.name || `${g.level} ${g.grade}°`) : '';
+    const grade = this.grades.find((item) => item.id === this.selectedGradeId);
+    return grade ? (grade.name || `${grade.level} ${grade.grade}°`) : '';
   }
-  
+
   getSelectedSectionLetter() {
-    return this.sections.find(s => s.id === this.selectedSectionId)?.section_letter || '';
+    return this.sections.find((section) => section.id === this.selectedSectionId)?.section_letter || '';
   }
 
-  isLiveBlockValid(dayId: number): boolean {
-    if (!this.scheduleForm) return false;
-    const formDay = Number(this.scheduleForm.get('day_of_week')?.value);
-    const formStart = this.scheduleForm.get('start_time')?.value;
-    const formEnd = this.scheduleForm.get('end_time')?.value;
-    return formDay === dayId && !!formStart && !!formEnd && (this.timeToMinutes(formEnd) > this.timeToMinutes(formStart));
+  getTotalScheduledMinutes(): number {
+    return this.schedules.reduce((total, schedule) => {
+      return total + this.timeToMinutes(schedule.end_time) - this.timeToMinutes(schedule.start_time);
+    }, 0);
   }
 
-  getLiveBlockTop(): number {
-    return this.getBlockTop({ start_time: this.scheduleForm.get('start_time')?.value });
+  getTotalScheduledHoursLabel(): string {
+    return (this.getTotalScheduledMinutes() / 60).toFixed(2) + 'h';
   }
 
-  getLiveBlockHeight(): number {
-    return this.getBlockHeight({ start_time: this.scheduleForm.get('start_time')?.value, end_time: this.scheduleForm.get('end_time')?.value });
+  getScheduledCourseCount(): number {
+    return new Set(this.schedules.map((schedule) => schedule.course_id)).size;
+  }
+
+  getAssignedTeacherCount(): number {
+    return new Set(
+      this.schedules
+        .map((schedule) => schedule.teacher_id)
+        .filter((teacherId) => !!teacherId)
+    ).size;
+  }
+
+  getCourseLoadRows() {
+    return this.courses
+      .map((course) => {
+        const courseSchedules = this.schedules.filter((schedule) => schedule.course_id === course.id);
+        const scheduledMinutes = courseSchedules.reduce((total, schedule) => {
+          return total + this.timeToMinutes(schedule.end_time) - this.timeToMinutes(schedule.start_time);
+        }, 0);
+        const limitMinutes = (course.hours_per_week || course.weekly_hours || 0) * 60;
+        const rawProgress = limitMinutes > 0 ? (scheduledMinutes / limitMinutes) * 100 : 0;
+        const progress = Math.max(0, Math.min(100, rawProgress));
+        const isComplete = limitMinutes > 0 && scheduledMinutes >= limitMinutes;
+        const isNearLimit = limitMinutes > 0 && !isComplete && rawProgress >= 75;
+
+        return {
+          id: course.id,
+          name: course.name,
+          blocks: courseSchedules.length,
+          scheduledMinutes,
+          limitMinutes,
+          scheduledHoursLabel: (scheduledMinutes / 60).toFixed(2) + 'h',
+          limitHoursLabel: ((limitMinutes || 0) / 60).toFixed(2) + 'h',
+          progress,
+          statusLabel: limitMinutes === 0 ? 'Sin meta' : isComplete ? 'Cubierto' : isNearLimit ? 'En rango' : 'Pendiente',
+          statusClass: limitMinutes === 0
+            ? 'bg-slate-200 text-slate-600'
+            : isComplete
+              ? 'bg-emerald-100 text-emerald-700'
+              : isNearLimit
+                ? 'bg-amber-100 text-amber-700'
+                : 'bg-blue-100 text-blue-700',
+          barClass: limitMinutes === 0
+            ? 'bg-slate-400'
+            : isComplete
+              ? 'bg-emerald-500'
+              : isNearLimit
+                ? 'bg-amber-500'
+                : 'bg-blue-600'
+        };
+      })
+      .filter((row) => row.blocks > 0 || row.limitMinutes > 0)
+      .sort((left, right) => right.progress - left.progress || left.name.localeCompare(right.name));
+  }
+
+  getLiveDayName() {
+    const dayId = Number(this.scheduleForm.get('day_of_week')?.value);
+    return this.days.find((day) => day.id === dayId)?.name || 'Selecciona un dia';
   }
 }

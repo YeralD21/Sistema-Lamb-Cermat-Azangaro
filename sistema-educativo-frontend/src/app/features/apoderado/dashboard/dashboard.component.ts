@@ -34,6 +34,13 @@ export class DashboardComponent implements OnInit {
       color: 'bg-[#1e40af]' // Blue 800
     },
     {
+      title: 'Historial',
+      description: 'Historial academico y financiero',
+      icon: 'file-text',
+      path: '/app/history/apoderado',
+      color: 'bg-[#0f766e]'
+    },
+    {
       title: 'Tareas',
       description: 'Supervisión de tareas escolares',
       icon: 'book-open',

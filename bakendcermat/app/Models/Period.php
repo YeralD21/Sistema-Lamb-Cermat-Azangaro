@@ -37,4 +37,9 @@ class Period extends Model
     {
         return $this->belongsTo(AcademicYear::class);
     }
+
+    public function history()
+    {
+        return $this->hasOne(AcademicPeriodHistory::class, 'period_id');
+    }
 }

@@ -3,7 +3,7 @@ import { CommonModule } from '@angular/common';
 import { RouterModule, Router } from '@angular/router';
 import { DomSanitizer, SafeHtml } from '@angular/platform-browser';
 import { AuthService } from '@core/services/auth.service';
-import { ADMIN_MODULES_LIST, AdminModuleEntry, SubModuleSection } from '@core/constants/admin-modules';
+import { ADMIN_MODULES_LIST, AdminModuleEntry } from '@core/constants/admin-modules';
 import { BackButtonComponent } from '@shared/components/back-button/back-button.component';
 
 @Component({
@@ -24,9 +24,12 @@ export class AdminDashboardComponent implements OnInit {
 
   ngOnInit() {
     const role = this.authService.getRole();
-    if (role === 'student') {
-      this.router.navigate(['/app/dashboard/student']);
+    if (!this.authService.isAdminWorkspaceRole(role)) {
+      this.router.navigateByUrl(this.authService.getHomeRoute(role));
+      return;
     }
+
+    this.modules = ADMIN_MODULES_LIST.filter((module) => module.roles.includes((role || '') as string));
   }
 
   sanitizeSvg(svg: string): SafeHtml {

@@ -14,66 +14,73 @@ export class DashboardComponent implements OnInit {
   modules = [
     {
         title: 'Asistencia',
-        description: 'Registro diario de asistencia por sección',
+        description: 'Registro diario de asistencia por seccion',
         icon: 'calendar-check',
         path: '/app/attendance/teacher',
-        color: 'bg-[#1e40af]' // Blue 800
+        color: 'bg-[#1e40af]'
     },
     {
-        title: 'Evaluación',
+        title: 'Evaluacion',
         description: 'Registro de calificaciones y competencias',
         icon: 'graduation-cap',
         path: '/app/evaluation/teacher',
-        color: 'bg-[#1e3a8a]' // Blue 900 - Cermat Primary
+        color: 'bg-[#1e3a8a]'
+    },
+    {
+        title: 'Historial',
+        description: 'Cursos, tareas y asistencia cerrada',
+        icon: 'file-text',
+        path: '/app/history/teacher',
+        color: 'bg-[#0f766e]'
     },
     {
         title: 'Tareas',
-        description: 'Creación y gestión de actividades',
+        description: 'Creacion y gestion de actividades',
         icon: 'book-open',
         path: '/app/tasks/teacher',
-        color: 'bg-[#1e40af]' // Blue 800 - Cermat Primary
+        color: 'bg-[#1e40af]'
     },
     {
         title: 'Calificar',
-        description: 'Revisión de entregas de tareas',
+        description: 'Revision de entregas de tareas',
         icon: 'check-circle',
         path: '/app/tasks/grading/teacher',
-        color: 'bg-[#ca8a04]' // Yellow 600
+        color: 'bg-[#ca8a04]'
     },
     {
         title: 'Comunicados',
-        description: 'Envío de comunicados a padres y alumnos',
+        description: 'Envio de comunicados a padres y alumnos',
         icon: 'message-square',
         path: '/app/communications/teacher',
-        color: 'bg-[#3b82f6]' // Blue 500 - Cermat Secondary
+        color: 'bg-[#3b82f6]'
     },
     {
-        title: 'Mensajería',
-        description: 'Buzón de mensajes directos',
+        title: 'Mensajeria',
+        description: 'Buzon de mensajes directos',
         icon: 'mail',
         path: '/app/messages/teacher',
-        color: 'bg-[#0E3A8A]' // UPeU Blue
+        color: 'bg-[#0E3A8A]'
     },
     {
         title: 'Resumen',
-        description: 'Estadísticas de cursos y alumnos',
+        description: 'Estadisticas de cursos y alumnos',
         icon: 'activity',
         path: '/app/dashboard/metrics/teacher',
-        color: 'bg-[#374151]' // Slate 700
+        color: 'bg-[#374151]'
     },
     {
         title: 'Reportes',
-        description: 'Reportes académicos y exportación',
+        description: 'Reportes academicos y exportacion',
         icon: 'bar-chart',
         path: '/app/reports/academic',
-        color: 'bg-[#ca8a04]' // Yellow 600
+        color: 'bg-[#ca8a04]'
     },
     {
         title: 'Mi Horario',
         description: 'Ver mi horario de clases',
         icon: 'clock',
         path: '/app/schedule/teacher',
-        color: 'bg-[#7c3aed]' // Violet 600
+        color: 'bg-[#7c3aed]'
     }
   ];
 

@@ -12,7 +12,7 @@ class SectionController extends Controller
 {
     public function index(Request $request)
     {
-        $query = Section::query();
+        $query = Section::with('gradeLevel');
 
         if ($request->has('academic_year_id')) {
             $query->where('academic_year_id', $request->academic_year_id);

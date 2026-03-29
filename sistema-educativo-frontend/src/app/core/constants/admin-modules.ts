@@ -103,7 +103,7 @@ export const ADMIN_MODULES_LIST: AdminModuleEntry[] = [
     path: '/app/finance',
     moduleKey: 'finance',
     color: 'bg-[#1e293b]',
-    roles: ['admin', 'director', 'finance'],
+    roles: ['admin', 'director', 'secretary', 'finance', 'cashier'],
     submodules: [
       {
         title: 'Catálogo',
@@ -293,6 +293,12 @@ export const ADMIN_MODULES_LIST: AdminModuleEntry[] = [
             path: '/app/settings/users'
           },
           {
+            title: 'ImportaciÃ³n Masiva',
+            description: 'Carga CSV de docentes, estudiantes y apoderados',
+            icon: ICONS.download,
+            path: '/app/settings/imports'
+          },
+          {
             title: 'Estudiantes',
             description: 'Directorio general de alumnos',
             icon: ICONS.users,
@@ -339,7 +345,7 @@ export const ADMIN_MODULES_LIST: AdminModuleEntry[] = [
     path: '/app/settings/news',
     moduleKey: 'website',
     color: 'bg-[#1e293b]',
-    roles: ['admin', 'director', 'web_editor'],
+    roles: ['admin', 'director', 'secretary', 'web_editor'],
     submodules: [
       {
         title: 'Contenido Público',

@@ -106,7 +106,15 @@ export class TaskService {
   private http = inject(HttpClient);
   private apiUrl = environment.apiUrl;
 
-  getAssignments(params?: { course_id?: string; section_id?: string; student_id?: string }): Observable<PaginatedResponse<Assignment>> {
+  getAssignments(params?: {
+    course_id?: string;
+    section_id?: string;
+    student_id?: string;
+    date_from?: string;
+    date_to?: string;
+    per_page?: number;
+    history_scope?: boolean;
+  }): Observable<PaginatedResponse<Assignment>> {
     return this.http.get<PaginatedResponse<Assignment>>(`${this.apiUrl}/assignments`, { params: params as any });
   }
 

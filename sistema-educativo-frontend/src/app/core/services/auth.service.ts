@@ -1,7 +1,7 @@
 import { Injectable, signal, inject } from '@angular/core';
 import { HttpClient } from '@angular/common/http';
 import { User, UserRole } from '../models/user.model';
-import { BehaviorSubject, Observable, catchError, map, of, tap } from 'rxjs';
+import { BehaviorSubject, Observable, catchError, map, of } from 'rxjs';
 import { Router } from '@angular/router';
 import { environment } from '../../../environments/environment';
 
@@ -109,13 +109,24 @@ export class AuthService {
   }
 
   private mapBackendUser(backendUser: any): User {
-    // Map backend roles to frontend UserRole
     let role: UserRole = 'student';
     const backendRole = backendUser.profile?.role;
+    const directRoles: UserRole[] = [
+      'admin',
+      'director',
+      'coordinator',
+      'secretary',
+      'teacher',
+      'student',
+      'cashier',
+      'administrative',
+      'finance',
+      'web_editor'
+    ];
 
     if (backendRole === 'guardian') {
       role = 'apoderado';
-    } else if (['admin', 'teacher', 'student', 'cashier', 'administrative'].includes(backendRole)) {
+    } else if (directRoles.includes(backendRole as UserRole)) {
       role = backendRole as UserRole;
     }
 
@@ -136,6 +147,24 @@ export class AuthService {
   private updateUserState(user: User | null): void {
     this.currentUserSubject.next(user);
     this.currentUser.set(user);
+  }
+
+  getHomeRoute(role: UserRole | null = this.getRole()): string {
+    switch (role) {
+      case 'student':
+        return '/app/dashboard/student';
+      case 'teacher':
+        return '/app/dashboard/teacher';
+      case 'apoderado':
+      case 'guardian':
+        return '/app/dashboard/apoderado';
+      default:
+        return '/app/dashboard';
+    }
+  }
+
+  isAdminWorkspaceRole(role: UserRole | null = this.getRole()): boolean {
+    return !['student', 'teacher', 'apoderado', 'guardian'].includes((role || '') as string);
   }
 
   logout(): void {

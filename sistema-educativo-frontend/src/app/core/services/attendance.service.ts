@@ -170,6 +170,7 @@ export interface AttendanceHistoryFilters {
   section_id?: string;
   status?: AttendanceStatus;
   per_page?: number;
+  history_scope?: boolean;
 }
 
 export interface AttendanceJustificationFilters {

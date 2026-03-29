@@ -8,6 +8,7 @@ use Illuminate\Database\Eloquent\Relations\BelongsTo;
 class Notification extends Model
 {
     protected $table = 'notifications';
+    const UPDATED_AT = null;
 
     protected $fillable = [
         'user_id',       // receptor (users.id)
@@ -18,6 +19,8 @@ class Notification extends Model
         'data',          // opcional (json)
         'link',          // opcional
         'created_by',    // opcional
+        'related_entity_type',
+        'related_entity_id',
         'read_at',       // opcional
     ];
 

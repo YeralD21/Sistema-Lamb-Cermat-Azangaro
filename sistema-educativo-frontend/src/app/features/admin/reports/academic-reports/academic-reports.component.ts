@@ -1,16 +1,28 @@
-import { Component, OnInit, inject } from '@angular/core';
-import { BackButtonComponent } from '@shared/components/back-button/back-button.component';
+//src/app/features/admin/reports/academic-reports/academic-reports.component.ts
 import { CommonModule } from '@angular/common';
+import { Component, OnInit, inject } from '@angular/core';
 import { FormsModule } from '@angular/forms';
 import { RouterModule } from '@angular/router';
-import { GradeLevel, Section, AcademicService } from '@core/services/academic.service';
 import { AcademicYear } from '@core/models/AcademicYear';
-import { ReportService } from '@core/services/report.service';
-import { EvaluationSummary, FinalCompetencyResult, EvaluationService } from '@core/services/evaluation.service';
-import { forkJoin, of } from 'rxjs';
-import { catchError } from 'rxjs/operators';
+import {
+  AcademicService,
+  Course,
+  GradeLevel,
+  Period,
+  Section,
+} from '@core/services/academic.service';
+import { EvaluationService } from '@core/services/evaluation.service';
+import {
+  ReportService,
+  SectionAttendanceReportResponse,
+  SectionEvaluationReportResponse,
+} from '@core/services/report.service';
+import { BackButtonComponent } from '@shared/components/back-button/back-button.component';
+import { catchError, of } from 'rxjs';
 
 type TabType = 'attendance' | 'evaluation' | 'siagie';
+type ReportExportType = 'attendance' | 'evaluation';
+type SiagieExportType = 'matricula' | 'asistencia' | 'evaluacion';
 
 interface AttendanceRow {
   student_id: string;
@@ -30,12 +42,6 @@ interface EvaluationRow {
   final_grade: string;
 }
 
-interface SectionStudent {
-  id: string;
-  student_code: string;
-  full_name: string;
-}
-
 @Component({
   selector: 'app-academic-reports',
   standalone: true,
@@ -52,16 +58,18 @@ export class AcademicReportsComponent implements OnInit {
   error = '';
 
   academicYears: AcademicYear[] = [];
-  periods: any[] = [];
+  periods: Period[] = [];
   grades: GradeLevel[] = [];
   sections: Section[] = [];
-  courses: any[] = [];
+  courses: Course[] = [];
 
   selectedYear = '';
   selectedPeriod = '';
   selectedGrade = '';
   selectedSection = '';
   selectedCourse = '';
+  studentSearch = '';
+  showOnlyAtRisk = false;
 
   attendanceData: AttendanceRow[] = [];
   evaluationData: EvaluationRow[] = [];
@@ -84,15 +92,15 @@ export class AcademicReportsComponent implements OnInit {
         this.loadInitialFilters();
       },
       error: () => {
-        this.error = 'No se pudieron cargar los años académicos.';
+        this.error = 'No se pudieron cargar los anios academicos.';
         this.loading = false;
       }
     });
   }
 
   loadInitialFilters() {
-    this.academicService.getGradeLevels().subscribe({
-      next: (res) => this.grades = res.data || res || [],
+    this.academicService.getGradeLevels({ per_page: 100, simple: true }).subscribe({
+      next: (res) => this.grades = this.extractCollection<GradeLevel>(res),
       error: () => this.error = 'No se pudieron cargar los grados.'
     });
 
@@ -101,16 +109,26 @@ export class AcademicReportsComponent implements OnInit {
 
   setTab(tab: TabType) {
     this.activeTab = tab;
+    this.error = '';
     this.loadTabData();
   }
 
   onYearChange() {
     this.selectedPeriod = '';
+    this.selectedSection = '';
+    this.selectedCourse = '';
+    this.sections = [];
+    this.courses = [];
     this.resetReportData();
     this.loadPeriods();
+
+    if (this.selectedGrade) {
+      this.loadSectionsForSelectedGrade();
+    }
   }
 
   onPeriodChange() {
+    this.resetReportData();
     this.loadTabData();
   }
 
@@ -122,10 +140,7 @@ export class AcademicReportsComponent implements OnInit {
     this.resetReportData();
 
     if (this.selectedGrade) {
-      this.academicService.getSections({ grade_level_id: this.selectedGrade }).subscribe({
-        next: (res) => this.sections = res.data || res || [],
-        error: () => this.error = 'No se pudieron cargar las secciones.'
-      });
+      this.loadSectionsForSelectedGrade();
     }
   }
 
@@ -135,13 +150,7 @@ export class AcademicReportsComponent implements OnInit {
     this.resetReportData();
 
     if (this.selectedSection) {
-      this.academicService.getCourses({ section_id: this.selectedSection }).subscribe({
-        next: (res) => {
-          this.courses = res.data || res || [];
-          this.loadTabData();
-        },
-        error: () => this.error = 'No se pudieron cargar los cursos.'
-      });
+      this.loadCoursesForSelectedSection();
       return;
     }
 
@@ -149,7 +158,165 @@ export class AcademicReportsComponent implements OnInit {
   }
 
   onCourseChange() {
+    this.resetReportData();
     this.loadTabData();
+  }
+
+  clearFilters() {
+    this.selectedPeriod = '';
+    this.selectedGrade = '';
+    this.selectedSection = '';
+    this.selectedCourse = '';
+    this.studentSearch = '';
+    this.showOnlyAtRisk = false;
+    this.sections = [];
+    this.courses = [];
+    this.resetReportData();
+    this.loadPeriods();
+  }
+
+  clearSearch() {
+    this.studentSearch = '';
+    this.showOnlyAtRisk = false;
+  }
+
+  refresh() {
+    this.error = '';
+
+    if (!this.selectedYear) {
+      this.loadInitialFilters();
+      return;
+    }
+
+    this.loadPeriods();
+
+    if (this.selectedGrade) {
+      this.loadSectionsForSelectedGrade();
+    }
+
+    if (this.selectedSection) {
+      this.loadCoursesForSelectedSection();
+      return;
+    }
+
+    this.loadTabData();
+  }
+
+  get canQuerySectionReports(): boolean {
+    return !!(this.selectedYear && this.selectedSection);
+  }
+
+  get filteredAttendanceData(): AttendanceRow[] {
+    const query = this.studentSearch.trim().toLowerCase();
+
+    return this.attendanceData.filter((row) => {
+      if (!query) {
+        return true;
+      }
+
+      return [row.student_code, row.student_name]
+        .some((value) => String(value || '').toLowerCase().includes(query));
+    });
+  }
+
+  get filteredEvaluationData(): EvaluationRow[] {
+    const query = this.studentSearch.trim().toLowerCase();
+
+    return this.evaluationData.filter((row) => {
+      const matchesSearch = !query || [row.student_code, row.student_name]
+        .some((value) => String(value || '').toLowerCase().includes(query));
+
+      if (!matchesSearch) {
+        return false;
+      }
+
+      if (!this.showOnlyAtRisk) {
+        return true;
+      }
+
+      return this.isEvaluationRowAtRisk(row);
+    });
+  }
+
+  get attendanceRowsForView(): AttendanceRow[] {
+    return this.filteredAttendanceData;
+  }
+
+  get evaluationRowsForView(): EvaluationRow[] {
+    return this.filteredEvaluationData;
+  }
+
+  get attendanceRowsCount(): number {
+    return this.filteredAttendanceData.length;
+  }
+
+  get evaluationRowsCount(): number {
+    return this.filteredEvaluationData.length;
+  }
+
+  get hasActiveSearch(): boolean {
+    return !!this.studentSearch.trim() || this.showOnlyAtRisk;
+  }
+
+  get selectedFiltersSummary(): Array<{ label: string; value: string }> {
+    return [
+      { label: 'Anio', value: this.currentYearLabel() },
+      { label: 'Periodo', value: this.currentPeriodLabel() },
+      { label: 'Grado', value: this.currentGradeLabel() },
+      { label: 'Seccion', value: this.currentSectionLabel() },
+      ...(this.activeTab === 'evaluation' ? [{ label: 'Curso', value: this.currentCourseLabel() }] : []),
+    ];
+  }
+
+  get reportHint(): string {
+    if (!this.selectedYear) {
+      return 'Selecciona un anio academico para habilitar los filtros del consolidado.';
+    }
+
+    if (!this.selectedGrade) {
+      return 'Selecciona un grado para cargar secciones y consultar reportes.';
+    }
+
+    if (!this.selectedSection) {
+      return 'Selecciona una seccion para cargar datos reales del backend.';
+    }
+
+    if (this.activeTab === 'evaluation' && this.selectedCourse) {
+      return 'El consolidado muestra solo el curso seleccionado.';
+    }
+
+    if (this.activeTab === 'evaluation') {
+      return 'Sin curso seleccionado, se muestra el resumen completo de la seccion.';
+    }
+
+    return 'Los datos mostrados provienen del backend y respetan el periodo seleccionado.';
+  }
+
+  get quickStats(): Array<{ label: string; value: string; tone: string }> {
+    if (this.activeTab === 'attendance') {
+      return [
+        { label: 'Filas visibles', value: String(this.attendanceRowsCount), tone: 'bg-white text-slate-900 border-slate-200' },
+        { label: 'Promedio', value: `${this.avgAttendance.toFixed(1)}%`, tone: 'bg-emerald-50 text-emerald-700 border-emerald-200' },
+        { label: 'Faltas', value: String(this.totalAbsences), tone: 'bg-rose-50 text-rose-700 border-rose-200' },
+        { label: 'Secciones', value: String(this.sections.length), tone: 'bg-blue-50 text-blue-700 border-blue-200' },
+      ];
+    }
+
+    if (this.activeTab === 'evaluation') {
+      return [
+        { label: 'Filas visibles', value: String(this.evaluationRowsCount), tone: 'bg-white text-slate-900 border-slate-200' },
+        { label: 'En riesgo', value: String(this.studentsAtRisk), tone: 'bg-rose-50 text-rose-700 border-rose-200' },
+        { label: 'Competencias', value: String(this.competenciesList.length), tone: 'bg-amber-50 text-amber-700 border-amber-200' },
+        { label: 'Cursos', value: String(this.courses.length), tone: 'bg-blue-50 text-blue-700 border-blue-200' },
+      ];
+    }
+
+    return [
+      { label: 'Anio', value: this.currentYearLabel(), tone: 'bg-white text-slate-900 border-slate-200' },
+      { label: 'Secciones', value: String(this.sections.length), tone: 'bg-blue-50 text-blue-700 border-blue-200' },
+      { label: 'Cursos', value: String(this.courses.length), tone: 'bg-cyan-50 text-cyan-700 border-cyan-200' },
+      { label: 'Estado', value: this.canQuerySectionReports ? 'Listo' : 'Pendiente', tone: this.canQuerySectionReports ? 'bg-emerald-50 text-emerald-700 border-emerald-200' : 'bg-amber-50 text-amber-700 border-amber-200' },
+    ];
   }
 
   attendanceBadgeClass(pct: number): string {
@@ -168,16 +335,132 @@ export class AcademicReportsComponent implements OnInit {
     return map[grade] ?? 'bg-slate-100 text-slate-600 border border-slate-200';
   }
 
-  exportCSV(type: 'attendance' | 'evaluation') {
-    alert(`Exportación CSV de "${type}" queda como siguiente paso de integración.`);
+  exportCSV(type: ReportExportType) {
+    if (type === 'attendance') {
+      if (!this.filteredAttendanceData.length) {
+        this.error = 'No hay datos de asistencia para exportar.';
+        return;
+      }
+
+      const rows = this.filteredAttendanceData.map((row) => ({
+        Codigo: row.student_code,
+        Alumno: row.student_name,
+        Asistencia: `${row.attendance_percentage.toFixed(1)}%`,
+        Faltas: row.total_absences,
+        Tardanzas: row.total_tardies,
+        Justificaciones: row.total_justifications,
+      }));
+
+      this.downloadCsv(this.buildFilename('reporte-asistencia', 'csv'), rows);
+      return;
+    }
+
+    if (!this.filteredEvaluationData.length) {
+      this.error = 'No hay datos de evaluacion para exportar.';
+      return;
+    }
+
+    const rows = this.filteredEvaluationData.map((row) => {
+      const exportRow: Record<string, string | number> = {
+        Codigo: row.student_code,
+        Alumno: row.student_name,
+      };
+
+      this.competenciesList.forEach((competency) => {
+        exportRow[competency.description] = row.competencies[competency.id] || '-';
+      });
+
+      exportRow['Final'] = row.final_grade;
+      return exportRow;
+    });
+
+    this.downloadCsv(this.buildFilename('reporte-evaluacion', 'csv'), rows);
   }
 
-  exportPDF(type: 'attendance' | 'evaluation') {
-    alert(`Exportación PDF de "${type}" queda como siguiente paso de integración.`);
+  exportPDF(type: ReportExportType) {
+    if (type === 'attendance') {
+      if (!this.filteredAttendanceData.length) {
+        this.error = 'No hay datos de asistencia para imprimir.';
+        return;
+      }
+
+      this.openPrintWindow(
+        'Reporte de Asistencia',
+        this.buildPrintSubtitle(),
+        this.buildAttendancePrintBody()
+      );
+      return;
+    }
+
+    if (!this.filteredEvaluationData.length) {
+      this.error = 'No hay datos de evaluacion para imprimir.';
+      return;
+    }
+
+    this.openPrintWindow(
+      'Reporte de Evaluacion',
+      this.buildPrintSubtitle(),
+      this.buildEvaluationPrintBody()
+    );
   }
 
-  exportSIAGIE(type: 'matricula' | 'asistencia' | 'evaluacion') {
-    alert(`Exportación SIAGIE (${type}) queda como siguiente paso de integración.`);
+  exportSIAGIE(type: SiagieExportType) {
+    if (!this.ensureSectionContext()) {
+      return;
+    }
+
+    this.error = '';
+    this.loading = true;
+
+    if (type === 'matricula') {
+      this.exportSiagieEnrollment();
+      return;
+    }
+
+    if (type === 'asistencia') {
+      this.reportService.getSectionAttendanceReport(this.selectedSection, this.buildAttendanceParams()).subscribe({
+        next: (response) => {
+          this.loading = false;
+          this.downloadCsv(
+            this.buildFilename('siagie-asistencia', 'csv'),
+            response.rows.map((row) => ({
+              Codigo: row.student_code,
+              Alumno: row.student_name,
+              Asistencia: `${row.attendance_percentage.toFixed(1)}%`,
+              Faltas: row.total_absences,
+              Tardanzas: row.total_tardies,
+              Justificaciones: row.total_justifications,
+              Periodo: this.currentPeriodLabel(),
+            }))
+          );
+        },
+        error: () => {
+          this.loading = false;
+          this.error = 'No se pudo generar el archivo SIAGIE de asistencia.';
+        }
+      });
+      return;
+    }
+
+    this.prepareEvaluationExport((response) => {
+      this.downloadCsv(
+        this.buildFilename('siagie-evaluacion', 'csv'),
+        response.rows.map((row) => {
+          const exportRow: Record<string, string | number> = {
+            Codigo: row.student_code,
+            Alumno: row.student_name,
+          };
+
+          response.competencies.forEach((competency) => {
+            exportRow[competency.description] = row.competencies[competency.id] || '-';
+          });
+
+          exportRow['Final'] = row.final_grade;
+          exportRow['Periodo'] = this.currentPeriodLabel();
+          return exportRow;
+        })
+      );
+    }, false);
   }
 
   private loadPeriods() {
@@ -186,9 +469,12 @@ export class AcademicReportsComponent implements OnInit {
       return;
     }
 
-    this.academicService.getPeriods({ academic_year_id: this.selectedYear }).subscribe({
+    this.academicService.getPeriods({ academic_year_id: this.selectedYear, per_page: 100, simple: true }).subscribe({
       next: (res) => {
-        this.periods = res.data || res || [];
+        this.periods = this.extractCollection<Period>(res);
+        if (this.selectedPeriod && !this.periods.some((period) => period.id === this.selectedPeriod)) {
+          this.selectedPeriod = '';
+        }
         this.loadTabData();
       },
       error: () => this.error = 'No se pudieron cargar los periodos.'
@@ -207,7 +493,7 @@ export class AcademicReportsComponent implements OnInit {
   }
 
   private loadAttendanceReport() {
-    if (!this.selectedYear || !this.selectedSection) {
+    if (!this.ensureSectionContext(false)) {
       this.attendanceData = [];
       this.avgAttendance = 0;
       this.totalAbsences = 0;
@@ -218,48 +504,20 @@ export class AcademicReportsComponent implements OnInit {
     this.loading = true;
     this.error = '';
 
-    this.loadSectionStudents((students) => {
-      if (!students.length) {
-        this.attendanceData = [];
-        this.avgAttendance = 0;
-        this.totalAbsences = 0;
-        this.topAbsentees = [];
+    this.reportService.getSectionAttendanceReport(this.selectedSection, this.buildAttendanceParams()).subscribe({
+      next: (response) => {
+        this.applyAttendanceReport(response);
         this.loading = false;
-        return;
+      },
+      error: () => {
+        this.error = 'No se pudo cargar el consolidado de asistencia.';
+        this.loading = false;
       }
-
-      const period = this.periods.find((item) => item.id === this.selectedPeriod);
-      const dateFrom = period?.start_date;
-      const dateTo = period?.end_date;
-
-      const requests = students.map((student) =>
-        this.reportService.getAttendanceSummary(student.id, dateFrom, dateTo).pipe(catchError(() => of(null)))
-      );
-
-      forkJoin(requests).subscribe({
-        next: (responses) => {
-          const rows = responses.map((response, index) => this.mapAttendanceRow(students[index], response)).filter(Boolean) as AttendanceRow[];
-
-          this.attendanceData = rows;
-          this.avgAttendance = rows.length ? rows.reduce((sum, row) => sum + row.attendance_percentage, 0) / rows.length : 0;
-          this.totalAbsences = rows.reduce((sum, row) => sum + row.total_absences, 0);
-          this.topAbsentees = rows
-            .slice()
-            .sort((a, b) => b.total_absences - a.total_absences)
-            .slice(0, 3)
-            .map((row) => row.student_name);
-          this.loading = false;
-        },
-        error: () => {
-          this.error = 'No se pudo cargar el consolidado de asistencia.';
-          this.loading = false;
-        }
-      });
     });
   }
 
   private loadEvaluationReport() {
-    if (!this.selectedYear || !this.selectedSection) {
+    if (!this.ensureSectionContext(false)) {
       this.evaluationData = [];
       this.competenciesList = [];
       this.gradeDistribution = { AD: 0, A: 0, B: 0, C: 0 };
@@ -270,241 +528,335 @@ export class AcademicReportsComponent implements OnInit {
     this.loading = true;
     this.error = '';
 
-    this.loadSectionStudents((students) => {
-      if (!students.length) {
-        this.evaluationData = [];
-        this.competenciesList = [];
-        this.gradeDistribution = { AD: 0, A: 0, B: 0, C: 0 };
-        this.studentsAtRisk = 0;
-        this.loading = false;
-        return;
-      }
-
-      if (this.selectedPeriod) {
-        this.loadPeriodEvaluationRows(students);
-        return;
-      }
-
-      this.evaluationService.recalculateSectionEvaluationSummary(this.selectedYear, this.selectedSection).pipe(
-        catchError(() => of(null))
-      ).subscribe(() => this.loadYearEvaluationRows(students));
-    });
+    this.prepareEvaluationExport(() => undefined, true);
   }
 
-  private loadYearEvaluationRows(students: SectionStudent[]) {
-    const requests = students.map((student) =>
-      this.evaluationService.getEvaluationSummary(this.selectedYear, student.id).pipe(catchError(() => of(null)))
-    );
+  private prepareEvaluationExport(
+    onSuccess: (response: SectionEvaluationReportResponse) => void,
+    updateState = false
+  ) {
+    const loadReport = () => {
+      this.reportService.getSectionEvaluationReport(this.selectedSection, this.buildEvaluationParams()).subscribe({
+        next: (response) => {
+          if (updateState) {
+            this.applyEvaluationReport(response);
+          }
 
-    forkJoin(requests).subscribe({
-      next: (responses) => {
-        const summaries = responses.filter((response): response is EvaluationSummary => !!response);
-        this.buildEvaluationStateFromSummaries(students, summaries);
-        this.loading = false;
-      },
-      error: () => {
-        this.error = 'No se pudo cargar el consolidado anual de evaluación.';
-        this.loading = false;
-      }
-    });
-  }
-
-  private loadPeriodEvaluationRows(students: SectionStudent[]) {
-    const requests = students.map((student) =>
-      this.reportService.getReportCard(student.id, this.selectedPeriod).pipe(catchError(() => of(null)))
-    );
-
-    forkJoin(requests).subscribe({
-      next: (responses) => {
-        this.buildEvaluationStateFromReports(students, responses);
-        this.loading = false;
-      },
-      error: () => {
-        this.error = 'No se pudo cargar el reporte de evaluación del periodo.';
-        this.loading = false;
-      }
-    });
-  }
-
-  private buildEvaluationStateFromSummaries(students: SectionStudent[], summaries: EvaluationSummary[]) {
-    const competencyMap = new Map<string, { id: string; description: string }>();
-    const rows: EvaluationRow[] = [];
-    const allLevels: string[] = [];
-    let atRisk = 0;
-
-    students.forEach((student) => {
-      const summary = summaries.find((item) => item.student.id === student.id);
-      const filteredResults = (summary?.final_results || []).filter((result) => !this.selectedCourse || result.course_id === this.selectedCourse);
-      const competencies: Record<string, string> = {};
-
-      filteredResults.forEach((result) => {
-        const competencyId = result.competency?.id || result.competency_id;
-        competencies[competencyId] = result.final_level || '-';
-        allLevels.push(result.final_level || '');
-        competencyMap.set(competencyId, {
-          id: competencyId,
-          description: result.competency?.name || result.competency?.description || 'Competencia',
-        });
+          this.loading = false;
+          onSuccess(response);
+        },
+        error: () => {
+          this.loading = false;
+          this.error = 'No se pudo cargar el consolidado de evaluacion.';
+        }
       });
+    };
 
-      const riskCount = filteredResults.filter((result) => ['B', 'C'].includes(result.final_level || '')).length;
-      if (riskCount >= 2) {
-        atRisk++;
-      }
+    if (this.selectedPeriod) {
+      loadReport();
+      return;
+    }
 
-      rows.push({
-        student_id: student.id,
-        student_code: student.student_code,
-        student_name: student.full_name,
-        competencies,
-        final_grade: this.aggregateLevels(filteredResults.map((result) => result.final_level || '')),
-      });
-    });
-
-    this.competenciesList = Array.from(competencyMap.values()).sort((a, b) => a.description.localeCompare(b.description));
-    this.evaluationData = rows;
-    this.gradeDistribution = this.calculateDistribution(allLevels);
-    this.studentsAtRisk = atRisk;
+    this.evaluationService.recalculateSectionEvaluationSummary(this.selectedYear, this.selectedSection).pipe(
+      catchError(() => of(null))
+    ).subscribe(() => loadReport());
   }
 
-  private buildEvaluationStateFromReports(students: SectionStudent[], responses: any[]) {
-    const competencyMap = new Map<string, { id: string; description: string }>();
-    const rows: EvaluationRow[] = [];
-    const allLevels: string[] = [];
-    let atRisk = 0;
+  private applyAttendanceReport(response: SectionAttendanceReportResponse) {
+    const rows = Array.isArray(response?.rows) ? response.rows : [];
 
-    students.forEach((student, index) => {
-      const response = responses[index];
-      const report = response?.report || [];
-      const filteredCourses = report.filter((course: any) => !this.selectedCourse || course.course_id === this.selectedCourse);
-      const competencies: Record<string, string> = {};
-      const studentLevels: string[] = [];
+    this.attendanceData = rows.map((row) => ({
+      student_id: row.student_id,
+      student_code: row.student_code,
+      student_name: row.student_name,
+      attendance_percentage: Number(row.attendance_percentage || 0),
+      total_absences: Number(row.total_absences || 0),
+      total_tardies: Number(row.total_tardies || 0),
+      total_justifications: Number(row.total_justifications || 0),
+    }));
 
-      filteredCourses.forEach((course: any) => {
-        const items = Array.isArray(course.competencies) ? course.competencies : [];
-        items.forEach((item: any) => {
-          const competencyId = item.competency_id || item.evaluation_id;
-          competencies[competencyId] = item.grade || '-';
-          studentLevels.push(item.grade || '');
-          allLevels.push(item.grade || '');
-          competencyMap.set(competencyId, {
-            id: competencyId,
-            description: item.competency_name || 'Competencia',
-          });
-        });
-      });
-
-      const riskCount = studentLevels.filter((level) => ['B', 'C'].includes(level)).length;
-      if (riskCount >= 2) {
-        atRisk++;
-      }
-
-      rows.push({
-        student_id: student.id,
-        student_code: student.student_code,
-        student_name: student.full_name,
-        competencies,
-        final_grade: this.aggregateLevels(studentLevels),
-      });
-    });
-
-    this.competenciesList = Array.from(competencyMap.values()).sort((a, b) => a.description.localeCompare(b.description));
-    this.evaluationData = rows;
-    this.gradeDistribution = this.calculateDistribution(allLevels);
-    this.studentsAtRisk = atRisk;
+    this.avgAttendance = Number(response?.stats?.avg_attendance || 0);
+    this.totalAbsences = Number(response?.stats?.total_absences || 0);
+    this.topAbsentees = this.attendanceData
+      .slice()
+      .sort((a, b) => b.total_absences - a.total_absences)
+      .slice(0, 3)
+      .map((row) => row.student_name);
   }
 
-  private loadSectionStudents(callback: (students: SectionStudent[]) => void) {
+  private applyEvaluationReport(response: SectionEvaluationReportResponse) {
+    this.competenciesList = Array.isArray(response?.competencies)
+      ? response.competencies.map((item) => ({
+          id: item.id,
+          description: item.description,
+        }))
+      : [];
+
+    this.evaluationData = Array.isArray(response?.rows)
+      ? response.rows.map((row) => ({
+          student_id: row.student_id,
+          student_code: row.student_code,
+          student_name: row.student_name,
+          competencies: row.competencies || {},
+          final_grade: row.final_grade || '-',
+        }))
+      : [];
+
+    this.gradeDistribution = response?.stats?.grade_distribution || { AD: 0, A: 0, B: 0, C: 0 };
+    this.studentsAtRisk = Number(response?.stats?.students_at_risk || 0);
+  }
+
+  private exportSiagieEnrollment() {
     this.academicService.getEnrolledStudents({
       section_id: this.selectedSection,
       academic_year_id: this.selectedYear,
-      per_page: 200,
+      per_page: 500,
     }).subscribe({
       next: (response) => {
         const data = Array.isArray(response?.data) ? response.data : Array.isArray(response?.data?.data) ? response.data.data : [];
-        const uniqueStudents = new Map<string, SectionStudent>();
+        const uniqueStudents = new Map<string, Record<string, string | number>>();
 
         data.forEach((item: any) => {
-          const student = item.student;
+          const student = item?.student;
           if (!student?.id || uniqueStudents.has(student.id)) {
             return;
           }
 
           uniqueStudents.set(student.id, {
-            id: student.id,
-            student_code: student.student_code || 'SIN-COD',
-            full_name: student.full_name || `${student.first_name || ''} ${student.last_name || ''}`.trim() || 'Estudiante',
+            Codigo: student.student_code || 'SIN-COD',
+            Alumno: student.full_name || `${student.first_name || ''} ${student.last_name || ''}`.trim() || 'Estudiante',
+            DNI: student.dni || '',
+            Grado: this.currentGradeLabel(),
+            Seccion: this.currentSectionLabel(),
+            Estado: item?.status || 'active',
+            Anio: this.currentYearLabel(),
           });
         });
 
-        callback(Array.from(uniqueStudents.values()));
+        this.loading = false;
+        this.downloadCsv(this.buildFilename('siagie-matricula', 'csv'), Array.from(uniqueStudents.values()));
       },
       error: () => {
-        this.error = 'No se pudo cargar la matrícula de la sección seleccionada.';
         this.loading = false;
+        this.error = 'No se pudo generar el archivo SIAGIE de matricula.';
       }
     });
   }
 
-  private mapAttendanceRow(student: SectionStudent, response: any): AttendanceRow | null {
-    if (!student) {
-      return null;
-    }
-
-    const counts = Array.isArray(response?.counts_by_status) ? response.counts_by_status : [];
-    const totals = counts.reduce((acc: Record<string, number>, item: any) => {
-      acc[item.status] = Number(item.total || 0);
-      return acc;
-    }, {});
-
-    const present = totals['presente'] || 0;
-    const justified = totals['justificado'] || 0;
-    const absences = totals['falta'] || 0;
-    const tardies = totals['tarde'] || 0;
-    const total = present + justified + absences + tardies;
-    const attendancePercentage = total > 0 ? ((present + justified) / total) * 100 : 0;
-
+  private buildAttendanceParams(): Record<string, string | undefined> {
     return {
-      student_id: student.id,
-      student_code: student.student_code,
-      student_name: student.full_name,
-      attendance_percentage: attendancePercentage,
-      total_absences: absences,
-      total_tardies: tardies,
-      total_justifications: justified,
+      academic_year_id: this.selectedYear || undefined,
+      period_id: this.selectedPeriod || undefined,
     };
   }
 
-  private calculateDistribution(levels: string[]) {
-    if (!levels.length) {
-      return { AD: 0, A: 0, B: 0, C: 0 };
-    }
-
-    const counts = levels.reduce((acc, level) => {
-      if (level === 'AD' || level === 'A' || level === 'B' || level === 'C') {
-        acc[level]++;
-      }
-
-      return acc;
-    }, { AD: 0, A: 0, B: 0, C: 0 });
-
+  private buildEvaluationParams(): Record<string, string | undefined> {
     return {
-      AD: Math.round((counts.AD / levels.length) * 100),
-      A: Math.round((counts.A / levels.length) * 100),
-      B: Math.round((counts.B / levels.length) * 100),
-      C: Math.round((counts.C / levels.length) * 100),
+      academic_year_id: this.selectedYear || undefined,
+      period_id: this.selectedPeriod || undefined,
+      course_id: this.selectedCourse || undefined,
     };
   }
 
-  private aggregateLevels(levels: string[]): string {
-    const filtered = levels.filter(Boolean);
-    const order: Record<string, number> = { C: 1, B: 2, A: 3, AD: 4 };
-
-    if (!filtered.length) {
-      return '-';
+  private ensureSectionContext(showMessage = true): boolean {
+    if (this.selectedYear && this.selectedSection) {
+      return true;
     }
 
-    return filtered.reduce((lowest, current) => ((order[current] || 0) < (order[lowest] || 0) ? current : lowest));
+    if (showMessage) {
+      this.error = 'Selecciona anio academico y seccion antes de generar el reporte.';
+    }
+
+    return false;
+  }
+
+  private buildFilename(prefix: string, extension: 'csv' | 'pdf'): string {
+    const year = this.currentYearLabel().replace(/\s+/g, '-');
+    const section = this.currentSectionLabel().replace(/\s+/g, '-');
+    const period = this.currentPeriodLabel().replace(/\s+/g, '-');
+    return `${prefix}-${year}-${section}-${period}.${extension}`.toLowerCase();
+  }
+
+  private downloadCsv(filename: string, rows: Array<Record<string, string | number>>) {
+    if (!rows.length) {
+      this.error = 'No hay datos para exportar con los filtros actuales.';
+      return;
+    }
+
+    const headers = Object.keys(rows[0]);
+    const csv = [
+      headers.join(','),
+      ...rows.map((row) => headers.map((header) => this.toCsvValue(row[header])).join(','))
+    ].join('\n');
+
+    const blob = new Blob([`\uFEFF${csv}`], { type: 'text/csv;charset=utf-8;' });
+    const url = URL.createObjectURL(blob);
+    const link = document.createElement('a');
+    link.href = url;
+    link.download = filename;
+    link.click();
+    URL.revokeObjectURL(url);
+  }
+
+  private openPrintWindow(title: string, subtitle: string, body: string) {
+    const printWindow = window.open('', '_blank', 'noopener,noreferrer,width=1200,height=900');
+    if (!printWindow) {
+      this.error = 'El navegador bloqueo la ventana de impresion.';
+      return;
+    }
+
+    printWindow.document.write(`
+      <html>
+        <head>
+          <title>${this.escapeHtml(title)}</title>
+          <style>
+            body { font-family: Arial, sans-serif; margin: 32px; color: #0f172a; }
+            h1 { margin: 0 0 8px; font-size: 24px; }
+            p { margin: 0 0 18px; color: #475569; }
+            table { width: 100%; border-collapse: collapse; }
+            th { background: #f8fafc; font-size: 12px; text-transform: uppercase; color: #475569; }
+            td, th { border: 1px solid #e2e8f0; padding: 8px 10px; }
+            td { font-size: 13px; }
+            .metric-grid { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 12px; margin-bottom: 20px; }
+            .metric-card { border: 1px solid #e2e8f0; border-radius: 12px; padding: 12px 14px; }
+            .metric-label { font-size: 11px; text-transform: uppercase; color: #64748b; margin-bottom: 6px; }
+            .metric-value { font-size: 20px; font-weight: 700; }
+          </style>
+        </head>
+        <body>
+          <h1>${this.escapeHtml(title)}</h1>
+          <p>${this.escapeHtml(subtitle)}</p>
+          ${body}
+        </body>
+      </html>
+    `);
+    printWindow.document.close();
+    printWindow.focus();
+    printWindow.print();
+  }
+
+  private buildAttendancePrintBody(): string {
+    const tableRows = this.attendanceData.length
+      ? this.filteredAttendanceData.map((row) => `
+          <tr>
+            <td>${this.escapeHtml(row.student_code)}</td>
+            <td>${this.escapeHtml(row.student_name)}</td>
+            <td style="text-align:center;">${row.attendance_percentage.toFixed(1)}%</td>
+            <td style="text-align:center;">${row.total_absences}</td>
+            <td style="text-align:center;">${row.total_tardies}</td>
+            <td style="text-align:center;">${row.total_justifications}</td>
+          </tr>
+        `).join('')
+      : `<tr><td colspan="6" style="text-align:center;">Sin datos para imprimir.</td></tr>`;
+
+    return `
+      <div class="metric-grid">
+        ${this.printCard('Asistencia promedio', `${this.avgAttendance.toFixed(1)}%`)}
+        ${this.printCard('Faltas', String(this.totalAbsences))}
+        ${this.printCard('Top inasistencia', this.topAbsentees.join(', ') || 'Sin datos')}
+      </div>
+      <table>
+        <thead>
+          <tr>
+            <th>Codigo</th>
+            <th>Alumno</th>
+            <th>% Asistencia</th>
+            <th>Faltas</th>
+            <th>Tardanzas</th>
+            <th>Justificaciones</th>
+          </tr>
+        </thead>
+        <tbody>${tableRows}</tbody>
+      </table>
+    `;
+  }
+
+  private buildEvaluationPrintBody(): string {
+    const headerCells = this.competenciesList
+      .map((competency) => `<th>${this.escapeHtml(competency.description)}</th>`)
+      .join('');
+
+    const tableRows = this.filteredEvaluationData.length
+      ? this.filteredEvaluationData.map((row) => `
+          <tr>
+            <td>${this.escapeHtml(row.student_code)}</td>
+            <td>${this.escapeHtml(row.student_name)}</td>
+            ${this.competenciesList.map((competency) => `
+              <td style="text-align:center;">${this.escapeHtml(row.competencies[competency.id] || '-')}</td>
+            `).join('')}
+            <td style="text-align:center;">${this.escapeHtml(row.final_grade)}</td>
+          </tr>
+        `).join('')
+      : `<tr><td colspan="${this.competenciesList.length + 3}" style="text-align:center;">Sin datos para imprimir.</td></tr>`;
+
+    return `
+      <div class="metric-grid" style="grid-template-columns: repeat(2, minmax(0, 1fr));">
+        ${this.printCard('Riesgo academico', String(this.studentsAtRisk))}
+        ${this.printCard('Distribucion', `AD ${this.gradeDistribution.AD}% | A ${this.gradeDistribution.A}% | B ${this.gradeDistribution.B}% | C ${this.gradeDistribution.C}%`)}
+      </div>
+      <table>
+        <thead>
+          <tr>
+            <th>Codigo</th>
+            <th>Alumno</th>
+            ${headerCells}
+            <th>Final</th>
+          </tr>
+        </thead>
+        <tbody>${tableRows}</tbody>
+      </table>
+    `;
+  }
+
+  private printCard(label: string, value: string): string {
+    return `
+      <div class="metric-card">
+        <div class="metric-label">${this.escapeHtml(label)}</div>
+        <div class="metric-value">${this.escapeHtml(value)}</div>
+      </div>
+    `;
+  }
+
+  private buildPrintSubtitle(): string {
+    return `Anio academico: ${this.currentYearLabel()} | Grado: ${this.currentGradeLabel()} | Seccion: ${this.currentSectionLabel()} | Periodo: ${this.currentPeriodLabel()} | Generado: ${new Date().toLocaleString()}`;
+  }
+
+  currentYearLabel(): string {
+    return String(this.academicYears.find((year) => year.id === this.selectedYear)?.year || 'sin-anio');
+  }
+
+  currentGradeLabel(): string {
+    const grade = this.grades.find((item) => item.id === this.selectedGrade);
+    return grade ? (grade.name || `${grade.grade}° ${grade.level}`) : 'sin-grado';
+  }
+
+  currentSectionLabel(): string {
+    const section = this.sections.find((item) => item.id === this.selectedSection);
+    return section?.section_letter || 'sin-seccion';
+  }
+
+  currentPeriodLabel(): string {
+    const period = this.periods.find((item) => item.id === this.selectedPeriod);
+    return period?.name || 'anual';
+  }
+
+  currentCourseLabel(): string {
+    const course = this.courses.find((item) => item.id === this.selectedCourse);
+    return course?.name || 'todos';
+  }
+
+  private toCsvValue(value: string | number | undefined): string {
+    const text = String(value ?? '');
+    return `"${text.replace(/"/g, '""')}"`;
+  }
+
+  private escapeHtml(value: string): string {
+    return value
+      .replace(/&/g, '&amp;')
+      .replace(/</g, '&lt;')
+      .replace(/>/g, '&gt;')
+      .replace(/"/g, '&quot;')
+      .replace(/'/g, '&#39;');
   }
 
   private resetReportData() {
@@ -516,5 +868,69 @@ export class AcademicReportsComponent implements OnInit {
     this.totalAbsences = 0;
     this.gradeDistribution = { AD: 0, A: 0, B: 0, C: 0 };
     this.studentsAtRisk = 0;
+  }
+
+  private loadSectionsForSelectedGrade() {
+    if (!this.selectedYear) {
+      this.sections = [];
+      return;
+    }
+
+    this.academicService.getSections({
+      academic_year_id: this.selectedYear || undefined,
+      grade_level_id: this.selectedGrade,
+      per_page: 200,
+      simple: true,
+    }).subscribe({
+      next: (res) => {
+        this.sections = this.extractCollection<Section>(res);
+        if (this.selectedSection && !this.sections.some((section) => section.id === this.selectedSection)) {
+          this.selectedSection = '';
+        }
+      },
+      error: () => this.error = 'No se pudieron cargar las secciones.'
+    });
+  }
+
+  private loadCoursesForSelectedSection() {
+    if (!this.selectedSection || !this.selectedYear) {
+      this.courses = [];
+      return;
+    }
+
+    this.academicService.getCourses({
+      section_id: this.selectedSection,
+      academic_year_id: this.selectedYear || undefined,
+      grade_level_id: this.selectedGrade || undefined,
+      per_page: 200,
+      simple: true,
+    }).subscribe({
+      next: (res) => {
+        this.courses = this.extractCollection<Course>(res);
+        if (this.selectedCourse && !this.courses.some((course) => course.id === this.selectedCourse)) {
+          this.selectedCourse = '';
+        }
+        this.loadTabData();
+      },
+      error: () => this.error = 'No se pudieron cargar los cursos.'
+    });
+  }
+
+  private extractCollection<T>(response: any): T[] {
+    if (Array.isArray(response?.data)) {
+      return response.data;
+    }
+
+    if (Array.isArray(response)) {
+      return response;
+    }
+
+    return [];
+  }
+
+  private isEvaluationRowAtRisk(row: EvaluationRow): boolean {
+    const values = Object.values(row.competencies || {});
+    const weakCompetencies = values.filter((value) => value === 'B' || value === 'C').length;
+    return weakCompetencies >= 2 || row.final_grade === 'C';
   }
 }

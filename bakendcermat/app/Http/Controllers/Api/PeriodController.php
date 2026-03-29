@@ -6,11 +6,18 @@ use App\Http\Controllers\Controller;
 use App\Models\Period;
 use App\Http\Requests\StorePeriodRequest;
 use App\Http\Requests\UpdatePeriodRequest;
+use App\Services\AcademicPeriodHistoryService;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Log;
 
 class PeriodController extends Controller
 {
+    public function __construct(
+        private readonly AcademicPeriodHistoryService $academicPeriodHistoryService
+    ) {
+    }
+
     public function index(Request $request)
     {
         Log::info('PeriodController@index request', [
@@ -19,23 +26,30 @@ class PeriodController extends Controller
             'user_id' => optional($request->user())->id,
         ]);
 
-        $query = Period::query();
+        $query = Period::query()->with('academicYear');
 
-        if ($request->has('academic_year_id')) {
+        if ($request->filled('academic_year_id')) {
             $query->where('academic_year_id', $request->academic_year_id);
         }
 
-        if ($request->has('is_closed')) {
+        if ($request->filled('is_closed')) {
             $query->where('is_closed', filter_var($request->is_closed, FILTER_VALIDATE_BOOLEAN));
         }
 
+        $perPage = (int) $request->integer('per_page', 20);
+        $useSimple = $request->boolean('simple', false);
+
         $result = $query->orderBy('academic_year_id')
-            ->orderBy('period_number')
-            ->paginate(20);
+            ->orderBy('period_number');
+
+        $result = $useSimple
+            ? $result->simplePaginate($perPage)
+            : $result->paginate($perPage);
 
         Log::info('PeriodController@index response', [
             'count' => count($result->items()),
-            'total' => $result->total(),
+            'total' => method_exists($result, 'total') ? $result->total() : null,
+            'simple' => $useSimple,
         ]);
 
         return response()->json($result);
@@ -53,7 +67,7 @@ class PeriodController extends Controller
 
     public function show($id)
     {
-        $row = Period::find($id);
+        $row = Period::query()->with('academicYear')->find($id);
 
         if (!$row) {
             return response()->json(['message' => 'Periodo no encontrado'], 404);
@@ -70,11 +84,28 @@ class PeriodController extends Controller
             return response()->json(['message' => 'Periodo no encontrado'], 404);
         }
 
-        $row->update($request->validated());
+        $validated = $request->validated();
+        $history = null;
+        $wasClosed = (bool) $row->is_closed;
+        $willBeClosed = array_key_exists('is_closed', $validated)
+            ? (bool) $validated['is_closed']
+            : $wasClosed;
+
+        DB::transaction(function () use ($row, $validated, $request, $wasClosed, $willBeClosed, &$history) {
+            $row->update($validated);
+
+            if (!$wasClosed && $willBeClosed) {
+                $history = $this->academicPeriodHistoryService->generateForPeriod(
+                    $row->fresh(),
+                    $request->user()?->id
+                );
+            }
+        });
 
         return response()->json([
             'message' => 'Periodo actualizado',
-            'data' => $row
+            'data' => $row->fresh(),
+            'history' => $history,
         ]);
     }
 

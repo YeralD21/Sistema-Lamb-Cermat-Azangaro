@@ -42,6 +42,28 @@ class AssignmentController extends Controller
             $query->where('section_id', $request->section_id);
         }
 
+        if ($request->filled('date_from')) {
+            $dateFrom = (string) $request->input('date_from');
+            $query->where(function ($dateQuery) use ($dateFrom) {
+                $dateQuery->whereDate('due_date', '>=', $dateFrom)
+                    ->orWhere(function ($fallbackQuery) use ($dateFrom) {
+                        $fallbackQuery->whereNull('due_date')
+                            ->whereDate('created_at', '>=', $dateFrom);
+                    });
+            });
+        }
+
+        if ($request->filled('date_to')) {
+            $dateTo = (string) $request->input('date_to');
+            $query->where(function ($dateQuery) use ($dateTo) {
+                $dateQuery->whereDate('due_date', '<=', $dateTo)
+                    ->orWhere(function ($fallbackQuery) use ($dateTo) {
+                        $fallbackQuery->whereNull('due_date')
+                            ->whereDate('created_at', '<=', $dateTo);
+                    });
+            });
+        }
+
         if ($request->filled('student_id') && $request->user()?->profile?->role !== 'guardian') {
             $query->whereExists(function ($subQuery) use ($request) {
                 $subQuery->selectRaw('1')
@@ -53,7 +75,7 @@ class AssignmentController extends Controller
             });
         }
 
-        $paginator = $query->orderByDesc('created_at')->paginate(20);
+        $paginator = $query->orderByDesc('created_at')->paginate((int) $request->integer('per_page', 20));
         $paginator->getCollection()->transform(
             fn (Assignment $assignment) => $this->appendAssignmentMetrics($assignment)
         );
@@ -268,13 +290,16 @@ class AssignmentController extends Controller
             return;
         }
 
-        $query->whereExists(function ($subQuery) use ($teacherId) {
+        $query->whereExists(function ($subQuery) use ($teacherId, $request) {
             $subQuery->selectRaw('1')
                 ->from('teacher_course_assignments as tca')
                 ->whereColumn('tca.course_id', 'assignments.course_id')
                 ->whereColumn('tca.section_id', 'assignments.section_id')
-                ->where('tca.teacher_id', $teacherId)
-                ->where('tca.is_active', true);
+                ->where('tca.teacher_id', $teacherId);
+
+            if (!$request->boolean('history_scope', false)) {
+                $subQuery->where('tca.is_active', true);
+            }
         });
     }
 

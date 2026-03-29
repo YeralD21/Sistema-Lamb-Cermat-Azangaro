@@ -21,6 +21,12 @@ export const STUDENT_MODULES_LIST: StudentModuleEntry[] = [
     path: '/app/evaluation/student'
   },
   {
+    title: 'Historial',
+    description: 'Revisa anos y periodos academicos cerrados',
+    icon: ICONS.fileText,
+    path: '/app/history/student'
+  },
+  {
     title: 'Tareas',
     description: 'Gestiona tus actividades y entregas',
     icon: ICONS.bookOpen,

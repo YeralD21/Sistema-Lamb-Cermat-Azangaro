@@ -30,6 +30,27 @@ export interface User {
   role: string;
 }
 
+export interface CreateUserPayload {
+  name: string;
+  email: string;
+  password: string;
+  role: string;
+  dni?: string;
+  phone?: string;
+  address?: string;
+  specialization?: string;
+  hire_date?: string;
+  birth_date?: string;
+  gender?: string;
+  section_id?: string;
+  enrollment_date?: string;
+  relationship?: string;
+  is_primary?: boolean;
+  related_guardian_id?: string;
+  related_student_id?: string;
+  relationship_is_primary?: boolean;
+}
+
 @Injectable({
   providedIn: 'root'
 })
@@ -55,8 +76,12 @@ export class UserService {
     return this.http.get(`${this.usersUrl}?role=${role}`);
   }
 
-  createUser(userData: any): Observable<any> {
+  createUser(userData: CreateUserPayload): Observable<any> {
     return this.http.post(this.usersUrl, userData);
+  }
+
+  deleteUser(userId: string): Observable<any> {
+    return this.http.delete(`${this.usersUrl}/${userId}`);
   }
 
   updateProfile(id: string, profileData: any): Observable<any> {

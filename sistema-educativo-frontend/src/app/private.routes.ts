@@ -47,6 +47,11 @@ export const PRIVATE_ROUTES: Routes = [
         title: 'CERMAT - Mis Notas'
       },
       {
+        path: 'history/student',
+        loadComponent: () => import('./features/student/history/student-history.component').then(m => m.StudentHistoryComponent),
+        title: 'CERMAT - Mi Historial Academico'
+      },
+      {
         path: 'tasks/student',
         loadComponent: () => import('./features/student/tasks/student-tasks.component').then(m => m.TasksStudentComponent),
         title: 'CERMAT - Mis Tareas'
@@ -84,6 +89,11 @@ export const PRIVATE_ROUTES: Routes = [
         title: 'CERMAT - Pagos'
       },
       {
+        path: 'history/apoderado',
+        loadComponent: () => import('./features/apoderado/history/apoderado-history.component').then(m => m.ApoderadoHistoryComponent),
+        title: 'CERMAT - Historial Familiar'
+      },
+      {
         path: 'tasks/apoderado',
         loadComponent: () => import('./features/apoderado/tasks/apoderado-tasks/apoderado-tasks.component').then(m => m.ApoderadoTasksComponent),
         title: 'CERMAT - Tareas'
@@ -119,6 +129,11 @@ export const PRIVATE_ROUTES: Routes = [
         path: 'evaluation/teacher',
         loadComponent: () => import('./features/teacher/evaluation/teacher-evaluation/teacher-evaluation.component').then(m => m.TeacherEvaluationComponent),
         title: 'CERMAT - Evaluación'
+      },
+      {
+        path: 'history/teacher',
+        loadComponent: () => import('./features/teacher/history/teacher-history.component').then(m => m.TeacherHistoryComponent),
+        title: 'CERMAT - Historial Docente'
       },
       {
         path: 'tasks/teacher',
@@ -183,6 +198,8 @@ export const PRIVATE_ROUTES: Routes = [
       // ── Horarios ─────────────────────────────────────────
       {
         path: 'schedule/admin',
+        canActivate: [roleGuard],
+        data: { roles: ['admin', 'director', 'coordinator'] },
         loadComponent: () => import('./features/admin/schedule/admin-schedule/admin-schedule.component').then(m => m.AdminScheduleComponent),
         title: 'CERMAT - Gestión de Horarios'
       },
@@ -214,41 +231,57 @@ export const PRIVATE_ROUTES: Routes = [
       // ── Finanzas ─────────────────────────────────────────
       {
         path: 'finance/catalog/concepts',
+        canActivate: [roleGuard],
+        data: { roles: ['admin', 'director', 'secretary', 'finance'] },
         loadComponent: () => import('./features/admin/finance/catalog/finance-concepts.component').then(m => m.FinanceConceptsComponent),
         title: 'CERMAT - Conceptos de Pago'
       },
       {
         path: 'finance/catalog/plans',
+        canActivate: [roleGuard],
+        data: { roles: ['admin', 'director', 'secretary', 'finance'] },
         loadComponent: () => import('./features/admin/finance/catalog/finance-plans.component').then(m => m.FinancePlansComponent),
         title: 'CERMAT - Planes de Pago'
       },
       {
         path: 'finance/catalog/discounts',
+        canActivate: [roleGuard],
+        data: { roles: ['admin', 'director', 'secretary', 'finance'] },
         loadComponent: () => import('./features/admin/finance/catalog/finance-discounts.component').then(m => m.FinanceDiscountsComponent),
         title: 'CERMAT - Descuentos y Becas'
       },
       {
         path: 'finance/charges/emission',
+        canActivate: [roleGuard],
+        data: { roles: ['admin', 'director', 'secretary', 'finance'] },
         loadComponent: () => import('./features/admin/finance/charges/finance-emission.component').then(m => m.FinanceEmissionComponent),
         title: 'CERMAT - Emisión de Cargos'
       },
       {
         path: 'finance/charges/student',
+        canActivate: [roleGuard],
+        data: { roles: ['admin', 'director', 'secretary', 'finance'] },
         loadComponent: () => import('./features/admin/finance/charges/finance-student.component').then(m => m.FinanceStudentComponent),
         title: 'CERMAT - Cuenta Estudiante'
       },
       {
         path: 'finance/cash',
+        canActivate: [roleGuard],
+        data: { roles: ['admin', 'director', 'secretary', 'finance', 'cashier'] },
         loadComponent: () => import('./features/admin/finance/cash/finance-cash.component').then(m => m.FinanceCashComponent),
         title: 'CERMAT - Caja Diaria'
       },
       {
         path: 'finance/cash/closures',
+        canActivate: [roleGuard],
+        data: { roles: ['admin', 'director', 'secretary', 'finance', 'cashier'] },
         loadComponent: () => import('./features/admin/finance/cash/finance-closures.component').then(m => m.FinanceClosuresComponent),
         title: 'CERMAT - Historial de Cierres'
       },
       {
         path: 'finance/reports',
+        canActivate: [roleGuard],
+        data: { roles: ['admin', 'director', 'secretary', 'finance'] },
         loadComponent: () => import('./features/admin/finance/reports/finance-reports.component').then(m => m.FinanceReportsComponent),
         title: 'CERMAT - Reportes Financieros'
       },
@@ -312,6 +345,13 @@ export const PRIVATE_ROUTES: Routes = [
         title: 'CERMAT - Usuarios'
       },
       {
+        path: 'settings/imports',
+        canActivate: [roleGuard],
+        data: { roles: ['admin', 'director', 'coordinator', 'secretary'] },
+        loadComponent: () => import('./features/admin/settings/bulk-import.component').then(m => m.BulkImportComponent),
+        title: 'CERMAT - Importacion Masiva'
+      },
+      {
         path: 'settings/students',
         loadComponent: () => import('./features/admin/settings/students.component').then(m => m.StudentsComponent),
         title: 'CERMAT - Estudiantes'
@@ -324,6 +364,8 @@ export const PRIVATE_ROUTES: Routes = [
       // ── Sitio Web ───────────────────────────────────────
       {
         path: 'settings/news',
+        canActivate: [roleGuard],
+        data: { roles: ['admin', 'director', 'secretary', 'web_editor'] },
         loadComponent: () => import('./features/admin/website/news-management.component').then(m => m.NewsManagementComponent),
         title: 'CERMAT - Gestión de Noticias y Eventos'
       }

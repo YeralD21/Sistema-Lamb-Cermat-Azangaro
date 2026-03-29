@@ -31,6 +31,71 @@ export interface Period {
   end_date: string;
   is_closed: boolean;
   period_number: number;
+  academic_year?: AcademicYear;
+  academicYear?: AcademicYear;
+}
+
+export interface AcademicPeriodHistorySummary {
+  period?: {
+    id: string;
+    name: string;
+    period_number: number;
+    is_closed: boolean;
+  };
+  academic_year?: {
+    id: string;
+    year?: number | string;
+  };
+  totals?: {
+    students_count: number;
+    evaluations_count: number;
+    attendance_count: number;
+    assignments_count: number;
+    task_submissions_count: number;
+    assignment_submissions_count: number;
+    messages_count: number;
+  };
+  coverage?: {
+    students_with_evaluations: number;
+    students_with_attendance: number;
+    students_with_assignments: number;
+    students_with_messages: number;
+    evaluation_coverage_rate: number;
+    attendance_coverage_rate: number;
+    assignment_coverage_rate: number;
+    message_coverage_rate: number;
+  };
+  notes?: string[];
+}
+
+export interface AcademicPeriodHistory {
+  id: string;
+  period_id: string;
+  academic_year_id: string;
+  generated_by?: number | null;
+  generated_at: string;
+  is_finalized: boolean;
+  students_count: number;
+  evaluations_count: number;
+  attendance_count: number;
+  assignments_count: number;
+  task_submissions_count: number;
+  assignment_submissions_count: number;
+  messages_count: number;
+  summary?: AcademicPeriodHistorySummary | null;
+  period?: Period;
+  academic_year?: AcademicYear;
+  academicYear?: AcademicYear;
+}
+
+export interface AcademicPeriodStudentSnapshot {
+  id: string;
+  academic_period_history_id: string;
+  student_id: string;
+  section_id?: string | null;
+  student_code?: string | null;
+  student_name: string;
+  snapshot: any;
 }
 
 export interface Course {
@@ -84,6 +149,26 @@ export interface StudentCourseEnrollment {
   section?: any;
   academic_year?: any;
   academicYear?: any;
+}
+
+export interface StudentRecordLite {
+  id: string;
+  user_id?: string | null;
+  student_code?: string;
+  first_name?: string;
+  last_name?: string;
+  dni?: string;
+}
+
+export interface GuardianRecordLite {
+  id: string;
+  user_id?: string | null;
+  first_name?: string;
+  last_name?: string;
+  dni?: string;
+  email?: string;
+  phone?: string;
+  relationship?: string;
 }
 
 @Injectable({
@@ -157,6 +242,14 @@ export class AcademicService {
     return this.http.delete(`${this.apiUrl}/periods/${id}`);
   }
 
+  getPeriodHistory(periodId: string, params?: any): Observable<any> {
+    return this.http.get(`${this.apiUrl}/periods/${periodId}/history`, { params });
+  }
+
+  regeneratePeriodHistory(periodId: string): Observable<any> {
+    return this.http.post(`${this.apiUrl}/periods/${periodId}/history/regenerate`, {});
+  }
+
   getCourses(params?: any): Observable<any> {
     return this.http.get(`${this.apiUrl}/courses`, { params });
   }
@@ -227,5 +320,9 @@ export class AcademicService {
 
   getStudents(params?: any): Observable<any> {
     return this.http.get(`${environment.apiUrl}/students`, { params });
+  }
+
+  getGuardians(params?: any): Observable<any> {
+    return this.http.get(`${environment.apiUrl}/guardians`, { params });
   }
 }

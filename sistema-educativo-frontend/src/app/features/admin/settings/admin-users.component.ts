@@ -1,260 +1,127 @@
+//src/app/features/admin/settings/admin-users.component.ts
 import { Component, OnInit, inject, signal } from '@angular/core';
 import { CommonModule } from '@angular/common';
-import { UserService, UserProfile } from '@core/services/user.service';
-import { Router } from '@angular/router';
 import { FormsModule } from '@angular/forms';
+import Swal from 'sweetalert2';
+import { AcademicService, Section, StudentRecordLite } from '@core/services/academic.service';
+import { CreateUserPayload, UserProfile, UserService } from '@core/services/user.service';
 import { BackButtonComponent } from '@shared/components/back-button/back-button.component';
 import { SettingMetricCardComponent } from '@shared/components/setting-metric-card/setting-metric-card.component';
-import Swal from 'sweetalert2';
+
+type RoleOption = {
+  value: string;
+  label: string;
+};
+
+type CreateUserForm = {
+  name: string;
+  email: string;
+  role: string;
+  password: string;
+  dni: string;
+  phone: string;
+  address: string;
+  specialization: string;
+  hire_date: string;
+  birth_date: string;
+  gender: string;
+  section_id: string;
+  enrollment_date: string;
+  relationship: string;
+  is_primary: boolean;
+  related_student_id: string;
+  relationship_is_primary: boolean;
+};
 
 @Component({
   selector: 'app-admin-users',
   standalone: true,
   imports: [CommonModule, FormsModule, BackButtonComponent, SettingMetricCardComponent],
-  template: `
-    <div class="min-h-[calc(100vh-80px)] p-6 sm:p-10 max-w-7xl mx-auto space-y-8 animate-fade-in text-slate-700">
-      
-      <app-back-button></app-back-button>
-
-      <!-- Header Section -->
-
-      <!-- Header Section -->
-      <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-6">
-        <div class="space-y-1">
-          <h1 class="text-3xl font-bold text-[#0F172A] tracking-tight">Gestión de Usuarios</h1>
-          <p class="text-slate-500 text-sm font-medium">Administra usuarios, roles y permisos del sistema</p>
-        </div>
-        <button (click)="openCreateModal()" 
-                class="px-6 py-3 bg-gradient-to-r from-[#0E3A8A] to-[#C026D3] hover:opacity-90 text-white text-sm font-bold rounded-2xl transition-all shadow-lg active:scale-95 flex items-center justify-center gap-2">
-          <svg class="w-5 h-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3"><path d="M16 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><line x1="19" y1="8" x2="19" y2="14"/><line x1="16" y1="11" x2="22" y2="11"/></svg>
-          Crear Usuario
-        </button>
-      </div>
-
-      <!-- Stats Cards -->
-      <div class="flex flex-wrap gap-3 mt-2 mb-6">
-        <app-setting-metric-card label="Total Usuarios" [value]="stats().total"></app-setting-metric-card>
-        <app-setting-metric-card label="Activos" [value]="stats().active"></app-setting-metric-card>
-        <app-setting-metric-card label="Inactivos" [value]="stats().inactive"></app-setting-metric-card>
-        <app-setting-metric-card label="Docentes" [value]="stats().teachers"></app-setting-metric-card>
-      </div>
-
-      <!-- Filter Pill -->
-      <div class="bg-white border border-slate-100/50 rounded-[2rem] p-4 shadow-sm flex flex-col md:flex-row items-center gap-4 px-6">
-        <div class="flex items-center gap-4 flex-1 w-full">
-          <div class="text-slate-400">
-            <svg class="w-5 h-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
-          </div>
-          <input type="text" [(ngModel)]="filters.q" (input)="loadUsers()" placeholder="Buscar por email o nombre..." 
-                 class="flex-1 bg-transparent border-none text-sm font-bold text-[#0F172A] focus:ring-0 placeholder-slate-300">
-        </div>
-        <div class="flex items-center gap-4 w-full md:w-auto">
-          <select [(ngModel)]="filters.role" (change)="loadUsers()" 
-                  class="w-full md:w-40 bg-slate-50 border-none rounded-xl text-xs font-bold text-[#0F172A] uppercase tracking-tighter focus:ring-0 cursor-pointer py-2 px-4">
-            <option value="Todos">Todos los roles</option>
-            <option value="admin">Administrador</option>
-            <option value="teacher">Docente</option>
-            <option value="student">Estudiante</option>
-            <option value="guardian">Apoderado</option>
-          </select>
-          <select [(ngModel)]="filters.isActive" (change)="loadUsers()" 
-                  class="w-full md:w-40 bg-slate-50 border-none rounded-xl text-xs font-bold text-[#0F172A] uppercase tracking-tighter focus:ring-0 cursor-pointer py-2 px-4">
-            <option [ngValue]="undefined">Todos los estados</option>
-            <option [ngValue]="true">Activo</option>
-            <option [ngValue]="false">Inactivo</option>
-          </select>
-        </div>
-      </div>
-
-      <!-- Loading State -->
-      <div *ngIf="loading()" class="flex justify-center py-12">
-        <div class="animate-spin rounded-full h-12 w-12 border-b-2 border-[#0E3A8A]"></div>
-      </div>
-
-      <!-- Users Table -->
-      <div *ngIf="!loading()" class="bg-white border border-slate-100 rounded-[2.5rem] overflow-hidden shadow-sm">
-        <div class="overflow-x-auto">
-          <table class="w-full text-left border-collapse">
-            <thead>
-              <tr class="bg-slate-50/50 border-b border-slate-100">
-                <th class="px-8 py-5 text-[10px] font-bold text-slate-400 uppercase tracking-[0.2em]">Usuario</th>
-                <th class="px-8 py-5 text-[10px] font-bold text-slate-400 uppercase tracking-[0.2em]">Rol</th>
-                <th class="px-8 py-5 text-[10px] font-bold text-slate-400 uppercase tracking-[0.2em]">Estado</th>
-                <th class="px-8 py-5 text-[10px] font-bold text-slate-400 uppercase tracking-[0.2em]">Fecha Creación</th>
-                <th class="px-8 py-5 text-right text-[10px] font-bold text-slate-400 uppercase tracking-[0.2em]">Acciones</th>
-              </tr>
-            </thead>
-            <tbody class="divide-y divide-slate-50">
-              <tr *ngFor="let user of users()" class="hover:bg-slate-50/50 transition-colors group">
-                <td class="px-8 py-5">
-                  <div class="flex items-center gap-3">
-                    <div class="w-10 h-10 rounded-full bg-gradient-to-br from-slate-100 to-slate-200 border border-white shadow-sm flex items-center justify-center text-slate-500 font-bold text-xs uppercase">
-                      {{ user.full_name.charAt(0) || 'U' }}
-                    </div>
-                    <div class="flex flex-col">
-                      <span class="text-sm font-bold text-[#0F172A] leading-tight tracking-tight uppercase">{{ user.full_name }}</span>
-                      <span class="text-[10px] font-semibold text-slate-400 lowercase">{{ user.email }}</span>
-                    </div>
-                  </div>
-                </td>
-                <td class="px-8 py-5 text-sm font-medium">
-                  <span [class]="'px-3 py-1 rounded-full text-[9px] font-bold uppercase tracking-widest border ' + getRoleClass(user.role)">
-                    {{ user.role }}
-                  </span>
-                </td>
-                <td class="px-8 py-5">
-                  <div class="flex items-center gap-2">
-                    <span [class]="'w-2 h-2 rounded-full ' + (user.is_active ? 'bg-green-500 shadow-[0_0_8px_rgba(34,197,94,0.4)]' : 'bg-red-500 shadow-[0_0_8px_rgba(239,68,68,0.4)]')"></span>
-                    <span class="text-[10px] font-black uppercase tracking-widest" [class]="user.is_active ? 'text-green-600' : 'text-red-600'">
-                      {{ user.is_active ? 'Activo' : 'Inactivo' }}
-                    </span>
-                  </div>
-                </td>
-                <td class="px-8 py-5 text-[11px] font-semibold text-slate-400 uppercase tracking-tighter">
-                  {{ user.created_at | date:'dd MMM yyyy' }}
-                </td>
-                <td class="px-8 py-5">
-                  <div class="flex justify-end gap-2">
-                    <button class="p-2.5 bg-white text-[#0E3A8A] border-2 border-slate-50 hover:border-[#0E3A8A] rounded-xl transition-all shadow-sm active:scale-95 group/edit">
-                      <svg class="w-3.5 h-3.5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/></svg>
-                    </button>
-                    <button class="p-2.5 bg-red-50 text-red-600 border-2 border-transparent hover:bg-red-600 hover:text-white rounded-xl transition-all active:scale-95" (click)="deleteUser(user)">
-                      <svg class="w-3.5 h-3.5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3"><path d="M18 6L6 18M6 6l12 12"/></svg>
-                    </button>
-                  </div>
-                </td>
-              </tr>
-            </tbody>
-          </table>
-          <!-- Empty State -->
-          <div *ngIf="users().length === 0" class="p-12 text-center">
-            <p class="text-slate-400 font-bold uppercase tracking-widest text-center">No se encontraron usuarios</p>
-          </div>
-        </div>
-      </div>
-
-      <!-- Create User Modal -->
-      <div *ngIf="showModal()" class="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/60 backdrop-blur-sm animate-fade-in">
-        <div class="bg-white w-full max-w-lg rounded-[2.5rem] shadow-2xl overflow-hidden animate-slide-up border border-slate-100">
-          <!-- Modal Header -->
-          <div class="p-8 pb-0 flex justify-between items-center">
-            <div>
-              <h2 class="text-2xl font-bold text-[#0F172A] uppercase tracking-tight">Crear Nuevo Usuario</h2>
-              <p class="text-slate-400 text-[10px] font-bold uppercase tracking-widest mt-1">Completa los datos del perfil</p>
-            </div>
-            <button (click)="closeModal()" class="p-2 hover:bg-slate-50 rounded-xl transition-colors">
-              <svg class="w-6 h-6 text-slate-400" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M18 6L6 18M6 6l12 12"/></svg>
-            </button>
-          </div>
-
-          <!-- Modal Body -->
-          <form (submit)="createUser($event)" class="p-8 space-y-5">
-            <div class="space-y-2">
-              <label class="text-[10px] font-bold text-slate-400 uppercase tracking-widest ml-1">Nombre Completo</label>
-              <input type="text" [(ngModel)]="newUser.name" name="name" required
-                     placeholder="Ej: Juan Perez"
-                     class="w-full bg-slate-50 border-none rounded-[1.25rem] px-5 py-3.5 text-sm font-bold text-[#0F172A] focus:ring-2 focus:ring-[#0E3A8A]/10 placeholder-slate-300 shadow-inner">
-            </div>
-
-            <div class="space-y-2">
-              <label class="text-[10px] font-bold text-slate-400 uppercase tracking-widest ml-1">Email Institucional</label>
-              <input type="email" [(ngModel)]="newUser.email" name="email" required
-                     placeholder="usuario@cermatschool.edu.pe"
-                     class="w-full bg-slate-50 border-none rounded-[1.25rem] px-5 py-3.5 text-sm font-bold text-[#0F172A] focus:ring-2 focus:ring-[#0E3A8A]/10 placeholder-slate-300 shadow-inner">
-            </div>
-
-            <div class="grid grid-cols-2 gap-4">
-              <div class="space-y-2">
-                <label class="text-[10px] font-bold text-slate-400 uppercase tracking-widest ml-1">Rol del Sistema</label>
-                <select [(ngModel)]="newUser.role" name="role" required
-                        class="w-full bg-slate-50 border-none rounded-[1.25rem] px-5 py-3.5 text-xs font-bold text-[#0F172A] uppercase focus:ring-2 focus:ring-[#0E3A8A]/10 cursor-pointer shadow-inner">
-                  <option value="admin">Administrador</option>
-                  <option value="teacher">Docente</option>
-                  <option value="student">Estudiante</option>
-                  <option value="guardian">Apoderado</option>
-                </select>
-              </div>
-              <div class="space-y-2">
-                <label class="text-[10px] font-bold text-slate-400 uppercase tracking-widest ml-1">Contraseña</label>
-                <input type="password" [(ngModel)]="newUser.password" name="password" required
-                       placeholder="••••••••"
-                       class="w-full bg-slate-50 border-none rounded-[1.25rem] px-5 py-3.5 text-sm font-bold text-[#0F172A] focus:ring-2 focus:ring-[#0E3A8A]/10 placeholder-slate-300 shadow-inner">
-              </div>
-            </div>
-
-            <!-- Action Buttons -->
-            <div class="flex gap-4 pt-4">
-              <button type="button" (click)="closeModal()"
-                      class="flex-1 px-6 py-4 border-2 border-slate-50 rounded-[1.5rem] text-xs font-bold text-slate-400 uppercase tracking-widest hover:border-slate-200 transition-all active:scale-95">
-                Cancelar
-              </button>
-              <button type="submit" [disabled]="submitting()"
-                      class="flex-[2] px-6 py-4 bg-gradient-to-r from-[#0E3A8A] to-[#C026D3] text-white text-xs font-bold rounded-[1.5rem] uppercase tracking-widest shadow-lg shadow-blue-500/20 active:scale-95 transition-all disabled:opacity-50">
-                {{ submitting() ? 'CREANDO...' : 'CONFIRMAR CREACIÓN' }}
-              </button>
-            </div>
-          </form>
-        </div>
-      </div>
-    </div>
-  `,
-  styles: [`
-    :host { display: block; }
-    .animate-fade-in { animation: fadeIn 0.4s ease-out; }
-    .animate-slide-up { animation: slideUp 0.5s cubic-bezier(0.16, 1, 0.3, 1); }
-    @keyframes fadeIn { from { opacity: 0; } to { opacity: 1; } }
-    @keyframes slideUp { from { opacity: 0; transform: translateY(20px); } to { opacity: 1; transform: translateY(0); } }
-  `]
+  templateUrl: './admin-users.component.html',
+  styleUrls: ['./admin-users.component.css']
 })
 export class AdminUsersComponent implements OnInit {
-  userService = inject(UserService);
-  router = inject(Router);
+  private readonly userService = inject(UserService);
+  private readonly academicService = inject(AcademicService);
+  private studentSearchDebounce?: ReturnType<typeof setTimeout>;
 
-  users = signal<UserProfile[]>([]);
-  loading = signal(false);
-  showModal = signal(false);
-  submitting = signal(false);
-  
-  newUser = {
-    name: '',
-    email: '',
-    role: 'student',
-    password: ''
-  };
+  readonly users = signal<UserProfile[]>([]);
+  readonly sections = signal<Section[]>([]);
+  readonly students = signal<StudentRecordLite[]>([]);
+  readonly loading = signal(false);
+  readonly showModal = signal(false);
+  readonly submitting = signal(false);
+  readonly searchingStudents = signal(false);
+  readonly academicRoleValues = ['teacher', 'student', 'guardian'];
 
-  stats = signal({
+  readonly roleOptions: RoleOption[] = [
+    { value: 'admin', label: 'Administrador' },
+    { value: 'director', label: 'Director' },
+    { value: 'coordinator', label: 'Coordinador' },
+    { value: 'secretary', label: 'Secretaria' },
+    { value: 'teacher', label: 'Docente' },
+    { value: 'student', label: 'Estudiante' },
+    { value: 'guardian', label: 'Apoderado' },
+    { value: 'cashier', label: 'Caja' },
+    { value: 'administrative', label: 'Administrativo' },
+    { value: 'finance', label: 'Finanzas' },
+    { value: 'web_editor', label: 'Editor Web' }
+  ];
+
+  newUser: CreateUserForm = this.getEmptyUserForm();
+  studentSearchText = '';
+
+  readonly stats = signal({
     total: 0,
     active: 0,
     inactive: 0,
     teachers: 0
   });
 
-  filters = {
+  readonly filters = {
     role: 'Todos',
     isActive: undefined as boolean | undefined,
     q: ''
   };
 
+  get simpleRoleCount(): number {
+    return this.roleOptions.length - this.academicRoleValues.length;
+  }
+
+  get academicRoleCount(): number {
+    return this.academicRoleValues.length;
+  }
+
+  get currentViewCount(): number {
+    return this.users().length;
+  }
+
+  get academicUsersCount(): number {
+    return this.users().filter((user) => !this.isSimpleRole(user.role)).length;
+  }
+
+  get operationalUsersCount(): number {
+    return this.users().filter((user) => this.isSimpleRole(user.role)).length;
+  }
+
   ngOnInit() {
     this.loadUsers();
     this.loadStats();
+    this.loadSections();
   }
 
   loadStats() {
     this.userService.getStats().subscribe({
-      next: (res) => {
-        // the backend returns { stats: { total: X, active: Y, ... } }
-        const data = res.data || res;
-        if (data && typeof data === 'object') {
-            this.stats.set({
-               total: data.total || 0,
-               active: data.active || 0,
-               inactive: data.inactive || 0,
-               teachers: data.teachers || 0
-            });
-        }
+      next: (response) => {
+        const data = response?.data || response;
+        this.stats.set({
+          total: data?.total || 0,
+          active: data?.active || 0,
+          inactive: data?.inactive || 0,
+          teachers: data?.teachers || 0
+        });
       },
-      error: (err) => console.error('Error loading stats:', err)
+      error: (error) => console.error('Error loading stats:', error)
     });
   }
 
@@ -266,89 +133,333 @@ export class AdminUsersComponent implements OnInit {
       q: this.filters.q,
       per_page: 50
     }).subscribe({
-      next: (res) => {
-        this.users.set(res.data);
+      next: (response) => {
+        this.users.set(response.data || []);
         this.loading.set(false);
       },
-      error: (err) => {
-        console.error('Error loading users:', err);
+      error: (error) => {
+        console.error('Error loading users:', error);
         this.loading.set(false);
       }
     });
   }
 
-  updateStats(users: UserProfile[]) {
-    this.stats.set({
-      total: users.length,
-      active: users.filter(u => u.is_active).length,
-      inactive: users.filter(u => !u.is_active).length,
-      teachers: users.filter(u => (u.role as string).toLowerCase() === 'teacher').length
+  loadSections() {
+    this.academicService.getSections({ per_page: 200, simple: true }).subscribe({
+      next: (response) => {
+        this.sections.set(this.normalizeCollection<Section>(response));
+      },
+      error: (error) => {
+        console.error('Error loading sections:', error);
+        this.sections.set([]);
+      }
     });
   }
 
+  trackByUser(_: number, user: UserProfile) {
+    return user.id;
+  }
+
   getRoleClass(role: string) {
-    const r = role?.toLowerCase();
-    switch (r) {
-      case 'admin': return 'bg-red-50 text-red-600 border-red-100';
-      case 'teacher': case 'docente': return 'bg-blue-50 text-blue-600 border-blue-100';
-      case 'student': case 'estudiante': return 'bg-yellow-50 text-yellow-600 border-yellow-100';
-      case 'apoderado': case 'guardian': return 'bg-orange-50 text-orange-600 border-orange-100';
-      default: return 'bg-slate-50 text-slate-600 border-slate-100';
+    switch ((role || '').toLowerCase()) {
+      case 'admin':
+        return 'bg-red-50 text-red-600 border-red-100';
+      case 'director':
+        return 'bg-fuchsia-50 text-fuchsia-600 border-fuchsia-100';
+      case 'coordinator':
+        return 'bg-violet-50 text-violet-600 border-violet-100';
+      case 'secretary':
+        return 'bg-cyan-50 text-cyan-600 border-cyan-100';
+      case 'teacher':
+      case 'docente':
+        return 'bg-blue-50 text-blue-600 border-blue-100';
+      case 'student':
+      case 'estudiante':
+        return 'bg-yellow-50 text-yellow-700 border-yellow-100';
+      case 'guardian':
+      case 'apoderado':
+        return 'bg-orange-50 text-orange-600 border-orange-100';
+      case 'cashier':
+        return 'bg-emerald-50 text-emerald-600 border-emerald-100';
+      case 'finance':
+        return 'bg-lime-50 text-lime-700 border-lime-100';
+      case 'web_editor':
+        return 'bg-pink-50 text-pink-600 border-pink-100';
+      case 'administrative':
+        return 'bg-slate-100 text-slate-700 border-slate-200';
+      default:
+        return 'bg-slate-50 text-slate-600 border-slate-100';
     }
   }
 
+  getRoleLabel(role: string) {
+    const option = this.roleOptions.find((item) => item.value === (role || '').toLowerCase());
+    return option?.label || role;
+  }
+
+  getRoleHelperText() {
+    switch (this.newUser.role) {
+      case 'teacher':
+        return 'Crea user, profile y teachers en una sola operacion';
+      case 'student':
+        return 'Crea user, profile y students con codigo academico automatico';
+      case 'guardian':
+        return 'Crea user, profile y guardians para el apoderado y opcion de vincular estudiante';
+      case 'finance':
+        return 'Crea user y profile para finanzas sin tabla academica adicional';
+      case 'web_editor':
+        return 'Crea user y profile para la gestion del sitio web institucional';
+      default:
+        return 'Crea user y profile para roles administrativos';
+    }
+  }
+
+  getRoleScopeLabel(role: string) {
+    return this.isSimpleRole(role) ? 'Perfil simple' : 'Perfil academico';
+  }
+
+  getRoleRecordTargets(role: string) {
+    switch ((role || '').toLowerCase()) {
+      case 'teacher':
+        return ['users', 'profiles', 'teachers'];
+      case 'student':
+        return ['users', 'profiles', 'students'];
+      case 'guardian':
+        return ['users', 'profiles', 'guardians'];
+      default:
+        return ['users', 'profiles'];
+    }
+  }
+
+  getSectionLabel(section: Section) {
+    const grade = (section as any).gradeLevel?.name || (section as any).grade_level?.name || 'Grado';
+    const letter = section.section_letter || section.name || '';
+    return `${grade} - Seccion ${letter}`.trim();
+  }
+
+  getStudentLabel(student: StudentRecordLite) {
+    const fullName = `${student.first_name || ''} ${student.last_name || ''}`.trim() || 'Estudiante';
+    const code = student.student_code ? ` - ${student.student_code}` : '';
+    return `${fullName}${code}`;
+  }
+
+  isSimpleRole(role: string) {
+    return !this.academicRoleValues.includes((role || '').toLowerCase());
+  }
+
   openCreateModal() {
+    this.newUser = this.getEmptyUserForm();
+    this.studentSearchText = '';
+    this.students.set([]);
     this.showModal.set(true);
   }
 
   closeModal() {
     this.showModal.set(false);
-    this.newUser = { name: '', email: '', role: 'student', password: '' };
+    this.newUser = this.getEmptyUserForm();
+    this.studentSearchText = '';
+    this.students.set([]);
   }
 
   createUser(event: Event) {
     event.preventDefault();
-    if (this.submitting()) return;
+
+    if (this.submitting()) {
+      return;
+    }
+
+    const payload = this.buildPayload();
 
     this.submitting.set(true);
-    this.userService.createUser(this.newUser).subscribe({
+    this.userService.createUser(payload).subscribe({
       next: () => {
         this.submitting.set(false);
         this.closeModal();
         this.loadUsers();
         this.loadStats();
         Swal.fire({
-          icon: 'success', title: 'Usuario creado', toast: true, position: 'top-end', timer: 3000, showConfirmButton: false
+          icon: 'success',
+          title: `${this.getRoleLabel(payload.role)} creado`,
+          toast: true,
+          position: 'top-end',
+          timer: 3000,
+          showConfirmButton: false
         });
       },
-      error: (err) => {
+      error: (error) => {
         this.submitting.set(false);
-        Swal.fire('Error', err.error?.message || 'Error al crear usuario', 'error');
+        Swal.fire('Error', this.getErrorMessage(error), 'error');
       }
     });
   }
 
   deleteUser(user: UserProfile) {
     Swal.fire({
-      title: `¿Eliminar a ${user.full_name}?`,
-      text: "Esta acción no se puede deshacer",
+      title: `Eliminar a ${user.full_name}?`,
+      text: 'Esta accion no se puede deshacer',
       icon: 'warning',
       showCancelButton: true,
       confirmButtonColor: '#d33',
       cancelButtonColor: '#3085d6',
-      confirmButtonText: 'Sí, eliminar',
+      confirmButtonText: 'Si, eliminar',
       cancelButtonText: 'Cancelar'
     }).then((result: any) => {
-      if (result.isConfirmed) {
-        this.userService.deleteProfile(user.id).subscribe({
-           next: () => {
-             Swal.fire({ icon: 'success', title: 'Eliminado', toast: true, position: 'top-end', timer: 3000, showConfirmButton: false });
-             this.loadUsers();
-             this.loadStats();
-           },
-           error: (err) => Swal.fire('Error', err.error?.message || 'No se pudo eliminar el usuario', 'error')
-        });
+      if (!result.isConfirmed) {
+        return;
       }
+
+      const deleteRequest = user.user_id
+        ? this.userService.deleteUser(user.user_id)
+        : this.userService.deleteProfile(user.id);
+
+      deleteRequest.subscribe({
+        next: () => {
+          Swal.fire({
+            icon: 'success',
+            title: 'Eliminado',
+            toast: true,
+            position: 'top-end',
+            timer: 3000,
+            showConfirmButton: false
+          });
+          this.loadUsers();
+          this.loadStats();
+        },
+        error: (error) => Swal.fire('Error', error.error?.message || 'No se pudo eliminar el usuario', 'error')
+      });
     });
+  }
+
+  onStudentSearchChange(query: string) {
+    this.studentSearchText = query;
+
+    if (!query.trim()) {
+      this.newUser.related_student_id = '';
+      this.newUser.relationship_is_primary = false;
+      this.students.set([]);
+      return;
+    }
+
+    if (query.trim().length < 2) {
+      this.students.set([]);
+      return;
+    }
+
+    if (this.studentSearchDebounce) {
+      clearTimeout(this.studentSearchDebounce);
+    }
+
+    this.studentSearchDebounce = setTimeout(() => {
+      this.searchingStudents.set(true);
+      this.academicService.getStudents({ q: query.trim(), per_page: 15 }).subscribe({
+        next: (response) => {
+          this.students.set(this.normalizeCollection<StudentRecordLite>(response));
+          this.searchingStudents.set(false);
+        },
+        error: (error) => {
+          console.error('Error searching students:', error);
+          this.students.set([]);
+          this.searchingStudents.set(false);
+        }
+      });
+    }, 250);
+  }
+
+  selectStudent(student: StudentRecordLite) {
+    this.newUser.related_student_id = student.id;
+    this.studentSearchText = this.getStudentLabel(student);
+    this.students.set([]);
+  }
+
+  clearStudentSelection() {
+    this.newUser.related_student_id = '';
+    this.newUser.relationship_is_primary = false;
+    this.studentSearchText = '';
+    this.students.set([]);
+  }
+
+  private getEmptyUserForm(): CreateUserForm {
+    return {
+      name: '',
+      email: '',
+      role: 'teacher',
+      password: '',
+      dni: '',
+      phone: '',
+      address: '',
+      specialization: '',
+      hire_date: '',
+      birth_date: '',
+      gender: '',
+      section_id: '',
+      enrollment_date: '',
+      relationship: '',
+      is_primary: false,
+      related_student_id: '',
+      relationship_is_primary: false
+    };
+  }
+
+  private buildPayload(): CreateUserPayload {
+    const payload: CreateUserPayload = {
+      name: this.newUser.name.trim(),
+      email: this.newUser.email.trim(),
+      role: this.newUser.role,
+      password: this.newUser.password
+    };
+
+    if (this.newUser.dni.trim()) {
+      payload.dni = this.newUser.dni.trim();
+    }
+
+    switch (this.newUser.role) {
+      case 'teacher':
+        if (this.newUser.phone.trim()) payload.phone = this.newUser.phone.trim();
+        if (this.newUser.specialization.trim()) payload.specialization = this.newUser.specialization.trim();
+        if (this.newUser.hire_date) payload.hire_date = this.newUser.hire_date;
+        break;
+      case 'student':
+        if (this.newUser.birth_date) payload.birth_date = this.newUser.birth_date;
+        if (this.newUser.gender) payload.gender = this.newUser.gender;
+        if (this.newUser.address.trim()) payload.address = this.newUser.address.trim();
+        if (this.newUser.section_id) payload.section_id = this.newUser.section_id;
+        if (this.newUser.enrollment_date) payload.enrollment_date = this.newUser.enrollment_date;
+        break;
+      case 'guardian':
+        if (this.newUser.phone.trim()) payload.phone = this.newUser.phone.trim();
+        if (this.newUser.address.trim()) payload.address = this.newUser.address.trim();
+        if (this.newUser.relationship.trim()) payload.relationship = this.newUser.relationship.trim();
+        payload.is_primary = this.newUser.is_primary;
+        if (this.newUser.related_student_id) payload.related_student_id = this.newUser.related_student_id;
+        if (this.newUser.related_student_id) payload.relationship_is_primary = this.newUser.relationship_is_primary;
+        break;
+    }
+
+    return payload;
+  }
+
+  private getErrorMessage(error: any) {
+    const validationErrors = error?.error?.errors;
+    if (validationErrors && typeof validationErrors === 'object') {
+      const firstKey = Object.keys(validationErrors)[0];
+      const firstMessage = validationErrors[firstKey]?.[0];
+      if (firstMessage) {
+        return firstMessage;
+      }
+    }
+
+    return error?.error?.message || 'Error al crear usuario';
+  }
+
+  private normalizeCollection<T>(response: any): T[] {
+    if (Array.isArray(response?.data)) {
+      return response.data;
+    }
+
+    if (Array.isArray(response)) {
+      return response;
+    }
+
+    return [];
   }
 }
