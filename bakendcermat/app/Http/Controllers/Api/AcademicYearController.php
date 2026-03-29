@@ -8,12 +8,13 @@ use App\Http\Requests\UpdateAcademicYearRequest;
 use App\Models\AcademicYear;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\DB;
 
 class AcademicYearController extends Controller
 {
     public function index(Request $request): JsonResponse
     {
-        $query = AcademicYear::query();
+        $query = AcademicYear::query()->withCount($this->countableRelations());
 
         if ($request->has('year')) {
             $query->where('year', $request->year);
@@ -23,7 +24,7 @@ class AcademicYearController extends Controller
             $query->where('is_active', filter_var($request->is_active, FILTER_VALIDATE_BOOLEAN));
         }
 
-        $perPage   = $request->integer('per_page', 20);
+        $perPage = $request->integer('per_page', 20);
         $useSimple = $request->boolean('simple', false);
         $query->orderByDesc('year');
 
@@ -34,25 +35,28 @@ class AcademicYearController extends Controller
 
     public function store(StoreAcademicYearRequest $request): JsonResponse
     {
-        // Si el nuevo año se marca activo, desactiva los demás
-        if ($request->boolean('is_active')) {
-            AcademicYear::where('is_active', true)->update(['is_active' => false]);
-        }
+        $year = DB::transaction(function () use ($request) {
+            if ($request->boolean('is_active')) {
+                AcademicYear::where('is_active', true)->update(['is_active' => false]);
+            }
 
-        $year = AcademicYear::create($request->validated());
+            return AcademicYear::create($request->validated());
+        });
 
         return response()->json([
-            'message' => 'Año académico creado correctamente.',
-            'data'    => $year,
+            'message' => 'Ano academico creado correctamente.',
+            'data' => $year->loadCount($this->countableRelations()),
         ], 201);
     }
 
     public function show($id): JsonResponse
     {
-        $year = AcademicYear::find($id);
+        $year = AcademicYear::query()
+            ->withCount($this->countableRelations())
+            ->find($id);
 
         if (!$year) {
-            return response()->json(['message' => 'Año académico no encontrado.'], 404);
+            return response()->json(['message' => 'Ano academico no encontrado.'], 404);
         }
 
         return response()->json(['data' => $year]);
@@ -63,21 +67,22 @@ class AcademicYearController extends Controller
         $year = AcademicYear::find($id);
 
         if (!$year) {
-            return response()->json(['message' => 'Año académico no encontrado.'], 404);
+            return response()->json(['message' => 'Ano academico no encontrado.'], 404);
         }
 
-        // Si este año se marca activo, desactiva los demás (excepto el actual)
-        if ($request->boolean('is_active')) {
-            AcademicYear::where('is_active', true)
-                ->where('id', '!=', $id)
-                ->update(['is_active' => false]);
-        }
+        DB::transaction(function () use ($request, $id, $year) {
+            if ($request->boolean('is_active')) {
+                AcademicYear::where('is_active', true)
+                    ->where('id', '!=', $id)
+                    ->update(['is_active' => false]);
+            }
 
-        $year->update($request->validated());
+            $year->update($request->validated());
+        });
 
         return response()->json([
-            'message' => 'Año académico actualizado correctamente.',
-            'data'    => $year->fresh(),
+            'message' => 'Ano academico actualizado correctamente.',
+            'data' => $year->fresh()->loadCount($this->countableRelations()),
         ]);
     }
 
@@ -86,11 +91,40 @@ class AcademicYearController extends Controller
         $year = AcademicYear::find($id);
 
         if (!$year) {
-            return response()->json(['message' => 'Año académico no encontrado.'], 404);
+            return response()->json(['message' => 'Ano academico no encontrado.'], 404);
+        }
+
+        if ($year->is_active) {
+            return response()->json([
+                'message' => 'No se puede eliminar el ano academico activo.',
+            ], 422);
+        }
+
+        $hasRelations = $year->periods()->exists()
+            || $year->sections()->exists()
+            || $year->periodHistories()->exists()
+            || $year->studentDiscounts()->exists()
+            || $year->financialPlans()->exists();
+
+        if ($hasRelations) {
+            return response()->json([
+                'message' => 'No se puede eliminar el ano academico porque tiene registros relacionados.',
+            ], 422);
         }
 
         $year->delete();
 
-        return response()->json(['message' => 'Año académico eliminado correctamente.']);
+        return response()->json(['message' => 'Ano academico eliminado correctamente.']);
+    }
+
+    private function countableRelations(): array
+    {
+        return [
+            'periods',
+            'sections',
+            'periodHistories',
+            'studentDiscounts',
+            'financialPlans',
+        ];
     }
 }

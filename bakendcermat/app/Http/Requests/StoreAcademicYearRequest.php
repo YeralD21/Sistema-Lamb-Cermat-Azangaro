@@ -2,6 +2,7 @@
 
 namespace App\Http\Requests;
 
+use App\Models\AcademicYear;
 use Illuminate\Foundation\Http\FormRequest;
 use Illuminate\Validation\Rule;
 
@@ -37,5 +38,30 @@ class StoreAcademicYearRequest extends FormRequest
             'end_date.date'       => 'La fecha de fin no es válida.',
             'end_date.after'      => 'La fecha de fin debe ser posterior a la de inicio.',
         ];
+    }
+
+    public function withValidator($validator): void
+    {
+        $validator->after(function ($validator) {
+            if ($validator->errors()->isNotEmpty()) {
+                return;
+            }
+
+            $startDate = $this->input('start_date');
+            $endDate = $this->input('end_date');
+
+            if (!$startDate || !$endDate) {
+                return;
+            }
+
+            $overlapExists = AcademicYear::query()
+                ->whereDate('start_date', '<=', $endDate)
+                ->whereDate('end_date', '>=', $startDate)
+                ->exists();
+
+            if ($overlapExists) {
+                $validator->errors()->add('start_date', 'Las fechas se superponen con otro año académico.');
+            }
+        });
     }
 }

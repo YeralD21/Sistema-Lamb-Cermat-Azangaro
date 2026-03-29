@@ -4,12 +4,39 @@ import { Observable } from 'rxjs';
 import { environment } from '../../../environments/environment';
 import { AcademicYear } from '../models/AcademicYear';
 
+export interface ApiMessageResponse {
+  message: string;
+}
+
+export interface ApiDataResponse<T> extends ApiMessageResponse {
+  data: T;
+}
+
+export interface PaginatedResponse<T> {
+  current_page: number;
+  data: T[];
+  first_page_url?: string;
+  from?: number | null;
+  next_page_url?: string | null;
+  path?: string;
+  per_page?: number;
+  prev_page_url?: string | null;
+  to?: number | null;
+}
+
+export type CollectionApiResponse<T> =
+  | T[]
+  | { data: T[] }
+  | PaginatedResponse<T>
+  | { data: PaginatedResponse<T> };
 
 export interface GradeLevel {
   id: string;
   name: string;
   level: string;
   grade: number;
+  sections_count?: number;
+  courses_count?: number;
 }
 
 export interface Section {
@@ -21,6 +48,15 @@ export interface Section {
   capacity: number;
   vacancies?: number;
   is_active: boolean;
+  students_count?: number;
+  student_course_enrollments_count?: number;
+  teacher_course_assignments_count?: number;
+  course_schedules_count?: number;
+  assignments_count?: number;
+  announcements_count?: number;
+  attendances_count?: number;
+  grade_level?: GradeLevel;
+  academic_year?: AcademicYear;
 }
 
 export interface Period {
@@ -178,20 +214,20 @@ export class AcademicService {
   private http = inject(HttpClient);
   private apiUrl = environment.apiUrl;
 
-  getAcademicYears(params?: any): Observable<any> {
-    return this.http.get(`${this.apiUrl}/academic-years`, { params });
+  getAcademicYears(params?: Record<string, string | number | boolean>): Observable<CollectionApiResponse<AcademicYear>> {
+    return this.http.get<CollectionApiResponse<AcademicYear>>(`${this.apiUrl}/academic-years`, { params });
   }
 
-  createAcademicYear(data: Partial<AcademicYear>): Observable<any> {
-    return this.http.post(`${this.apiUrl}/academic-years`, data);
+  createAcademicYear(data: Partial<AcademicYear>): Observable<ApiDataResponse<AcademicYear>> {
+    return this.http.post<ApiDataResponse<AcademicYear>>(`${this.apiUrl}/academic-years`, data);
   }
 
-  updateAcademicYear(id: string, data: Partial<AcademicYear>): Observable<any> {
-    return this.http.put(`${this.apiUrl}/academic-years/${id}`, data);
+  updateAcademicYear(id: string, data: Partial<AcademicYear>): Observable<ApiDataResponse<AcademicYear>> {
+    return this.http.put<ApiDataResponse<AcademicYear>>(`${this.apiUrl}/academic-years/${id}`, data);
   }
 
-  deleteAcademicYear(id: string): Observable<any> {
-    return this.http.delete(`${this.apiUrl}/academic-years/${id}`);
+  deleteAcademicYear(id: string): Observable<ApiMessageResponse> {
+    return this.http.delete<ApiMessageResponse>(`${this.apiUrl}/academic-years/${id}`);
   }
 
   getGradeLevels(params?: any): Observable<any> {

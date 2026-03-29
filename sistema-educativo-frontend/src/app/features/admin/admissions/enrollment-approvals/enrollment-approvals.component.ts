@@ -129,7 +129,7 @@ export class EnrollmentApprovalsComponent implements OnInit {
   loadAcademicYears(): void {
     this.academicService.getAcademicYears({ per_page: 50 }).subscribe({
       next: (res) => {
-        this.academicYears = Array.isArray(res?.data) ? res.data : [];
+        this.academicYears = this.extractCollection<AcademicYearOption>(res);
       },
       error: (err) => console.error(err)
     });
@@ -185,6 +185,22 @@ export class EnrollmentApprovalsComponent implements OnInit {
     if (!name && !phone) return 'No registrado';
     if (name && phone) return `${name} - ${phone}`;
     return name || phone;
+  }
+
+  private extractCollection<T>(response: any): T[] {
+    if (Array.isArray(response)) {
+      return response;
+    }
+
+    if (Array.isArray(response?.data?.data)) {
+      return response.data.data;
+    }
+
+    if (Array.isArray(response?.data)) {
+      return response.data;
+    }
+
+    return [];
   }
 
   openDetailModal(app: EnrollmentApplication): void {

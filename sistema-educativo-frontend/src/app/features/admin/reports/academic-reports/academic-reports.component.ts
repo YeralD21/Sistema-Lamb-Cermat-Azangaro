@@ -86,7 +86,7 @@ export class AcademicReportsComponent implements OnInit {
     this.loading = true;
     this.academicService.getAcademicYears().subscribe({
       next: (res) => {
-        this.academicYears = res.data || res || [];
+        this.academicYears = this.extractCollection<AcademicYear>(res);
         this.selectedYear = this.academicYears.find((year) => year.is_active)?.id || '';
         this.loading = false;
         this.loadInitialFilters();
